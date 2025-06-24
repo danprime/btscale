@@ -303,19 +303,27 @@ var Scale = (function () {
 
 
     Scale.prototype.characteristicValueChanged = function (event) {
-
-    	this.queue.add(event.target.value.buffer);
-        // Log the raw data received from the scale
-        var value = event.target.value;
-        var rawBytes = new Uint8Array(value.buffer);
-        console.log('Raw notification data:', rawBytes);
-        // Fallback: if decode fails, try to display raw bytes as weight for debugging
+        var raw = new Uint8Array(event.target.value.buffer);
+        // Log raw bytes
+        console.log('Notification received, raw bytes:', raw);
+        // Display raw bytes in the UI for debugging
         var weightDiv = document.getElementById('weight-display');
         if (weightDiv) {
-            // Try to interpret the first 2 bytes as a little-endian integer (common for weight scales)
-            var rawWeight = rawBytes[0] | (rawBytes[1] << 8);
-            weightDiv.textContent = 'Raw Weight: ' + rawWeight + ' (raw bytes: ' + Array.from(rawBytes).join(', ') + ')';
+            weightDiv.textContent = 'Raw: [' + Array.from(raw).join(', ') + ']';
         }
+        // Add to queue for normal decode logic
+        this.queue.add(event.target.value.buffer);
+        // After queue processing, try to show decoded weight if available
+        var self = this;
+        setTimeout(function() {
+            if (weightDiv) {
+                if (self.weight !== null) {
+                    weightDiv.textContent = 'Weight: ' + self.weight + ' g\nRaw: [' + Array.from(raw).join(', ') + ']';
+                } else {
+                    weightDiv.textContent = 'Raw: [' + Array.from(raw).join(', ') + ']';
+                }
+            }
+        }, 100); // allow queue callback to run
     };
 
     Scale.prototype.disconnect = function () {
