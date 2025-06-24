@@ -404,7 +404,6 @@ var ScaleFinder = (function () {
     };
 
     ScaleFinder.prototype.startDiscovery = function () {
-
         var _this = this;
         if (this.failed) {
             return;
@@ -412,7 +411,7 @@ var ScaleFinder = (function () {
         console.log('%cSelect your scale from the list. After connecting, check the console for service and characteristic UUIDs. Copy them and update SCALE_SERVICE_UUID and SCALE_CHARACTERISTIC_UUID at the top of scale.js.', 'color: green; font-size: 1.2em');
         bluetooth.requestDevice({
             acceptAllDevices: true,
-            optionalServices: [] // or leave empty to get all available
+            optionalServices: [SCALE_SERVICE_UUID] // Add the custom service UUID here
         })
         .then(function(device) {
             console.log('Selected device:', device);
