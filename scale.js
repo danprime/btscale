@@ -304,26 +304,11 @@ var Scale = (function () {
 
     Scale.prototype.characteristicValueChanged = function (event) {
         var raw = new Uint8Array(event.target.value.buffer);
-        // Log raw bytes
+        // Log raw bytes to the console for debugging
         console.log('Notification received, raw bytes:', raw);
-        // Display raw bytes in the UI for debugging
-        var weightDiv = document.getElementById('weight-display');
-        if (weightDiv) {
-            weightDiv.textContent = 'Raw: [' + Array.from(raw).join(', ') + ']';
-        }
         // Add to queue for normal decode logic
         this.queue.add(event.target.value.buffer);
-        // After queue processing, try to show decoded weight if available
-        var self = this;
-        setTimeout(function() {
-            if (weightDiv) {
-                if (self.weight !== null) {
-                    weightDiv.textContent = 'Weight: ' + self.weight + ' g\nRaw: [' + Array.from(raw).join(', ') + ']';
-                } else {
-                    weightDiv.textContent = 'Raw: [' + Array.from(raw).join(', ') + ']';
-                }
-            }
-        }, 100); // allow queue callback to run
+        // UI will be updated by the queue callback if weight is decoded
     };
 
     Scale.prototype.disconnect = function () {
