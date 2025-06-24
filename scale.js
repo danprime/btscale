@@ -1,7 +1,7 @@
 // based on https://github.com/bpowers/btscale
 
 let SCALE_SERVICE_UUID = '0000fe59-0000-1000-8000-00805f9b34fb';
-let SCALE_CHARACTERISTIC_UUID = '0000ff12-0000-1000-8000-00805f9b34fb';
+let SCALE_CHARACTERISTIC_UUID = '8ec90003-f315-4f60-9fb8-838830daea50';
 let HEADER1 = 0xef;
 let HEADER2 = 0xdd;
 
