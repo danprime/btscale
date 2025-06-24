@@ -496,7 +496,7 @@ if (typeof window !== 'undefined') {
                 }
                 navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
-                    optionalServices: []
+                    optionalServices: [SCALE_SERVICE_UUID] // Fix: add service UUID here too
                 })
                 .then(function(device) {
                     infoDiv.textContent = 'Selected device:\n' +
