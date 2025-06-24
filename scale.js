@@ -305,6 +305,17 @@ var Scale = (function () {
     Scale.prototype.characteristicValueChanged = function (event) {
 
     	this.queue.add(event.target.value.buffer);
+        // Log the raw data received from the scale
+        var value = event.target.value;
+        var rawBytes = new Uint8Array(value.buffer);
+        console.log('Raw notification data:', rawBytes);
+        // Fallback: if decode fails, try to display raw bytes as weight for debugging
+        var weightDiv = document.getElementById('weight-display');
+        if (weightDiv) {
+            // Try to interpret the first 2 bytes as a little-endian integer (common for weight scales)
+            var rawWeight = rawBytes[0] | (rawBytes[1] << 8);
+            weightDiv.textContent = 'Raw Weight: ' + rawWeight + ' (raw bytes: ' + Array.from(rawBytes).join(', ') + ')';
+        }
     };
 
     Scale.prototype.disconnect = function () {
