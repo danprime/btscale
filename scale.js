@@ -423,19 +423,67 @@ if (typeof window !== 'undefined') {
                             'Id: ' + device.id + '\n';
                         console.log('Device object after selection:', device);
                         return device.gatt.connect().then(server => {
-                            // List all primary services
                             return server.getPrimaryServices().then(services => {
                                 let info = infoDiv.textContent + '\nServices:';
+                                let foundScaleService = false;
                                 let servicePromises = services.map(service => {
                                     info += '\n  Service UUID: ' + service.uuid;
-                                    return service.getCharacteristics().then(characteristics => {
-                                        characteristics.forEach(characteristic => {
-                                            info += '\n    Characteristic UUID: ' + characteristic.uuid;
+                                    // Try to match ffe0 service (case-insensitive)
+                                    if (service.uuid.slice(-4).toLowerCase() === 'ffe0') {
+                                        foundScaleService = true;
+                                        // Try both ff11 and ff12 characteristics
+                                        return Promise.all([
+                                            service.getCharacteristic('0000ff11-0000-1000-8000-00805f9b34fb').catch(e => e),
+                                            service.getCharacteristic('0000ff12-0000-1000-8000-00805f9b34fb').catch(e => e)
+                                        ]).then(([ff11, ff12]) => {
+                                            if (ff11 && ff11.uuid) {
+                                                info += '\n    Characteristic UUID: ' + ff11.uuid + ' (ff11)';
+                                                ff11.startNotifications().then(() => {
+                                                    ff11.addEventListener('characteristicvaluechanged', function(event) {
+                                                        const bytes = new Uint8Array(event.target.value.buffer);
+                                                        console.log('Notification from ff11:', bytes);
+                                                        const weight = parseBookooWeight(bytes);
+                                                        if (weight !== null) {
+                                                            weightDiv.textContent = 'Weight: ' + weight + ' g';
+                                                        }
+                                                    });
+                                                    console.log('Subscribed to notifications on ff11');
+                                                }).catch(e => console.log('Error subscribing to ff11:', e));
+                                            } else {
+                                                info += '\n    Could not get ff11 characteristic.';
+                                            }
+                                            if (ff12 && ff12.uuid) {
+                                                info += '\n    Characteristic UUID: ' + ff12.uuid + ' (ff12)';
+                                                ff12.startNotifications().then(() => {
+                                                    ff12.addEventListener('characteristicvaluechanged', function(event) {
+                                                        const bytes = new Uint8Array(event.target.value.buffer);
+                                                        console.log('Notification from ff12:', bytes);
+                                                    });
+                                                    // Write tare+start timer command
+                                                    const cmd = bookooTareStartCmd();
+                                                    ff12.writeValue(cmd).then(() => {
+                                                        console.log('Wrote tare+start timer command to ff12', cmd);
+                                                    }).catch(e => console.log('Error writing tare+start to ff12:', e));
+                                                    console.log('Subscribed to notifications on ff12');
+                                                }).catch(e => console.log('Error subscribing to ff12:', e));
+                                            } else {
+                                                info += '\n    Could not get ff12 characteristic.';
+                                            }
                                         });
-                                    });
+                                    } else {
+                                        // For all other services, just list characteristics
+                                        return service.getCharacteristics().then(characteristics => {
+                                            characteristics.forEach(characteristic => {
+                                                info += '\n    Characteristic UUID: ' + characteristic.uuid;
+                                            });
+                                        });
+                                    }
                                 });
                                 Promise.all(servicePromises).then(() => {
                                     infoDiv.textContent = info + '\n\nCopy the relevant UUIDs above and update your code.';
+                                    if (!foundScaleService) {
+                                        console.log('No ffe0 service found.');
+                                    }
                                     console.log('All discovered services and characteristics:', info);
                                 });
                             });
