@@ -262,6 +262,17 @@ var Scale = (function () {
                                         _this.queue.add(event.target.value.buffer);
                                     }
                                 });
+                                // Try writing ident and notification request if this is the scale characteristic
+                                if (characteristic.uuid === SCALE_CHARACTERISTIC_UUID) {
+                                    characteristic.writeValue(encodeId()).then(function() {
+                                        console.log('Wrote ident to characteristic', characteristic.uuid);
+                                        return characteristic.writeValue(encodeNotificationRequest());
+                                    }).then(function() {
+                                        console.log('Wrote notification request to characteristic', characteristic.uuid);
+                                    }).catch(function(err) {
+                                        console.log('Error writing ident/notification request:', err);
+                                    });
+                                }
                             }).catch(function(err) {
                                 console.log('Characteristic', characteristic.uuid, 'does not support notifications:', err);
                             });
