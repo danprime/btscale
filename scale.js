@@ -536,6 +536,8 @@ if (typeof window !== 'undefined') {
                         });
                         Promise.all(servicePromises).then(function() {
                             infoDiv.textContent = info + '\n\nCopy the relevant UUIDs above and update your code.';
+                            // After listing, actually add the device to trigger connection logic
+                            _this.deviceAdded(device);
                         });
                     });
                 })
