@@ -276,6 +276,15 @@ var Scale = (function () {
                                     console.log('Error writing ident/notification request to', characteristic.uuid, ':', err);
                                 });
                             }
+                            // Try writing a simple value to test write support
+                            if (characteristic.properties.write) {
+                                var testPayload = new Uint8Array([0x00]);
+                                characteristic.writeValue(testPayload).then(function() {
+                                    console.log('Wrote [0x00] to characteristic', characteristic.uuid);
+                                }).catch(function(err) {
+                                    console.log('Error writing [0x00] to', characteristic.uuid, ':', err);
+                                });
+                            }
                         });
                     }).catch(function(err) {
                         console.log('Error getting characteristics for service', service.uuid, ':', err);
