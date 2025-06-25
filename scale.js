@@ -414,7 +414,7 @@ if (typeof window !== 'undefined') {
                 startDiscovery: function() {
                     infoDiv.textContent = 'Searching for Bluetooth devices...';
                     navigator.bluetooth.requestDevice({
-                        filters: [{ services: [SCALE_SERVICE_UUID] }],
+                        acceptAllDevices: true,
                         optionalServices: [SCALE_SERVICE_UUID]
                     })
                     .then(device => {
