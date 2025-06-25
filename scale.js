@@ -253,7 +253,7 @@ var Scale = (function () {
                         console.log('Discovered characteristics for service', service.uuid, ':', characteristics.map(c => c.uuid));
                         characteristics.forEach(function(characteristic) {
                             console.log('Characteristic UUID:', characteristic.uuid, 'Properties:', characteristic.properties);
-                            // Subscribe to indications first, then write ident after subscription
+                            // Subscribe to indications only, do NOT write anything
                             if (characteristic.properties.indicate) {
                                 characteristic.startNotifications().then(function() {
                                     console.log('Subscribed to indications for', characteristic.uuid);
@@ -261,19 +261,11 @@ var Scale = (function () {
                                         var raw = new Uint8Array(event.target.value.buffer);
                                         console.log('Indication from characteristic', characteristic.uuid, ':', raw);
                                     });
-                                    // After subscribing, write ident (only one write)
-                                    if (characteristic.properties.write) {
-                                        characteristic.writeValue(encodeId()).then(function() {
-                                            console.log('Wrote ident to characteristic', characteristic.uuid);
-                                        }).catch(function(err) {
-                                            console.log('Error writing ident to', characteristic.uuid, ':', err);
-                                        });
-                                    }
+                                    // DO NOT write anything after subscribing
                                 }).catch(function(err) {
                                     console.log('Characteristic', characteristic.uuid, 'does not support indications:', err);
                                 });
                             }
-                            // REMOVE: Do not write notification request or test byte
                         });
                     }).catch(function(err) {
                         console.log('Error getting characteristics for service', service.uuid, ':', err);
