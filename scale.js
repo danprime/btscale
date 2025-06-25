@@ -414,13 +414,13 @@ if (typeof window !== 'undefined') {
                 startDiscovery: function() {
                     infoDiv.textContent = 'Searching for Bluetooth devices...';
                     navigator.bluetooth.requestDevice({
-                        acceptAllDevices: true,
-                        optionalServices: [SCALE_SERVICE_UUID]
+                        acceptAllDevices: true
                     })
                     .then(device => {
                         infoDiv.textContent = 'Selected device:\n' +
                             'Name: ' + (device.name || '(no name)') + '\n' +
                             'Id: ' + device.id + '\n';
+                        console.log('Device object after selection:', device);
                         return device.gatt.connect().then(server => {
                             // List all primary services
                             return server.getPrimaryServices().then(services => {
