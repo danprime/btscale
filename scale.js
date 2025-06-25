@@ -211,71 +211,62 @@ var Scale = (function () {
     }
 
     Scale.prototype.connect = function () {
-
         var _this = this;
         if (this.connected) {
             return;
         }
-
         var log = console.log.bind(console);
-
-	    _this.queue = new Queue(function(payload) {
-
-	    	_this.addBuffer(payload);
-	    	// the packet header is split from the content
-	    	// need to read in two times and recompose the message
-	    	if (_this.packet.byteLength <= 3) {
-	    		return;
-	    	}
-
-	    	// TODO: read length and make sure we have enough data
-	        // before decoding message
-	        	
-			var msg = decode(_this.packet);
-			_this.packet = null;
-
-	        if (!msg) {
-	            console.log('characteristic value update, but no message');
-	            return;
-	        }
-
-	        if (msg.type === 5) {
-	            _this.weight = msg.value;
-	            console.log('weight: ' + msg.value);
-	        }
-	        else {
-	            console.log('non-weight response');
-	            console.log(msg);
-	        }
-	    });
-
-        this.device.gatt.connect()
-            .then(function (server) {
-            return _this.device.gatt.getPrimaryService(SCALE_SERVICE_UUID);
-        }, function (err) {
-            console.log('error connecting - ' + err);
-            return null;
-        }).then(function (service) {
-            _this.service = service;
-            console.log('primary services ');
-            return service.getCharacteristic(SCALE_CHARACTERISTIC_UUID);
-        }, function (err) {
-            console.log('primary services ERR - ' + err);
-            return null;
-        }).then(function (characteristic) {
-            log('Starting notifications...');
-            _this.characteristic = characteristic;
-            return characteristic.startNotifications();
-        }, function (err) {
-            console.log('err getting characteristic');
-            return null;
-        }).then(function (characteristic) {
-            characteristic.addEventListener('characteristicvaluechanged', _this.characteristicValueChanged.bind(_this));
-            _this.notificationsReady();
-        }, function (err) {
-            log('FAILED: ' + err);
-            return null;
+        _this.queue = new Queue(function(payload) {
+            _this.addBuffer(payload);
+            if (_this.packet.byteLength <= 3) {
+                return;
+            }
+            var msg = decode(_this.packet);
+            _this.packet = null;
+            if (!msg) {
+                console.log('characteristic value update, but no message');
+                return;
+            }
+            if (msg.type === 5) {
+                _this.weight = msg.value;
+                console.log('weight: ' + msg.value);
+            } else {
+                console.log('non-weight response');
+                console.log(msg);
+            }
         });
+        // Connect and enumerate all services/characteristics
+        this.device.gatt.connect()
+            .then(function(server) {
+                return server.getPrimaryServices();
+            })
+            .then(function(services) {
+                services.forEach(function(service) {
+                    console.log('Service UUID:', service.uuid);
+                    service.getCharacteristics().then(function(characteristics) {
+                        characteristics.forEach(function(characteristic) {
+                            console.log('Characteristic UUID:', characteristic.uuid);
+                            // Try to subscribe to notifications on every characteristic
+                            characteristic.startNotifications().then(function() {
+                                characteristic.addEventListener('characteristicvaluechanged', function(event) {
+                                    var raw = new Uint8Array(event.target.value.buffer);
+                                    console.log('Notification from characteristic', characteristic.uuid, ':', raw);
+                                    // Try to decode if this is the expected characteristic
+                                    if (characteristic.uuid === SCALE_CHARACTERISTIC_UUID) {
+                                        _this.queue.add(event.target.value.buffer);
+                                    }
+                                });
+                                console.log('Subscribed to notifications for', characteristic.uuid);
+                            }).catch(function(err) {
+                                // Not all characteristics support notifications
+                            });
+                        });
+                    });
+                });
+            })
+            .catch(function(err) {
+                console.log('Error during connection/discovery:', err);
+            });
     };
 
 
