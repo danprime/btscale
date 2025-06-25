@@ -253,7 +253,7 @@ var Scale = (function () {
                         console.log('Discovered characteristics for service', service.uuid, ':', characteristics.map(c => c.uuid));
                         characteristics.forEach(function(characteristic) {
                             console.log('Characteristic UUID:', characteristic.uuid, 'Properties:', characteristic.properties);
-                            // Subscribe to indications first, then write ident only after subscription
+                            // Subscribe to indications first, then write ident after subscription
                             if (characteristic.properties.indicate) {
                                 characteristic.startNotifications().then(function() {
                                     console.log('Subscribed to indications for', characteristic.uuid);
@@ -273,26 +273,7 @@ var Scale = (function () {
                                     console.log('Characteristic', characteristic.uuid, 'does not support indications:', err);
                                 });
                             }
-                            // Try writing ident and notification request to all writable characteristics
-                            if (characteristic.properties.write) {
-                                characteristic.writeValue(encodeId()).then(function() {
-                                    console.log('Wrote ident to characteristic', characteristic.uuid);
-                                    return characteristic.writeValue(encodeNotificationRequest());
-                                }).then(function() {
-                                    console.log('Wrote notification request to characteristic', characteristic.uuid);
-                                }).catch(function(err) {
-                                    console.log('Error writing ident/notification request to', characteristic.uuid, ':', err);
-                                });
-                            }
-                            // Try writing a simple value to test write support
-                            if (characteristic.properties.write) {
-                                var testPayload = new Uint8Array([0x00]);
-                                characteristic.writeValue(testPayload).then(function() {
-                                    console.log('Wrote [0x00] to characteristic', characteristic.uuid);
-                                }).catch(function(err) {
-                                    console.log('Error writing [0x00] to', characteristic.uuid, ':', err);
-                                });
-                            }
+                            // REMOVE: Do not write notification request or test byte
                         });
                     }).catch(function(err) {
                         console.log('Error getting characteristics for service', service.uuid, ':', err);
