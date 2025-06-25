@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOOKOO Mini Scale Reader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .status.disconnected {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .status.connected {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+        .weight-display {
+            text-align: center;
+            font-size: 3em;
+            font-weight: bold;
+            color: #1976d2;
+            margin: 30px 0;
+            padding: 20px;
+            border: 3px solid #1976d2;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            background-color: #1976d2;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #1565c0;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .info-item {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .info-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+        .log {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>BOOKOO Mini Scale Reader</h1>
+        
+        <div id="status" class="status disconnected">
+            Disconnected
+        </div>
+        
+        <div class="controls">
+            <button id="connectBtn" onclick="connectToScale()">Connect</button>
+            <button id="tareBtn" onclick="sendTareCommand()" disabled>Tare</button>
+            <button id="tareStartBtn" onclick="sendTareAndStartCommand()" disabled>Tare & Start</button>
+            <button id="startTimerBtn" onclick="sendStartTimerCommand()" disabled>Start Timer</button>
+            <button id="stopTimerBtn" onclick="sendStopTimerCommand()" disabled>Stop Timer</button>
+            <button id="resetTimerBtn" onclick="sendResetTimerCommand()" disabled>Reset Timer</button>
+            <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+        </div>
+        
+        <div class="controls">
+            <label for="beepLevel">Beep Level (0-5):</label>
+            <input type="range" id="beepLevel" min="0" max="5" value="2" onchange="setBeepLevel(this.value)" disabled>
+            <span id="beepValue">2</span>
+        </div>
+        
+        <div class="controls">
+            <label for="autoOff">Auto-off (1-30 min):</label>
+            <input type="range" id="autoOff" min="1" max="30" value="5" onchange="setAutoOff(this.value)" disabled>
+            <span id="autoOffValue">5</span>
+        </div>
+        
+        <div class="controls">
+            <label for="flowSmoothing">Flow Smoothing:</label>
+            <input type="checkbox" id="flowSmoothing" onchange="setFlowSmoothing(this.checked)" disabled>
+        </div>
+        
+        <div class="weight-display" id="weightDisplay">
+            0.00 g
+        </div>
+        
+        <div class="info">
+            <div class="info-item">
+                <div class="info-label">Weight</div>
+                <div class="info-value" id="weightInfo">0.00 g</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Flow Rate</div>
+                <div class="info-value" id="flowRate">0.00 g/s</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Battery</div>
+                <div class="info-value" id="battery">--%</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Timer</div>
+                <div class="info-value" id="timer">00:00.000</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Standby Time</div>
+                <div class="info-value" id="standbyTime">-- min</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Buzzer Level</div>
+                <div class="info-value" id="buzzerLevel">--</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Flow Smoothing</div>
+                <div class="info-value" id="smoothingStatus">--</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Weight Unit</div>
+                <div class="info-value" id="weightUnit">grams</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Weight Symbol</div>
+                <div class="info-value" id="weightSymbol">+</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Flow Symbol</div>
+                <div class="info-value" id="flowSymbol">+</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Raw Milliseconds</div>
+                <div class="info-value" id="rawMilliseconds">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Data Packets</div>
+                <div class="info-value" id="packetCount">0</div>
+            </div>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let bluetoothDevice;
+        let bluetoothServer;
+        let commandCharacteristic;
+        let weightCharacteristic;
+        let isConnected = false;
+        let packetCount = 0;
+
+        // Service and characteristic UUIDs
+        const SERVICE_UUID = 0x0FFE;
+        const COMMAND_CHAR_UUID = 0xFF12;
+        const WEIGHT_CHAR_UUID = 0xFF11;
+
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}<br>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateStatus(status, connected = false) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = status;
+            statusElement.className = `status ${connected ? 'connected' : 'disconnected'}`;
+            
+            document.getElementById('connectBtn').disabled = connected;
+            document.getElementById('tareBtn').disabled = !connected;
+            document.getElementById('tareStartBtn').disabled = !connected;
+            document.getElementById('startTimerBtn').disabled = !connected;
+            document.getElementById('stopTimerBtn').disabled = !connected;
+            document.getElementById('resetTimerBtn').disabled = !connected;
+            document.getElementById('disconnectBtn').disabled = !connected;
+            document.getElementById('beepLevel').disabled = !connected;
+            document.getElementById('autoOff').disabled = !connected;
+            document.getElementById('flowSmoothing').disabled = !connected;
+            
+            isConnected = connected;
+        }
+
+        function calculateChecksum(data) {
+            let checksum = 0;
+            for (let i = 0; i < data.length - 1; i++) {
+                checksum ^= data[i];
+            }
+            return checksum;
+        }
+
+        function verifyChecksum(data) {
+            const calculatedChecksum = calculateChecksum(data);
+            const receivedChecksum = data[data.length - 1];
+            return calculatedChecksum === receivedChecksum;
+        }
+
+        function parseWeightData(data) {
+            if (data.length !== 20) {
+                log(`Invalid data length: ${data.length}, expected 20`);
+                return null;
+            }
+
+            // Verify checksum
+            if (!verifyChecksum(data)) {
+                log('Checksum verification failed');
+                return null;
+            }
+
+            // Parse according to the protocol
+            const productNumber = data[0];
+            const type = data[1];
+            
+            if (productNumber !== 0x03 || type !== 0x0B) {
+                log(`Unexpected header: ${productNumber.toString(16)}, ${type.toString(16)}`);
+                return null;
+            }
+
+            // Parse milliseconds (3 bytes)
+            const milliseconds = (data[2] << 16) | (data[3] << 8) | data[4];
+            
+            // Parse weight unit (should be grams)
+            const weightUnit = data[5];
+            
+            // Parse weight symbol (+/-)
+            const weightSymbol = data[6];
+            
+            // Parse weight (3 bytes, * 100)
+            const rawWeight = (data[7] << 16) | (data[8] << 8) | data[9];
+            const weight = (weightSymbol === 0 ? rawWeight : -rawWeight) / 100.0;
+            
+            // Parse flow rate symbol (+/-)
+            const flowSymbol = data[10];
+            
+            // Parse flow rate (2 bytes, * 100)
+            const rawFlowRate = (data[11] << 8) | data[12];
+            const flowRate = (flowSymbol === 0 ? rawFlowRate : -rawFlowRate) / 100.0;
+            
+            // Parse battery percentage
+            const batteryPercent = data[13];
+            
+            // Parse standby time (2 bytes)
+            const standbyTime = (data[14] << 8) | data[15];
+            
+            // Parse buzzer gear
+            const buzzerGear = data[16];
+            
+            // Parse flow rate smoothing switch
+            const flowSmoothing = data[17];
+
+            return {
+                milliseconds,
+                weight,
+                flowRate,
+                batteryPercent,
+                standbyTime,
+                buzzerGear,
+                flowSmoothing,
+                weightUnit,
+                weightSymbol,
+                flowSymbol
+            };
+        }
+
+        function updateDisplay(scaleData) {
+            packetCount++;
+            
+            document.getElementById('weightDisplay').textContent = `${scaleData.weight.toFixed(2)} g`;
+            document.getElementById('weightInfo').textContent = `${scaleData.weight.toFixed(2)} g`;
+            document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(2)} g/s`;
+            document.getElementById('battery').textContent = `${scaleData.batteryPercent}%`;
+            
+            // Convert milliseconds to mm:ss.sss format
+            const totalSeconds = scaleData.milliseconds / 1000;
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+            const milliseconds = Math.floor((totalSeconds % 1) * 1000);
+            document.getElementById('timer').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+            
+            document.getElementById('standbyTime').textContent = `${scaleData.standbyTime} min`;
+            document.getElementById('buzzerLevel').textContent = scaleData.buzzerGear.toString();
+            document.getElementById('smoothingStatus').textContent = scaleData.flowSmoothing ? 'ON' : 'OFF';
+            document.getElementById('weightUnit').textContent = scaleData.weightUnit === 0 ? 'grams' : `unit ${scaleData.weightUnit}`;
+            document.getElementById('weightSymbol').textContent = scaleData.weightSymbol === 0 ? '+' : '-';
+            document.getElementById('flowSymbol').textContent = scaleData.flowSymbol === 0 ? '+' : '-';
+            document.getElementById('rawMilliseconds').textContent = scaleData.milliseconds.toString();
+            document.getElementById('packetCount').textContent = packetCount.toString();
+        }
+
+        function handleWeightData(event) {
+            const data = new Uint8Array(event.target.value.buffer);
+            log(`Received data: ${Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+            
+            const scaleData = parseWeightData(data);
+            if (scaleData) {
+                updateDisplay(scaleData);
+                log(`Weight: ${scaleData.weight.toFixed(2)}g, Flow: ${scaleData.flowRate.toFixed(2)}g/s, Battery: ${scaleData.batteryPercent}%`);
+            }
+        }
+
+        async function connectToScale() {
+            try {
+                log('Requesting Bluetooth device...');
+                
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{
+                        services: [SERVICE_UUID]
+                    }]
+                });
+
+                log(`Connected to device: ${bluetoothDevice.name}`);
+                updateStatus(`Connected to ${bluetoothDevice.name}`, true);
+
+                bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+                log('Connecting to GATT server...');
+                bluetoothServer = await bluetoothDevice.gatt.connect();
+
+                log('Getting service...');
+                const service = await bluetoothServer.getPrimaryService(SERVICE_UUID);
+
+                log('Getting characteristics...');
+                commandCharacteristic = await service.getCharacteristic(COMMAND_CHAR_UUID);
+                weightCharacteristic = await service.getCharacteristic(WEIGHT_CHAR_UUID);
+
+                log('Starting notifications...');
+                await weightCharacteristic.startNotifications();
+                weightCharacteristic.addEventListener('characteristicvaluechanged', handleWeightData);
+
+                log('Successfully connected and subscribed to weight notifications!');
+                
+            } catch (error) {
+                log(`Connection error: ${error.message}`);
+                updateStatus(`Error: ${error.message}`);
+            }
+        }
+
+        async function sendTareCommand() {
+            if (!isConnected || !commandCharacteristic) {
+                log('Not connected to scale');
+                return;
+            }
+
+            try {
+                // Tare command: 03 0A 01 00 00 08
+                const tareCommand = new Uint8Array([0x03, 0x0A, 0x01, 0x00, 0x00, 0x08]);
+                await commandCharacteristic.writeValue(tareCommand);
+                log('Tare command sent');
+            } catch (error) {
+                log(`Error sending tare command: ${error.message}`);
+            }
+        }
+
+        async function sendTareAndStartCommand() {
+            if (!isConnected || !commandCharacteristic) {
+                log('Not connected to scale');
+                return;
+            }
+
+            try {
+                // Tare and start timer command: 03 0A 07 00 00 00
+                const command = new Uint8Array([0x03, 0x0A, 0x07, 0x00, 0x00, 0x00]);
+                await commandCharacteristic.writeValue(command);
+                log('Tare and start timer command sent');
+            } catch (error) {
+                log(`Error sending tare and start command: ${error.message}`);
+            }
+        }
+
+        async function sendStartTimerCommand() {
+            if (!isConnected || !commandCharacteristic) {
+                log('Not connected to scale');
+                return;
+            }
+
+            try {
+                // Start timer command: 03 0A 04 00 00 0A
+                const command = new Uint8Array([0x03, 0x0A, 0x04, 0x00, 0x00, 0x0A]);
+                await commandCharacteristic.writeValue(command);
+                log('Start timer command sent');
+            } catch (error) {
+                log(`Error sending start timer command: ${error.message}`);
+            }
+        }
+
+        async function sendStopTimerCommand() {
+            if (!isConnected || !commandCharacteristic) {
+                log('Not connected to scale');
+                return;
+            }
+
+            try {
+                // Stop timer command: 03 0A 05 00 00 0D
+                const command = new Uint8Array([0x03, 0x0A, 0x05, 0x00, 0x00, 0x0D]);
+                await commandCharacteristic.writeValue(command);
+                log('Stop timer command sent');
+            } catch (error) {
+                log(`Error sending stop timer command: ${error.message}`);
+            }
+        }
+
+        async function sendResetTimerCommand() {
+            if (!isConnected || !commandCharacteristic) {
+                log('Not connected to scale');
+                return;
+            }
+
+            try {
+                // Reset timer command: 03 0A 06 00 00 0C
+                const command = new Uint8Array([0x03, 0x0A, 0x06, 0x00, 0x00, 0x0C]);
+                await commandCharacteristic.writeValue(command);
+                log('Reset timer command sent');
+            } catch (error) {
+                log(`Error sending reset timer command: ${error.message}`);
+            }
+        }
+
+        async function setBeepLevel(level) {
+            if (!isConnected || !commandCharacteristic) {
+                log('Not connected to scale');
+                return;
+            }
+
+            try {
+                // Beep level command: 03 0A 02 [level] 00 [checksum]
+                const levelByte = parseInt(level);
+                const checksum = 0x03 ^ 0x0A ^ 0x02 ^ levelByte ^ 0x00;
+                const command = new Uint8Array([0x03, 0x0A, 0x02, levelByte, 0x00, checksum]);
+                await commandCharacteristic.writeValue(command);
+                document.getElementById('beepValue').textContent = level;
+                log(`Beep level set to ${level}`);
+            } catch (error) {
+                log(`Error setting beep level: ${error.message}`);
+            }
+        }
+
+        async function setAutoOff(minutes) {
+            if (!isConnected || !commandCharacteristic) {
+                log('Not connected to scale');
+                return;
+            }
+
+            try {
+                // Auto-off command: 03 0A 03 [minutes] 00 [checksum]
+                const minutesByte = parseInt(minutes);
+                const checksum = 0x03 ^ 0x0A ^ 0x03 ^ minutesByte ^ 0x00;
+                const command = new Uint8Array([0x03, 0x0A, 0x03, minutesByte, 0x00, checksum]);
+                await commandCharacteristic.writeValue(command);
+                document.getElementById('autoOffValue').textContent = minutes;
+                log(`Auto-off set to ${minutes} minutes`);
+            } catch (error) {
+                log(`Error setting auto-off: ${error.message}`);
+            }
+        }
+
+        async function setFlowSmoothing(enabled) {
+            if (!isConnected || !commandCharacteristic) {
+                log('Not connected to scale');
+                return;
+            }
+
+            try {
+                // Flow smoothing command: 03 0A 08 [00/01] 00 [checksum]
+                const enabledByte = enabled ? 0x01 : 0x00;
+                const checksum = 0x03 ^ 0x0A ^ 0x08 ^ enabledByte ^ 0x00;
+                const command = new Uint8Array([0x03, 0x0A, 0x08, enabledByte, 0x00, checksum]);
+                await commandCharacteristic.writeValue(command);
+                log(`Flow smoothing ${enabled ? 'enabled' : 'disabled'}`);
+            } catch (error) {
+                log(`Error setting flow smoothing: ${error.message}`);
+            }
+        }
+
+        function onDisconnected() {
+            log('Device disconnected');
+            updateStatus('Disconnected');
+            bluetoothDevice = null;
+            bluetoothServer = null;
+            commandCharacteristic = null;
+            weightCharacteristic = null;
+        }
+
+        async function disconnect() {
+            if (bluetoothServer) {
+                bluetoothServer.disconnect();
+            }
+        }
+
+        // Check if Web Bluetooth is supported
+        if (!navigator.bluetooth) {
+            log('Web Bluetooth is not supported in this browser');
+            updateStatus('Web Bluetooth not supported');
+            document.getElementById('connectBtn').disabled = true;
+        } else {
+            log('Web Bluetooth is supported');
+        }
+    </script>
+</body>
+</html>
