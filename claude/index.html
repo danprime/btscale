@@ -284,14 +284,14 @@
             
             // Parse weight (3 bytes, * 100)
             const rawWeight = (data[7] << 16) | (data[8] << 8) | data[9];
-            const weight = (weightSymbol === 0 ? rawWeight : -rawWeight) / 100.0;
+            const weight = (weightSymbol === 1 ? -rawWeight : rawWeight) / 100.0;
             
             // Parse flow rate symbol (+/-)
             const flowSymbol = data[10];
             
             // Parse flow rate (2 bytes, * 100)
             const rawFlowRate = (data[11] << 8) | data[12];
-            const flowRate = (flowSymbol === 0 ? rawFlowRate : -rawFlowRate) / 100.0;
+            const flowRate = (flowSymbol === 1 ? -rawFlowRate : rawFlowRate) / 100.0;
             
             // Parse battery percentage
             const batteryPercent = data[13];
@@ -338,8 +338,8 @@
             document.getElementById('buzzerLevel').textContent = scaleData.buzzerGear.toString();
             document.getElementById('smoothingStatus').textContent = scaleData.flowSmoothing ? 'ON' : 'OFF';
             document.getElementById('weightUnit').textContent = scaleData.weightUnit === 0 ? 'grams' : `unit ${scaleData.weightUnit}`;
-            document.getElementById('weightSymbol').textContent = scaleData.weightSymbol === 0 ? '+' : '-';
-            document.getElementById('flowSymbol').textContent = scaleData.flowSymbol === 0 ? '+' : '-';
+            document.getElementById('weightSymbol').textContent = scaleData.weightSymbol === 1 ? '-' : '+';
+            document.getElementById('flowSymbol').textContent = scaleData.flowSymbol === 1 ? '-' : '+';
             document.getElementById('rawMilliseconds').textContent = scaleData.milliseconds.toString();
             document.getElementById('packetCount').textContent = packetCount.toString();
         }
