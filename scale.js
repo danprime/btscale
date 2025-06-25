@@ -1,7 +1,11 @@
 // based on https://github.com/bpowers/btscale
 
-let SCALE_SERVICE_UUID = '0000fe59-0000-1000-8000-00805f9b34fb';
-let SCALE_CHARACTERISTIC_UUID = '8ec90003-f315-4f60-9fb8-838830daea50';
+// Update to Bookoo Mini Scale UUIDs
+// Bookoo Mini Scale UUIDs
+const SCALE_SERVICE_UUID = '0000ffe-0000-1000-8000-00805f9b34fb';
+const CMD_CHARACTERISTIC_UUID = '0000ff12-0000-1000-8000-00805f9b34fb';
+const WEIGHT_CHARACTERISTIC_UUID = '0000ff11-0000-1000-8000-00805f9b34fb';
+
 let HEADER1 = 0xef;
 let HEADER2 = 0xdd;
 
@@ -195,18 +199,51 @@ function encodeTare() {
 }
 
 
+// Utility: Calculate XOR checksum for Bookoo protocol
+function bookooChecksum(bytes) {
+    let cksum = 0;
+    for (let i = 0; i < bytes.length - 1; ++i) {
+        cksum ^= bytes[i];
+    }
+    return cksum;
+}
+
+// Utility: Build tare+start timer command
+function bookooTareStartCmd() {
+    const arr = [0x03, 0x0A, 0x07, 0x00, 0x00, 0x00];
+    arr[5] = bookooChecksum(arr);
+    return new Uint8Array(arr);
+}
+
+// Utility: Parse Bookoo 20-byte notification
+function parseBookooWeight(bytes) {
+    if (bytes.length !== 20) return null;
+    // Checksum
+    let cksum = 0;
+    for (let i = 0; i < 19; ++i) cksum ^= bytes[i];
+    if (cksum !== bytes[19]) {
+        console.log('Bookoo: checksum mismatch', cksum, bytes[19], bytes);
+        return null;
+    }
+    // Weight: bytes 8-10 (grams * 100, big-endian)
+    const w = (bytes[7] << 16) | (bytes[8] << 8) | bytes[9];
+    const sign = bytes[10] === 1 ? -1 : 1;
+    return sign * (w / 100);
+}
+
 var Scale = (function () {
 
     function Scale(device) {
 
         this.connected = false;
         this.service = null;
-        this.characteristic = null;
+        this.commandChar = null;
+        this.weightChar = null;
         this.weight = null;
         this.device = device;
         this.name = this.device.name;
         this.queue = null;
-        console.log('created scale for ' + this.device.address + ' (' + this.device.name + ')');
+        console.log('created scale for ' + (this.device.address || this.device.id) + ' (' + this.device.name + ')');
         this.connect();
     }
 
@@ -216,175 +253,56 @@ var Scale = (function () {
             console.log('Already connected.');
             return;
         }
-        var log = console.log.bind(console);
-        _this.queue = new Queue(function(payload) {
-            _this.addBuffer(payload);
-            if (_this.packet.byteLength <= 3) {
-                return;
-            }
-            var msg = decode(_this.packet);
-            _this.packet = null;
-            if (!msg) {
-                console.log('characteristic value update, but no message');
-                return;
-            }
-            if (msg.type === 5) {
-                _this.weight = msg.value;
-                console.log('weight: ' + msg.value);
-            } else {
-                console.log('non-weight response');
-                console.log(msg);
-            }
-        });
-        console.log('Attempting to connect to device:', this.device);
         this.device.gatt.connect()
-            .then(function(server) {
-                console.log('GATT server connected:', server);
-                return server.getPrimaryServices();
-            }, function(err) {
-                console.log('Error connecting to GATT server:', err);
-                throw err;
+            .then(server => {
+                return server.getPrimaryService(SCALE_SERVICE_UUID);
             })
-            .then(function(services) {
-                console.log('Discovered services:', services.map(s => s.uuid));
-                services.forEach(function(service) {
-                    console.log('Service UUID:', service.uuid);
-                    service.getCharacteristics().then(function(characteristics) {
-                        console.log('Discovered characteristics for service', service.uuid, ':', characteristics.map(c => c.uuid));
-                        characteristics.forEach(function(characteristic) {
-                            console.log('Characteristic UUID:', characteristic.uuid, 'Properties:', characteristic.properties);
-                            // Subscribe to indications, then write notification request after subscription
-                            if (characteristic.properties.indicate) {
-                                characteristic.startNotifications().then(function() {
-                                    console.log('Subscribed to indications for', characteristic.uuid);
-                                    characteristic.addEventListener('characteristicvaluechanged', function(event) {
-                                        var raw = new Uint8Array(event.target.value.buffer);
-                                        console.log('Indication from characteristic', characteristic.uuid, ':', raw);
-                                    });
-                                    // After subscribing, write notification request
-                                    if (characteristic.properties.write) {
-                                        var notifReq = encodeNotificationRequest();
-                                        characteristic.writeValue(notifReq).then(function() {
-                                            console.log('Wrote notification request to characteristic', characteristic.uuid);
-                                        }).catch(function(err) {
-                                            console.log('Error writing notification request to', characteristic.uuid, ':', err);
-                                        });
-                                    }
-                                }).catch(function(err) {
-                                    console.log('Characteristic', characteristic.uuid, 'does not support indications:', err);
-                                });
-                            }
-                        });
-                    }).catch(function(err) {
-                        console.log('Error getting characteristics for service', service.uuid, ':', err);
-                    });
+            .then(service => {
+                this.service = service;
+                return Promise.all([
+                    service.getCharacteristic(SCALE_COMMAND_CHARACTERISTIC_UUID),
+                    service.getCharacteristic(SCALE_WEIGHT_CHARACTERISTIC_UUID)
+                ]);
+            })
+            .then(([commandChar, weightChar]) => {
+                this.commandChar = commandChar;
+                this.weightChar = weightChar;
+                // Subscribe to notifications on weight characteristic
+                return this.weightChar.startNotifications();
+            })
+            .then(() => {
+                this.weightChar.addEventListener('characteristicvaluechanged', event => {
+                    let dv = event.target.value;
+                    let weight = parseBookooWeightData(dv);
+                    if (weight !== null) {
+                        this.weight = weight;
+                        console.log('Weight:', weight, 'g');
+                        if (typeof window !== 'undefined') {
+                            let weightDiv = document.getElementById('weight-display');
+                            if (weightDiv) weightDiv.textContent = 'Weight: ' + weight + ' g';
+                        }
+                    } else {
+                        console.log('Received non-weight or invalid data:', new Uint8Array(dv.buffer));
+                    }
                 });
+                // Send tare+start timer command
+                let cmd = bookooTareStartCommand();
+                return this.commandChar.writeValue(cmd);
             })
-            .catch(function(err) {
-                console.log('Error during connection/discovery:', err);
+            .then(() => {
+                this.connected = true;
+                console.log('Scale connected and tare/start command sent.');
+            })
+            .catch(err => {
+                console.log('Error during Bookoo scale connection:', err);
             });
-    };
-
-
-	Scale.prototype.addBuffer = function(buffer2) {
-
-		var tmp = new Uint8Array(buffer2);
-		var len = 0;
-
-		if (this.packet != null) {
-			len = this.packet.length;
-		}
-
-		var result = new Uint8Array(len + buffer2.byteLength);
-
-		for (var i = 0; i < len; i++) {
-			result[i] = this.packet[i];
-		}
-
-		for (var i = 0; i < buffer2.byteLength; i++) {
-			result[i+len] = tmp[i];
-		}
-
-	  	this.packet = result;
-	}
-
-
-    Scale.prototype.characteristicValueChanged = function (event) {
-        var raw = new Uint8Array(event.target.value.buffer);
-        // Log raw bytes to the console for debugging
-        console.log('Notification received, raw bytes:', raw);
-        // Add to queue for normal decode logic
-        this.queue.add(event.target.value.buffer);
-        // UI will be updated by the queue callback if weight is decoded
     };
 
     Scale.prototype.disconnect = function () {
-
         this.connected = false;
-        if (this.device) {
-            this.device.gatt.connect();
+        if (this.device && this.device.gatt && this.device.gatt.connected) {
+            this.device.gatt.disconnect();
         }
-    };
-
-    Scale.prototype.notificationsReady = function () {
-
-        console.log('scale ready');
-        this.connected = true;
-        this.ident();
-        setInterval(this.heartbeat.bind(this), 5000);
-        //setInterval(this.tare.bind(this), 5000);
-    };
-
-    Scale.prototype.ident = function () {
-
-        if (!this.connected) {
-            return false;
-        }
-
-        var _this = this;
-        this.characteristic.writeValue(encodeId())
-        .then(function () {
-        }, function (err) {
-            console.log('write ident failed: ' + err);
-        }).then(function() {
-            _this.characteristic.writeValue(encodeNotificationRequest())
-            .then(function () {
-            }, function (err) {
-                console.log('write failed: ' + err);
-            });
-        });
-
-        return true;
-    };
-
-    Scale.prototype.heartbeat = function () {
-
-        if (!this.connected) {
-            return false;
-        }
-
-        this.characteristic.writeValue(encodeHeartbeat())
-        .then(function () {
-        }, function (err) {
-            console.log('write heartbeat failed: ' + err);
-        });
-
-        return true;
-    };
-
-    Scale.prototype.tare = function () {
-
-        if (!this.connected) {
-            return false;
-        }
-
-        this.characteristic.writeValue(encodeTare())
-        .then(function () {
-        }, function (err) {
-            console.log('write tare failed: ' + err);
-        });
-
-        return true;
     };
 
     return Scale;
@@ -454,6 +372,8 @@ var ScaleFinder = (function () {
     return ScaleFinder;
 }());
 
+
+// Patch ScaleFinder and Scale for Bookoo protocol
 if (typeof window !== 'undefined') {
     window.ScaleFinder = ScaleFinder;
 
@@ -489,64 +409,57 @@ if (typeof window !== 'undefined') {
                 console.log('Disconnecting previous scale...');
                 lastScale.device.gatt.disconnect();
             }
-            finder = new ScaleFinder();
-            // Patch all scales to update the display
-            var origDeviceAdded = finder.deviceAdded.bind(finder);
-            finder.deviceAdded = function(device) {
-                origDeviceAdded(device);
-                var scale = finder.scales[finder.scales.length - 1];
-                lastScale = scale;
-                // Patch the scale to update the display on new weight
-                var origQueueCallback = scale.queue.callback;
-                scale.queue.callback = function(payload) {
-                    origQueueCallback.call(scale.queue, payload);
-                    if (scale.weight !== null) {
-                        weightDiv.textContent = 'Weight: ' + scale.weight + ' g';
-                    }
-                };
-            };
-            // Override startDiscovery to show device/services/characteristics on page
-            finder.startDiscovery = function() {
-                console.log('startDiscovery called');
-                infoDiv.textContent = 'Searching for Bluetooth devices...';
-                var _this = this;
-                if (this.failed) {
-                    console.log('Discovery failed flag set');
-                    return;
-                }
-                navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: [SCALE_SERVICE_UUID]
-                })
-                .then(function(device) {
-                    console.log('Device selected:', device);
-                    infoDiv.textContent = 'Selected device:\n' +
-                        'Name: ' + (device.name || '(no name)') + '\n' +
-                        'Id: ' + device.id + '\n';
-                    return device.gatt.connect().then(function(server) {
-                        console.log('GATT connect success');
-                        return server.getPrimaryServices();
-                    }).then(function(services) {
-                        let info = infoDiv.textContent + '\nServices:';
-                        let servicePromises = services.map(function(service) {
-                            info += '\n  Service UUID: ' + service.uuid;
-                            return service.getCharacteristics().then(function(characteristics) {
-                                characteristics.forEach(function(characteristic) {
-                                    info += '\n    Characteristic UUID: ' + characteristic.uuid;
+            // Bookoo protocol finder
+            finder = {
+                startDiscovery: function() {
+                    infoDiv.textContent = 'Searching for Bluetooth devices...';
+                    navigator.bluetooth.requestDevice({
+                        filters: [{ services: [SCALE_SERVICE_UUID] }],
+                        optionalServices: [SCALE_SERVICE_UUID]
+                    })
+                    .then(device => {
+                        infoDiv.textContent = 'Selected device:\n' +
+                            'Name: ' + (device.name || '(no name)') + '\n' +
+                            'Id: ' + device.id + '\n';
+                        return device.gatt.connect().then(server => {
+                            return server.getPrimaryService(SCALE_SERVICE_UUID).then(service => {
+                                // Get both characteristics
+                                return Promise.all([
+                                    service.getCharacteristic(WEIGHT_CHARACTERISTIC_UUID),
+                                    service.getCharacteristic(CMD_CHARACTERISTIC_UUID)
+                                ]).then(([weightChar, cmdChar]) => {
+                                    infoDiv.textContent += '\nService: ' + SCALE_SERVICE_UUID +
+                                        '\n  Weight Char: ' + WEIGHT_CHARACTERISTIC_UUID +
+                                        '\n  Cmd Char: ' + CMD_CHARACTERISTIC_UUID;
+                                    // Subscribe to notifications
+                                    weightChar.startNotifications().then(() => {
+                                        weightChar.addEventListener('characteristicvaluechanged', function(event) {
+                                            const bytes = new Uint8Array(event.target.value.buffer);
+                                            console.log('Bookoo notification:', bytes);
+                                            const weight = parseBookooWeight(bytes);
+                                            if (weight !== null) {
+                                                weightDiv.textContent = 'Weight: ' + weight + ' g';
+                                            } else {
+                                                weightDiv.textContent = 'Weight: --';
+                                            }
+                                        });
+                                        // Write tare+start timer command
+                                        const cmd = bookooTareStartCmd();
+                                        cmdChar.writeValue(cmd).then(() => {
+                                            console.log('Bookoo: wrote tare+start timer command', cmd);
+                                        }).catch(err => {
+                                            console.log('Bookoo: error writing tare+start', err);
+                                        });
+                                    });
                                 });
                             });
                         });
-                        Promise.all(servicePromises).then(function() {
-                            infoDiv.textContent = info + '\n\nCopy the relevant UUIDs above and update your code.';
-                            console.log('Calling deviceAdded');
-                            _this.deviceAdded(device);
-                        });
+                    })
+                    .catch(function(err) {
+                        console.log('Error in startDiscovery:', err);
+                        infoDiv.textContent = 'Error: ' + err;
                     });
-                })
-                .catch(function(err) {
-                    console.log('Error in startDiscovery:', err);
-                    infoDiv.textContent = 'Error: ' + err;
-                });
+                }
             };
             finder.startDiscovery();
         });
