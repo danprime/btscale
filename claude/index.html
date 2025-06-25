@@ -141,6 +141,12 @@
             <input type="checkbox" id="flowSmoothing" onchange="setFlowSmoothing(this.checked)" disabled>
         </div>
         
+        <div class="controls">
+            <label for="ratio">Ratio:</label>
+            <input type="number" id="ratio" value="15" min="0.1" max="100" step="0.1">
+            <button id="targetRatioBtn" onclick="setTargetRatio()" disabled>Target Ratio</button>
+        </div>>
+        
         <div class="weight-display" id="weightDisplay">
             0.00 g
         </div>
@@ -194,6 +200,14 @@
                 <div class="info-label">Data Packets</div>
                 <div class="info-value" id="packetCount">0</div>
             </div>
+            <div class="info-item">
+                <div class="info-label">Target Weight</div>
+                <div class="info-value" id="targetWeight">-- g</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Remainder</div>
+                <div class="info-value" id="remainder">-- g</div>
+            </div>
         </div>
         
         <div class="log" id="log"></div>
@@ -206,6 +220,7 @@
         let weightCharacteristic;
         let isConnected = false;
         let packetCount = 0;
+        let targetWeight = null;
 
         // Service and characteristic UUIDs
         const SERVICE_UUID = 0x0FFE;
@@ -234,6 +249,7 @@
             document.getElementById('beepLevel').disabled = !connected;
             document.getElementById('autoOff').disabled = !connected;
             document.getElementById('flowSmoothing').disabled = !connected;
+            document.getElementById('targetRatioBtn').disabled = !connected;
             
             isConnected = connected;
         }
@@ -342,6 +358,12 @@
             document.getElementById('flowSymbol').textContent = scaleData.flowSymbol === 1 ? '-' : '+';
             document.getElementById('rawMilliseconds').textContent = scaleData.milliseconds.toString();
             document.getElementById('packetCount').textContent = packetCount.toString();
+            
+            // Update remainder if target is set
+            if (targetWeight !== null) {
+                const remainder = targetWeight - scaleData.weight;
+                document.getElementById('remainder').textContent = `${remainder >= 0 ? '+' : ''}${remainder.toFixed(2)} g`;
+            }
         }
 
         function handleWeightData(event) {
@@ -528,6 +550,37 @@
             }
         }
 
+        async function setTargetRatio() {
+            if (!isConnected) {
+                log('Not connected to scale');
+                return;
+            }
+
+            try {
+                // Get current weight from display
+                const currentWeightText = document.getElementById('weightInfo').textContent;
+                const currentWeight = parseFloat(currentWeightText.replace(' g', ''));
+                
+                // Get ratio value
+                const ratio = parseFloat(document.getElementById('ratio').value);
+                
+                // Calculate target weight
+                targetWeight = currentWeight * ratio;
+                
+                // Update display
+                document.getElementById('targetWeight').textContent = `${targetWeight.toFixed(2)} g`;
+                
+                // Send tare command
+                const tareCommand = new Uint8Array([0x03, 0x0A, 0x01, 0x00, 0x00, 0x08]);
+                await commandCharacteristic.writeValue(tareCommand);
+                
+                log(`Target ratio set: ${currentWeight.toFixed(2)}g × ${ratio} = ${targetWeight.toFixed(2)}g (scale tared)`);
+                
+            } catch (error) {
+                log(`Error setting target ratio: ${error.message}`);
+            }
+        }
+
         function onDisconnected() {
             log('Device disconnected');
             updateStatus('Disconnected');
@@ -535,6 +588,9 @@
             bluetoothServer = null;
             commandCharacteristic = null;
             weightCharacteristic = null;
+            targetWeight = null;
+            document.getElementById('targetWeight').textContent = '-- g';
+            document.getElementById('remainder').textContent = '-- g';
         }
 
         async function disconnect() {
