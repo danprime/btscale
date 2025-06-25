@@ -213,6 +213,7 @@ var Scale = (function () {
     Scale.prototype.connect = function () {
         var _this = this;
         if (this.connected) {
+            console.log('Already connected.');
             return;
         }
         var log = console.log.bind(console);
@@ -235,32 +236,38 @@ var Scale = (function () {
                 console.log(msg);
             }
         });
-        // Connect and enumerate all services/characteristics
+        console.log('Attempting to connect to device:', this.device);
         this.device.gatt.connect()
             .then(function(server) {
+                console.log('GATT server connected:', server);
                 return server.getPrimaryServices();
+            }, function(err) {
+                console.log('Error connecting to GATT server:', err);
+                throw err;
             })
             .then(function(services) {
+                console.log('Discovered services:', services.map(s => s.uuid));
                 services.forEach(function(service) {
                     console.log('Service UUID:', service.uuid);
                     service.getCharacteristics().then(function(characteristics) {
+                        console.log('Discovered characteristics for service', service.uuid, ':', characteristics.map(c => c.uuid));
                         characteristics.forEach(function(characteristic) {
                             console.log('Characteristic UUID:', characteristic.uuid);
-                            // Try to subscribe to notifications on every characteristic
                             characteristic.startNotifications().then(function() {
+                                console.log('Subscribed to notifications for', characteristic.uuid);
                                 characteristic.addEventListener('characteristicvaluechanged', function(event) {
                                     var raw = new Uint8Array(event.target.value.buffer);
                                     console.log('Notification from characteristic', characteristic.uuid, ':', raw);
-                                    // Try to decode if this is the expected characteristic
                                     if (characteristic.uuid === SCALE_CHARACTERISTIC_UUID) {
                                         _this.queue.add(event.target.value.buffer);
                                     }
                                 });
-                                console.log('Subscribed to notifications for', characteristic.uuid);
                             }).catch(function(err) {
-                                // Not all characteristics support notifications
+                                console.log('Characteristic', characteristic.uuid, 'does not support notifications:', err);
                             });
                         });
+                    }).catch(function(err) {
+                        console.log('Error getting characteristics for service', service.uuid, ':', err);
                     });
                 });
             })
@@ -466,13 +473,20 @@ if (typeof window !== 'undefined') {
         document.body.appendChild(infoDiv);
 
         var finder = null;
+        var lastScale = null;
         btn.addEventListener('click', function() {
+            // Disconnect previous scale if connected
+            if (lastScale && lastScale.device && lastScale.device.gatt && lastScale.device.gatt.connected) {
+                console.log('Disconnecting previous scale...');
+                lastScale.device.gatt.disconnect();
+            }
             finder = new ScaleFinder();
             // Patch all scales to update the display
             var origDeviceAdded = finder.deviceAdded.bind(finder);
             finder.deviceAdded = function(device) {
                 origDeviceAdded(device);
                 var scale = finder.scales[finder.scales.length - 1];
+                lastScale = scale;
                 // Patch the scale to update the display on new weight
                 var origQueueCallback = scale.queue.callback;
                 scale.queue.callback = function(payload) {
