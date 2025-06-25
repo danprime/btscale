@@ -518,20 +518,24 @@ if (typeof window !== 'undefined') {
             };
             // Override startDiscovery to show device/services/characteristics on page
             finder.startDiscovery = function() {
+                console.log('startDiscovery called');
                 infoDiv.textContent = 'Searching for Bluetooth devices...';
                 var _this = this;
                 if (this.failed) {
+                    console.log('Discovery failed flag set');
                     return;
                 }
                 navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
-                    optionalServices: [SCALE_SERVICE_UUID] // Fix: add service UUID here too
+                    optionalServices: [SCALE_SERVICE_UUID]
                 })
                 .then(function(device) {
+                    console.log('Device selected:', device);
                     infoDiv.textContent = 'Selected device:\n' +
                         'Name: ' + (device.name || '(no name)') + '\n' +
                         'Id: ' + device.id + '\n';
                     return device.gatt.connect().then(function(server) {
+                        console.log('GATT connect success');
                         return server.getPrimaryServices();
                     }).then(function(services) {
                         let info = infoDiv.textContent + '\nServices:';
@@ -545,12 +549,13 @@ if (typeof window !== 'undefined') {
                         });
                         Promise.all(servicePromises).then(function() {
                             infoDiv.textContent = info + '\n\nCopy the relevant UUIDs above and update your code.';
-                            // After listing, actually add the device to trigger connection logic
+                            console.log('Calling deviceAdded');
                             _this.deviceAdded(device);
                         });
                     });
                 })
                 .catch(function(err) {
+                    console.log('Error in startDiscovery:', err);
                     infoDiv.textContent = 'Error: ' + err;
                 });
             };
