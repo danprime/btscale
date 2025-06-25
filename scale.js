@@ -422,35 +422,20 @@ if (typeof window !== 'undefined') {
                             'Name: ' + (device.name || '(no name)') + '\n' +
                             'Id: ' + device.id + '\n';
                         return device.gatt.connect().then(server => {
-                            return server.getPrimaryService(SCALE_SERVICE_UUID).then(service => {
-                                // Get both characteristics
-                                return Promise.all([
-                                    service.getCharacteristic(WEIGHT_CHARACTERISTIC_UUID),
-                                    service.getCharacteristic(CMD_CHARACTERISTIC_UUID)
-                                ]).then(([weightChar, cmdChar]) => {
-                                    infoDiv.textContent += '\nService: ' + SCALE_SERVICE_UUID +
-                                        '\n  Weight Char: ' + WEIGHT_CHARACTERISTIC_UUID +
-                                        '\n  Cmd Char: ' + CMD_CHARACTERISTIC_UUID;
-                                    // Subscribe to notifications
-                                    weightChar.startNotifications().then(() => {
-                                        weightChar.addEventListener('characteristicvaluechanged', function(event) {
-                                            const bytes = new Uint8Array(event.target.value.buffer);
-                                            console.log('Bookoo notification:', bytes);
-                                            const weight = parseBookooWeight(bytes);
-                                            if (weight !== null) {
-                                                weightDiv.textContent = 'Weight: ' + weight + ' g';
-                                            } else {
-                                                weightDiv.textContent = 'Weight: --';
-                                            }
-                                        });
-                                        // Write tare+start timer command
-                                        const cmd = bookooTareStartCmd();
-                                        cmdChar.writeValue(cmd).then(() => {
-                                            console.log('Bookoo: wrote tare+start timer command', cmd);
-                                        }).catch(err => {
-                                            console.log('Bookoo: error writing tare+start', err);
+                            // List all primary services
+                            return server.getPrimaryServices().then(services => {
+                                let info = infoDiv.textContent + '\nServices:';
+                                let servicePromises = services.map(service => {
+                                    info += '\n  Service UUID: ' + service.uuid;
+                                    return service.getCharacteristics().then(characteristics => {
+                                        characteristics.forEach(characteristic => {
+                                            info += '\n    Characteristic UUID: ' + characteristic.uuid;
                                         });
                                     });
+                                });
+                                Promise.all(servicePromises).then(() => {
+                                    infoDiv.textContent = info + '\n\nCopy the relevant UUIDs above and update your code.';
+                                    console.log('All discovered services and characteristics:', info);
                                 });
                             });
                         });
