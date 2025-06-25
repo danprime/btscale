@@ -253,7 +253,7 @@ var Scale = (function () {
                         console.log('Discovered characteristics for service', service.uuid, ':', characteristics.map(c => c.uuid));
                         characteristics.forEach(function(characteristic) {
                             console.log('Characteristic UUID:', characteristic.uuid, 'Properties:', characteristic.properties);
-                            // Subscribe to indications only, do NOT write anything
+                            // Subscribe to indications, then write notification request after subscription
                             if (characteristic.properties.indicate) {
                                 characteristic.startNotifications().then(function() {
                                     console.log('Subscribed to indications for', characteristic.uuid);
@@ -261,7 +261,15 @@ var Scale = (function () {
                                         var raw = new Uint8Array(event.target.value.buffer);
                                         console.log('Indication from characteristic', characteristic.uuid, ':', raw);
                                     });
-                                    // DO NOT write anything after subscribing
+                                    // After subscribing, write notification request
+                                    if (characteristic.properties.write) {
+                                        var notifReq = encodeNotificationRequest();
+                                        characteristic.writeValue(notifReq).then(function() {
+                                            console.log('Wrote notification request to characteristic', characteristic.uuid);
+                                        }).catch(function(err) {
+                                            console.log('Error writing notification request to', characteristic.uuid, ':', err);
+                                        });
+                                    }
                                 }).catch(function(err) {
                                     console.log('Characteristic', characteristic.uuid, 'does not support indications:', err);
                                 });
