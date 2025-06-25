@@ -252,30 +252,30 @@ var Scale = (function () {
                     service.getCharacteristics().then(function(characteristics) {
                         console.log('Discovered characteristics for service', service.uuid, ':', characteristics.map(c => c.uuid));
                         characteristics.forEach(function(characteristic) {
-                            console.log('Characteristic UUID:', characteristic.uuid);
-                            characteristic.startNotifications().then(function() {
-                                console.log('Subscribed to notifications for', characteristic.uuid);
-                                characteristic.addEventListener('characteristicvaluechanged', function(event) {
-                                    var raw = new Uint8Array(event.target.value.buffer);
-                                    console.log('Notification from characteristic', characteristic.uuid, ':', raw);
-                                    if (characteristic.uuid === SCALE_CHARACTERISTIC_UUID) {
-                                        _this.queue.add(event.target.value.buffer);
-                                    }
-                                });
-                                // Try writing ident and notification request if this is the scale characteristic
-                                if (characteristic.uuid === SCALE_CHARACTERISTIC_UUID) {
-                                    characteristic.writeValue(encodeId()).then(function() {
-                                        console.log('Wrote ident to characteristic', characteristic.uuid);
-                                        return characteristic.writeValue(encodeNotificationRequest());
-                                    }).then(function() {
-                                        console.log('Wrote notification request to characteristic', characteristic.uuid);
-                                    }).catch(function(err) {
-                                        console.log('Error writing ident/notification request:', err);
+                            console.log('Characteristic UUID:', characteristic.uuid, 'Properties:', characteristic.properties);
+                            // Try to subscribe to notifications/indications if supported
+                            if (characteristic.properties.notify || characteristic.properties.indicate) {
+                                characteristic.startNotifications().then(function() {
+                                    console.log('Subscribed to notifications/indications for', characteristic.uuid);
+                                    characteristic.addEventListener('characteristicvaluechanged', function(event) {
+                                        var raw = new Uint8Array(event.target.value.buffer);
+                                        console.log('Notification/Indication from characteristic', characteristic.uuid, ':', raw);
                                     });
-                                }
-                            }).catch(function(err) {
-                                console.log('Characteristic', characteristic.uuid, 'does not support notifications:', err);
-                            });
+                                }).catch(function(err) {
+                                    console.log('Characteristic', characteristic.uuid, 'does not support notifications/indications:', err);
+                                });
+                            }
+                            // Try writing ident and notification request to all writable characteristics
+                            if (characteristic.properties.write) {
+                                characteristic.writeValue(encodeId()).then(function() {
+                                    console.log('Wrote ident to characteristic', characteristic.uuid);
+                                    return characteristic.writeValue(encodeNotificationRequest());
+                                }).then(function() {
+                                    console.log('Wrote notification request to characteristic', characteristic.uuid);
+                                }).catch(function(err) {
+                                    console.log('Error writing ident/notification request to', characteristic.uuid, ':', err);
+                                });
+                            }
                         });
                     }).catch(function(err) {
                         console.log('Error getting characteristics for service', service.uuid, ':', err);
