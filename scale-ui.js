@@ -264,3 +264,16 @@ if (!navigator.bluetooth) {
 } else {
     log('Web Bluetooth is supported');
 }
+
+// Attach UI functions to window for HTML onclick compatibility
+window.connectToScale = connectToScale;
+window.sendTareCommand = sendTareCommand;
+window.sendTareAndStartCommand = sendTareAndStartCommand;
+window.sendStartTimerCommand = sendStartTimerCommand;
+window.sendStopTimerCommand = sendStopTimerCommand;
+window.sendResetTimerCommand = sendResetTimerCommand;
+window.setBeepLevel = setBeepLevel;
+window.setAutoOff = setAutoOff;
+window.setFlowSmoothing = setFlowSmoothing;
+window.setTargetRatio = setTargetRatio;
+window.disconnect = disconnect;
