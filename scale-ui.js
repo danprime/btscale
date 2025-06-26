@@ -14,11 +14,26 @@ const SERVICE_UUID = 0x0FFE;
 const COMMAND_CHAR_UUID = 0xFF12;
 const WEIGHT_CHAR_UUID = 0xFF11;
 
+// Throttled log implementation
+let logBuffer = [];
+let logScheduled = false;
+const LOG_THROTTLE_MS = 200;
+
 function log(message) {
-    const logElement = document.getElementById('log');
     const timestamp = new Date().toLocaleTimeString();
-    logElement.innerHTML += `[${timestamp}] ${message}<br>`;
-    logElement.scrollTop = logElement.scrollHeight;
+    logBuffer.push(`[${timestamp}] ${message}`);
+    if (!logScheduled) {
+        logScheduled = true;
+        setTimeout(() => {
+            const logElement = document.getElementById('log');
+            // Limit to last 200 entries
+            if (logBuffer.length > 200) logBuffer = logBuffer.slice(-200);
+            logElement.innerHTML += logBuffer.join('<br>') + '<br>';
+            logElement.scrollTop = logElement.scrollHeight;
+            logBuffer = [];
+            logScheduled = false;
+        }, LOG_THROTTLE_MS);
+    }
 }
 
 function updateStatus(status, connected = false) {
