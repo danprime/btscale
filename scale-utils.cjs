@@ -1,5 +1,4 @@
-// Utility functions for Bookoo scale, extracted for testing
-
+// CommonJS version for Jest/Node
 function calculateChecksum(data) {
     let checksum = 0;
     for (let i = 0; i < data.length - 1; i++) {
@@ -52,13 +51,8 @@ function parseWeightData(data) {
     };
 }
 
-// Export for ES modules (browser)
-export { calculateChecksum, verifyChecksum, parseWeightData };
-// Export for CommonJS (Node/Jest)
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = {
-        calculateChecksum,
-        verifyChecksum,
-        parseWeightData
-    };
-}
+module.exports = {
+    calculateChecksum,
+    verifyChecksum,
+    parseWeightData
+};

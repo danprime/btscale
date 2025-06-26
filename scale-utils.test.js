@@ -1,4 +1,4 @@
-const { calculateChecksum, verifyChecksum, parseWeightData } = require('./scale-utils');
+const { calculateChecksum, verifyChecksum, parseWeightData } = require('./scale-utils.cjs');
 
 describe('Bookoo Scale Utility Functions', () => {
     test('calculateChecksum returns correct XOR', () => {
