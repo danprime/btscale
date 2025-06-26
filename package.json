@@ -1,0 +1,22 @@
+{
+  "name": "scale",
+  "version": "1.0.0",
+  "main": "scale.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danprime/bookooscale.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/danprime/bookooscale/issues"
+  },
+  "homepage": "https://github.com/danprime/bookooscale#readme",
+  "description": "",
+  "devDependencies": {
+    "jest": "^30.0.3"
+  }
+}
