@@ -9,6 +9,7 @@ let isConnected = false;
 let packetCount = 0;
 let targetWeight = null;
 let timerRunning = false;
+let timerLocked = false;
 
 // Service and characteristic UUIDs
 const SERVICE_UUID = 0x0FFE;
@@ -148,6 +149,12 @@ async function sendTareAndStartCommand() {
         const command = new Uint8Array([0x03, 0x0A, 0x07, 0x00, 0x00, 0x00]);
         await commandCharacteristic.writeValue(command);
         log('Tare and start timer command sent');
+        // Set timerRunning to true and update button
+        timerRunning = true;
+        const toggleBtn = document.getElementById('timerToggleBtn');
+        if (toggleBtn) toggleBtn.textContent = 'Stop Timer';
+        // Allow toggling unless reset is required
+        timerLocked = false;
     } catch (error) {
         log(`Error sending tare and start command: ${error.message}`);
     }
@@ -159,6 +166,10 @@ async function toggleTimer() {
         return;
     }
     const toggleBtn = document.getElementById('timerToggleBtn');
+    if (timerLocked) {
+        log('Timer must be reset before starting again');
+        return;
+    }
     try {
         if (!timerRunning) {
             // Start timer
@@ -174,6 +185,7 @@ async function toggleTimer() {
             log('Stop timer command sent');
             timerRunning = false;
             if (toggleBtn) toggleBtn.textContent = 'Start Timer';
+            timerLocked = true;
         }
     } catch (error) {
         log(`Error toggling timer: ${error.message}`);
@@ -217,6 +229,10 @@ async function sendResetTimerCommand() {
         const command = new Uint8Array([0x03, 0x0A, 0x06, 0x00, 0x00, 0x0C]);
         await commandCharacteristic.writeValue(command);
         log('Reset timer command sent');
+        timerLocked = false;
+        timerRunning = false;
+        const toggleBtn = document.getElementById('timerToggleBtn');
+        if (toggleBtn) toggleBtn.textContent = 'Start Timer';
     } catch (error) {
         log(`Error sending reset timer command: ${error.message}`);
     }
