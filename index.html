@@ -17,6 +17,9 @@
         </div>
         <div id="status" class="status disconnected ritual-status">Disconnected</div>
         <div class="ritual-hero-weight" id="weightDisplay">0.00 g</div>
+        <div class="ritual-timer-row">
+            <div class="ritual-timer" id="timer">00:00.000</div>
+        </div>
         <div class="ritual-controls">
             <button id="tareBtn" class="ritual-btn" onclick="sendTareCommand()" disabled>Tare</button>
             <button id="tareStartBtn" class="ritual-btn" onclick="sendTareAndStartCommand()" disabled>Tare & Start</button>
@@ -31,10 +34,6 @@
             <div class="ritual-info-item">
                 <div class="ritual-info-label">Flow Rate</div>
                 <div class="ritual-info-value" id="flowRate">0.00 g/s</div>
-            </div>
-            <div class="ritual-info-item">
-                <div class="ritual-info-label">Timer</div>
-                <div class="ritual-info-value" id="timer">00:00.000</div>
             </div>
             <div class="ritual-info-item">
                 <div class="ritual-info-label">Target Weight</div>
