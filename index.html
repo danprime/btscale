@@ -7,56 +7,45 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>BOOKOO Mini Scale Reader</h1>
-        
-        <div id="status" class="status disconnected">
-            Disconnected <button id="connectToggleBtn" onclick="toggleConnect()">Connect</button>
+    <div class="ritual-container">
+        <div class="ritual-header">
+            <div class="ritual-title">BOOKOO Mini Scale Reader</div>
+            <div class="ritual-header-actions">
+                <button id="connectToggleBtn" class="ritual-btn ritual-connect" onclick="toggleConnect()">Connect</button>
+                <button id="settingsBtn" class="ritual-btn ritual-settings" onclick="openSettingsModal()">Settings</button>
+            </div>
         </div>
-        
-        <div class="controls">            
-            <button id="tareBtn" onclick="sendTareCommand()" disabled>Tare</button>
-            <button id="tareStartBtn" onclick="sendTareAndStartCommand()" disabled>Tare & Start</button>
-            <button id="timerToggleBtn" onclick="triStateTimer()" disabled>Start Timer</button>
+        <div id="status" class="status disconnected ritual-status">Disconnected</div>
+        <div class="ritual-hero-weight" id="weightDisplay">0.00 g</div>
+        <div class="ritual-controls">
+            <button id="tareBtn" class="ritual-btn" onclick="sendTareCommand()" disabled>Tare</button>
+            <button id="tareStartBtn" class="ritual-btn" onclick="sendTareAndStartCommand()" disabled>Tare & Start</button>
+            <button id="timerToggleBtn" class="ritual-btn" onclick="triStateTimer()" disabled>Start Timer</button>
         </div>
-        
-        <div class="controls">
+        <div class="ritual-controls ritual-ratio-controls">
             <label for="ratio">Ratio:</label>
             <input type="number" id="ratio" value="15" min="0.1" max="100" step="0.1">
-            <button id="targetRatioBtn" onclick="setTargetRatio()" disabled>Target Ratio</button>
+            <button id="targetRatioBtn" class="ritual-btn" onclick="setTargetRatio()" disabled>Target Ratio</button>
         </div>
-        
-        <div class="weight-display" id="weightDisplay">
-            0.00 g
-        </div>
-        
-        <div class="info">
-
-            <div class="info-item">
-                <div class="info-label">Flow Rate</div>
-                <div class="info-value" id="flowRate">0.00 g/s</div>
+        <div class="ritual-info">
+            <div class="ritual-info-item">
+                <div class="ritual-info-label">Flow Rate</div>
+                <div class="ritual-info-value" id="flowRate">0.00 g/s</div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Timer</div>
-                <div class="info-value" id="timer">00:00.000</div>
+            <div class="ritual-info-item">
+                <div class="ritual-info-label">Timer</div>
+                <div class="ritual-info-value" id="timer">00:00.000</div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Target Weight</div>
-                <div class="info-value" id="targetWeight">-- g</div>
+            <div class="ritual-info-item">
+                <div class="ritual-info-label">Target Weight</div>
+                <div class="ritual-info-value" id="targetWeight">-- g</div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Remainder</div>
-                <div class="info-value" id="remainder">-- g</div>
+            <div class="ritual-info-item">
+                <div class="ritual-info-label">Remainder</div>
+                <div class="ritual-info-value" id="remainder">-- g</div>
             </div>
         </div>
-        
-
-
         <div class="log" id="log" style="display:none;"></div>
-        
-        <!-- Settings Modal Trigger -->
-        <button id="settingsBtn" onclick="openSettingsModal()">Settings</button>
-
         <!-- Settings Modal -->
         <div id="settingsModal" class="modal" style="display:none;">
             <div class="modal-content">
@@ -91,7 +80,6 @@
             </div>
         </div>
     </div>
-
     <script type="module" src="scale-ui.js"></script>
 </body>
 </html>
