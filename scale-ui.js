@@ -294,8 +294,9 @@ async function setTargetRatio() {
         return;
     }
     try {
-        const currentWeightText = document.getElementById('weightInfo').textContent;
-        const currentWeight = parseFloat(currentWeightText.replace(' g', ''));
+        // Use the displayed weight as the current weight
+        const weightDisplay = document.getElementById('weightDisplay').textContent;
+        const currentWeight = parseFloat(weightDisplay.replace(' g', ''));
         const ratio = parseFloat(document.getElementById('ratio').value);
         targetWeight = currentWeight * ratio;
         document.getElementById('targetWeight').textContent = `${targetWeight.toFixed(2)} g`;
