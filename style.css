@@ -1,5 +1,5 @@
 body {
-    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    font-family: ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     background: linear-gradient(to bottom, #fff8e1 0%, #ffe0b2 100%);
     margin: 0;
     padding: 0;
@@ -18,13 +18,14 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 24px 32px 0 32px;
+    padding: 20px 32px 0 32px;
 }
 .ritual-title {
     font-size: 1.3rem;
-    font-weight: 400;
+    font-weight: 300;
     color: #b45309;
     letter-spacing: 0.01em;
+    margin-bottom: 0;
 }
 .ritual-header-actions {
     display: flex;
@@ -76,14 +77,23 @@ body {
     font-size: 5rem;
     font-weight: 300;
     color: #b45309;
-    margin: 32px 0 12px 0;
+    margin: 40px 0 8px 0;
     letter-spacing: -0.03em;
     line-height: 1.1;
+}
+.ritual-hero-unit {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 300;
+    color: #b77b2b;
+    margin-top: -6px;
+    margin-bottom: 28px;
+    letter-spacing: 0.01em;
 }
 .ritual-timer-row {
     display: flex;
     justify-content: center;
-    margin-bottom: 18px;
+    margin-bottom: 32px;
 }
 .ritual-timer {
     font-size: 2.7rem;
@@ -92,7 +102,7 @@ body {
     letter-spacing: 0.01em;
     text-align: center;
     font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-    margin-top: -10px;
+    margin-top: 0;
     margin-bottom: 0;
     line-height: 1.1;
 }
@@ -100,17 +110,17 @@ body {
     display: flex;
     justify-content: center;
     gap: 18px;
-    margin: 0 0 18px 0;
+    margin: 0 0 28px 0;
 }
 .ritual-ratio-controls {
-    margin-bottom: 28px;
+    margin-bottom: 32px;
 }
 .ritual-info {
     display: flex;
     justify-content: space-between;
     gap: 10px;
     margin: 0 32px 0 32px;
-    margin-bottom: 18px;
+    margin-bottom: 32px;
 }
 .ritual-info-item {
     flex: 1;
@@ -124,11 +134,11 @@ body {
     font-size: 0.85em;
     color: #b77b2b;
     margin-bottom: 2px;
-    font-weight: 400;
+    font-weight: 300;
 }
 .ritual-info-value {
     font-size: 1.15em;
-    font-weight: 600;
+    font-weight: 500;
     color: #b45309;
 }
 input[type="number"] {
@@ -150,9 +160,10 @@ label {
     color: #b77b2b;
     font-size: 1em;
     margin-right: 6px;
+    font-weight: 500;
 }
 .log {
-    margin: 24px 32px 0 32px;
+    margin: 32px 32px 0 32px;
     max-height: 180px;
     overflow-y: auto;
     background: #fff8e1;
@@ -175,7 +186,7 @@ label {
 .modal-content {
     background: #fff;
     border-radius: 18px;
-    padding: 32px 24px 24px 24px;
+    padding: 40px 24px 32px 24px;
     min-width: 320px;
     box-shadow: 0 8px 32px 0 rgba(0,0,0,0.13);
 }
@@ -190,6 +201,7 @@ label {
 .modal-controls label {
     color: #b77b2b;
     font-size: 1em;
+    font-weight: 500;
 }
 .modal-controls input[type="range"] {
     width: 120px;
