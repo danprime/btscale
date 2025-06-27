@@ -8,6 +8,7 @@ let weightCharacteristic;
 let isConnected = false;
 let packetCount = 0;
 let targetWeight = null;
+let timerRunning = false;
 
 // Service and characteristic UUIDs
 const SERVICE_UUID = 0x0FFE;
@@ -56,8 +57,7 @@ function updateStatus(status, connected = false) {
     document.getElementById('connectBtn').disabled = connected;
     document.getElementById('tareBtn').disabled = !connected;
     document.getElementById('tareStartBtn').disabled = !connected;
-    document.getElementById('startTimerBtn').disabled = !connected;
-    document.getElementById('stopTimerBtn').disabled = !connected;
+    document.getElementById('timerToggleBtn').disabled = !connected;
     document.getElementById('resetTimerBtn').disabled = !connected;
     document.getElementById('disconnectBtn').disabled = !connected;
     document.getElementById('beepLevel').disabled = !connected;
@@ -65,6 +65,11 @@ function updateStatus(status, connected = false) {
     document.getElementById('flowSmoothing').disabled = !connected;
     document.getElementById('targetRatioBtn').disabled = !connected;
     isConnected = connected;
+    if (!connected) {
+        timerRunning = false;
+        const toggleBtn = document.getElementById('timerToggleBtn');
+        if (toggleBtn) toggleBtn.textContent = 'Start Timer';
+    }
 }
 
 function updateDisplay(scaleData) {
@@ -153,6 +158,33 @@ async function sendTareAndStartCommand() {
         log('Tare and start timer command sent');
     } catch (error) {
         log(`Error sending tare and start command: ${error.message}`);
+    }
+}
+
+async function toggleTimer() {
+    if (!isConnected || !commandCharacteristic) {
+        log('Not connected to scale');
+        return;
+    }
+    const toggleBtn = document.getElementById('timerToggleBtn');
+    try {
+        if (!timerRunning) {
+            // Start timer
+            const command = new Uint8Array([0x03, 0x0A, 0x04, 0x00, 0x00, 0x0A]);
+            await commandCharacteristic.writeValue(command);
+            log('Start timer command sent');
+            timerRunning = true;
+            if (toggleBtn) toggleBtn.textContent = 'Stop Timer';
+        } else {
+            // Stop timer
+            const command = new Uint8Array([0x03, 0x0A, 0x05, 0x00, 0x00, 0x0D]);
+            await commandCharacteristic.writeValue(command);
+            log('Stop timer command sent');
+            timerRunning = false;
+            if (toggleBtn) toggleBtn.textContent = 'Start Timer';
+        }
+    } catch (error) {
+        log(`Error toggling timer: ${error.message}`);
     }
 }
 
@@ -305,3 +337,4 @@ window.setAutoOff = setAutoOff;
 window.setFlowSmoothing = setFlowSmoothing;
 window.setTargetRatio = setTargetRatio;
 window.disconnect = disconnect;
+window.toggleTimer = toggleTimer;
