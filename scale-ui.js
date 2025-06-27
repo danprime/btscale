@@ -63,16 +63,19 @@ function updateStatus(status, connected = false) {
     document.getElementById('tareBtn').disabled = !connected;
     document.getElementById('tareStartBtn').disabled = !connected;
     document.getElementById('timerToggleBtn').disabled = !connected;
-    document.getElementById('resetTimerBtn').disabled = !connected;
     document.getElementById('beepLevel').disabled = !connected;
     document.getElementById('autoOff').disabled = !connected;
     document.getElementById('flowSmoothing').disabled = !connected;
     document.getElementById('targetRatioBtn').disabled = !connected;
     isConnected = connected;
+    const toggleBtn = document.getElementById('timerToggleBtn');
     if (!connected) {
-        timerRunning = false;
-        const toggleBtn = document.getElementById('timerToggleBtn');
+        timerState = 'stopped';
         if (toggleBtn) toggleBtn.textContent = 'Start Timer';
+    } else if (toggleBtn) {
+        if (timerState === 'stopped') toggleBtn.textContent = 'Start Timer';
+        else if (timerState === 'running') toggleBtn.textContent = 'Stop Timer';
+        else if (timerState === 'reset-required') toggleBtn.textContent = 'Reset Timer';
     }
 }
 
@@ -149,46 +152,45 @@ async function sendTareAndStartCommand() {
         const command = new Uint8Array([0x03, 0x0A, 0x07, 0x00, 0x00, 0x00]);
         await commandCharacteristic.writeValue(command);
         log('Tare and start timer command sent');
-        // Set timerRunning to true and update button
-        timerRunning = true;
+        timerState = 'running';
         const toggleBtn = document.getElementById('timerToggleBtn');
         if (toggleBtn) toggleBtn.textContent = 'Stop Timer';
-        // Allow toggling unless reset is required
-        timerLocked = false;
     } catch (error) {
         log(`Error sending tare and start command: ${error.message}`);
     }
 }
 
-async function toggleTimer() {
+async function triStateTimer() {
     if (!isConnected || !commandCharacteristic) {
         log('Not connected to scale');
         return;
     }
-    const toggleBtn = document.getElementById('timerToggleBtn');
-    if (timerLocked) {
-        log('Timer must be reset before starting again');
-        return;
-    }
+    const btn = document.getElementById('timerToggleBtn');
     try {
-        if (!timerRunning) {
+        if (timerState === 'stopped') {
             // Start timer
             const command = new Uint8Array([0x03, 0x0A, 0x04, 0x00, 0x00, 0x0A]);
             await commandCharacteristic.writeValue(command);
             log('Start timer command sent');
-            timerRunning = true;
-            if (toggleBtn) toggleBtn.textContent = 'Stop Timer';
-        } else {
+            timerState = 'running';
+            if (btn) btn.textContent = 'Stop Timer';
+        } else if (timerState === 'running') {
             // Stop timer
             const command = new Uint8Array([0x03, 0x0A, 0x05, 0x00, 0x00, 0x0D]);
             await commandCharacteristic.writeValue(command);
             log('Stop timer command sent');
-            timerRunning = false;
-            if (toggleBtn) toggleBtn.textContent = 'Start Timer';
-            timerLocked = true;
+            timerState = 'reset-required';
+            if (btn) btn.textContent = 'Reset Timer';
+        } else if (timerState === 'reset-required') {
+            // Reset timer
+            const command = new Uint8Array([0x03, 0x0A, 0x06, 0x00, 0x00, 0x0C]);
+            await commandCharacteristic.writeValue(command);
+            log('Reset timer command sent');
+            timerState = 'stopped';
+            if (btn) btn.textContent = 'Start Timer';
         }
     } catch (error) {
-        log(`Error toggling timer: ${error.message}`);
+        log(`Error in timer button: ${error.message}`);
     }
 }
 
@@ -358,7 +360,7 @@ window.setAutoOff = setAutoOff;
 window.setFlowSmoothing = setFlowSmoothing;
 window.setTargetRatio = setTargetRatio;
 window.disconnect = disconnect;
-window.toggleTimer = toggleTimer;
+window.triStateTimer = triStateTimer;
 window.toggleConnect = toggleConnect;
 
 // Optionally, handle ESC key and click outside modal to close
