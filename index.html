@@ -33,53 +33,14 @@
         </div>
         
         <div class="info">
-            <div class="info-item">
-                <div class="info-label">Weight</div>
-                <div class="info-value" id="weightInfo">0.00 g</div>
-            </div>
+
             <div class="info-item">
                 <div class="info-label">Flow Rate</div>
                 <div class="info-value" id="flowRate">0.00 g/s</div>
             </div>
             <div class="info-item">
-                <div class="info-label">Battery</div>
-                <div class="info-value" id="battery">--%</div>
-            </div>
-            <div class="info-item">
                 <div class="info-label">Timer</div>
                 <div class="info-value" id="timer">00:00.000</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Standby Time</div>
-                <div class="info-value" id="standbyTime">-- min</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Buzzer Level</div>
-                <div class="info-value" id="buzzerLevel">--</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Flow Smoothing</div>
-                <div class="info-value" id="smoothingStatus">--</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Weight Unit</div>
-                <div class="info-value" id="weightUnit">grams</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Weight Symbol</div>
-                <div class="info-value" id="weightSymbol">+</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Flow Symbol</div>
-                <div class="info-value" id="flowSymbol">+</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Raw Milliseconds</div>
-                <div class="info-value" id="rawMilliseconds">0</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Data Packets</div>
-                <div class="info-value" id="packetCount">0</div>
             </div>
             <div class="info-item">
                 <div class="info-label">Target Weight</div>
@@ -91,13 +52,9 @@
             </div>
         </div>
         
-        <div class="controls">
-            <label for="logToggle">Enable Logging:</label>
-            <input type="checkbox" id="logToggle" checked>
-            <span class="log-warning" style="color: #b77; font-size: 0.95em; margin-left: 0.5em;">(May affect UI responsiveness)</span>
-        </div>
 
-        <div class="log" id="log"></div>
+
+        <div class="log" id="log" style="display:none;"></div>
         
         <!-- Settings Modal Trigger -->
         <button id="settingsBtn" onclick="openSettingsModal()">Settings</button>
@@ -127,6 +84,11 @@
                         <option value="+">+</option>
                         <option value="-">-</option>
                     </select>
+                </div>
+                <div class="controls">
+                    <label for="logToggle">Enable Logging:</label>
+                    <input type="checkbox" id="logToggle">
+                    <span class="log-warning" style="color: #b77; font-size: 0.95em; margin-left: 0.5em;">(May affect UI responsiveness)</span>
                 </div>
             </div>
         </div>

@@ -24,10 +24,13 @@ let logEnabled = true;
 // Ensure logging toggle is initialized after DOM is ready
 window.addEventListener('DOMContentLoaded', () => {
     const logToggle = document.getElementById('logToggle');
-    if (logToggle) {
+    const logPanel = document.getElementById('log');
+    if (logToggle && logPanel) {
         logEnabled = logToggle.checked;
+        logPanel.style.display = logEnabled ? '' : 'none';
         logToggle.addEventListener('change', (e) => {
             logEnabled = e.target.checked;
+            logPanel.style.display = logEnabled ? '' : 'none';
         });
     }
 });
@@ -73,24 +76,13 @@ function updateStatus(status, connected = false) {
 }
 
 function updateDisplay(scaleData) {
-    packetCount++;
     document.getElementById('weightDisplay').textContent = `${scaleData.weight.toFixed(2)} g`;
-    document.getElementById('weightInfo').textContent = `${scaleData.weight.toFixed(2)} g`;
     document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(2)} g/s`;
-    document.getElementById('battery').textContent = `${scaleData.batteryPercent}%`;
     const totalSeconds = scaleData.milliseconds / 1000;
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = Math.floor(totalSeconds % 60);
     const milliseconds = Math.floor((totalSeconds % 1) * 1000);
     document.getElementById('timer').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
-    document.getElementById('standbyTime').textContent = `${scaleData.standbyTime} min`;
-    document.getElementById('buzzerLevel').textContent = scaleData.buzzerGear.toString();
-    document.getElementById('smoothingStatus').textContent = scaleData.flowSmoothing ? 'ON' : 'OFF';
-    document.getElementById('weightUnit').textContent = scaleData.weightUnit === 0 ? 'grams' : `unit ${scaleData.weightUnit}`;
-    document.getElementById('weightSymbol').textContent = scaleData.weightSymbol === 1 ? '-' : '+';
-    document.getElementById('flowSymbol').textContent = scaleData.flowSymbol === 1 ? '-' : '+';
-    document.getElementById('rawMilliseconds').textContent = scaleData.milliseconds.toString();
-    document.getElementById('packetCount').textContent = packetCount.toString();
     if (targetWeight !== null) {
         const remainder = targetWeight - scaleData.weight;
         document.getElementById('remainder').textContent = `${remainder >= 0 ? '+' : ''}${remainder.toFixed(2)} g`;
