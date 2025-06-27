@@ -18,8 +18,21 @@ const WEIGHT_CHAR_UUID = 0xFF11;
 let logBuffer = [];
 let logScheduled = false;
 const LOG_THROTTLE_MS = 200;
+let logEnabled = true;
+
+// Ensure logging toggle is initialized after DOM is ready
+window.addEventListener('DOMContentLoaded', () => {
+    const logToggle = document.getElementById('logToggle');
+    if (logToggle) {
+        logEnabled = logToggle.checked;
+        logToggle.addEventListener('change', (e) => {
+            logEnabled = e.target.checked;
+        });
+    }
+});
 
 function log(message) {
+    if (!logEnabled) return;
     const timestamp = new Date().toLocaleTimeString();
     logBuffer.push(`[${timestamp}] ${message}`);
     if (!logScheduled) {
