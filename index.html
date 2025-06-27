@@ -11,11 +11,10 @@
         <h1>BOOKOO Mini Scale Reader</h1>
         
         <div id="status" class="status disconnected">
-            Disconnected
+            Disconnected <button id="connectToggleBtn" onclick="toggleConnect()">Connect</button>
         </div>
         
-        <div class="controls">
-            <button id="connectToggleBtn" onclick="toggleConnect()">Connect</button>
+        <div class="controls">            
             <button id="tareBtn" onclick="sendTareCommand()" disabled>Tare</button>
             <button id="tareStartBtn" onclick="sendTareAndStartCommand()" disabled>Tare & Start</button>
             <button id="timerToggleBtn" onclick="triStateTimer()" disabled>Start Timer</button>
