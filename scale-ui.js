@@ -10,6 +10,7 @@ let packetCount = 0;
 let targetWeight = null;
 let timerRunning = false;
 let timerLocked = false;
+let timerState = 'stopped'; // Global timerState declaration
 
 // Service and characteristic UUIDs
 const SERVICE_UUID = 0x0FFE;
