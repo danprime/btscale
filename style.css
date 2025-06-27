@@ -18,25 +18,23 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 32px 0 32px;
+    padding: 16px 24px 0 24px;
 }
 .ritual-title {
-    font-size: 1.3rem;
+    font-size: 1.15rem;
     font-weight: 300;
-    color: #b45309;
-    letter-spacing: 0.01em;
     margin-bottom: 0;
 }
 .ritual-header-actions {
     display: flex;
-    gap: 12px;
+    gap: 20px;
 }
 .ritual-btn {
     border: none;
     outline: none;
     border-radius: 999px;
     padding: 10px 22px;
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 500;
     background: #fff3e0;
     color: #b45309;
@@ -74,29 +72,29 @@ body {
 }
 .ritual-hero-weight {
     text-align: center;
-    font-size: 6rem;
+    font-size: 6.5rem;
     font-weight: 300;
     color: #b45309;
-    margin: 40px 0 8px 0;
-    letter-spacing: -0.03em;
+    margin: 48px 0 6px 0;
+    letter-spacing: -0.04em;
     line-height: -2.4px;
 }
 .ritual-hero-unit {
     text-align: center;
-    font-size: 2rem;
+    font-size: 1.35rem;
     font-weight: 300;
     color: #b77b2b;
-    margin-top: -6px;
-    margin-bottom: 28px;
+    margin-top: -4px;
+    margin-bottom: 32px;
     letter-spacing: 0.01em;
 }
 .ritual-timer-row {
     display: flex;
     justify-content: center;
-    margin-bottom: 32px;
+    margin-bottom: 36px;
 }
 .ritual-timer {
-    font-size: 2.7rem;
+    font-size: 2.8rem;
     font-weight: 300;
     color: #b77b2b;
     letter-spacing: 0.01em;
@@ -109,36 +107,37 @@ body {
 .ritual-controls {
     display: flex;
     justify-content: center;
-    gap: 18px;
-    margin: 0 0 28px 0;
+    gap: 24px;
+    margin: 0 0 32px 0;
 }
 .ritual-ratio-controls {
-    margin-bottom: 32px;
+    margin-bottom: 36px;
+    gap: 12px;
 }
 .ritual-info {
     display: flex;
     justify-content: space-between;
-    gap: 10px;
+    gap: 18px;
     margin: 0 32px 0 32px;
-    margin-bottom: 32px;
+    margin-bottom: 36px;
 }
 .ritual-info-item {
     flex: 1;
-    background: #fff8e1;
-    border-radius: 12px;
-    padding: 12px 0 8px 0;
+    background: #fffbe8;
+    border-radius: 16px;
+    padding: 18px 0 12px 0;
     text-align: center;
     box-shadow: 0 1px 4px 0 rgba(255,193,7,0.04);
 }
 .ritual-info-label {
-    font-size: 0.85em;
+    font-size: 0.82em;
     color: #b77b2b;
     margin-bottom: 2px;
     font-weight: 300;
 }
 .ritual-info-value {
-    font-size: 1.15em;
-    font-weight: 500;
+    font-size: 1.22em;
+    font-weight: 600;
     color: #b45309;
 }
 input[type="number"] {
@@ -186,7 +185,7 @@ label {
 .modal-content {
     background: #fff;
     border-radius: 18px;
-    padding: 40px 24px 32px 24px;
+    padding: 44px 28px 36px 28px;
     min-width: 320px;
     box-shadow: 0 8px 32px 0 rgba(0,0,0,0.13);
 }
@@ -194,7 +193,7 @@ label {
     position: absolute;
     right: 24px;
     top: 18px;
-    font-size: 2em;
+    font-size: 2.2em;
     color: #b77b2b;
     cursor: pointer;
 }
@@ -213,16 +212,51 @@ label {
 .log-warning {
     color: #b77b2b;
 }
-/* --- Start Timer button color to match ritual.html --- */
+/* --- Harmonize Start Timer button color with primary accent --- */
 #timerToggleBtn {
-    background: #ffb300;
+    background: #b45309;
     color: #fff;
-    box-shadow: 0 2px 8px 0 rgba(255,193,7,0.13);
+    box-shadow: 0 2px 8px 0 rgba(180,83,9,0.13);
     font-weight: 500;
     transition: background 0.2s, color 0.2s, box-shadow 0.2s;
 }
 #timerToggleBtn:hover {
-    background: #ffa000;
+    background: #8a3906;
     color: #fff;
-    box-shadow: 0 4px 16px 0 rgba(255,193,7,0.18);
+    box-shadow: 0 4px 16px 0 rgba(180,83,9,0.18);
+}
+@media (max-width: 600px) {
+    .ritual-container {
+        max-width: 98vw;
+        padding: 0 0 16px 0;
+    }
+    .ritual-header {
+        padding: 10px 10px 0 10px;
+    }
+    .ritual-hero-weight {
+        font-size: 3.5rem;
+        margin: 32px 0 4px 0;
+    }
+    .ritual-hero-unit {
+        font-size: 1.1rem;
+        margin-bottom: 18px;
+    }
+    .ritual-timer {
+        font-size: 1.7rem;
+    }
+    .ritual-controls {
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+    .ritual-info {
+        gap: 6px;
+        margin-bottom: 18px;
+    }
+    .ritual-info-item {
+        padding: 10px 0 7px 0;
+        border-radius: 10px;
+    }
+    .modal-content {
+        padding: 24px 8px 18px 8px;
+    }
 }
