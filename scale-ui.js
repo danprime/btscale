@@ -56,27 +56,40 @@ function log(message) {
 
 function updateStatus(status, connected = false) {
     const statusElement = document.getElementById('status');
-    statusElement.textContent = status;
-    statusElement.className = `status ${connected ? 'connected' : 'disconnected'}`;
-    document.getElementById('connectToggleBtn').textContent = connected ? 'Disconnect' : 'Connect';
-    document.getElementById('connectToggleBtn').disabled = false;
-    document.getElementById('tareBtn').disabled = !connected;
-    document.getElementById('tareStartBtn').disabled = !connected;
-    document.getElementById('timerToggleBtn').disabled = !connected;
-    document.getElementById('beepLevel').disabled = !connected;
-    document.getElementById('autoOff').disabled = !connected;
-    document.getElementById('flowSmoothing').disabled = !connected;
-    document.getElementById('targetRatioBtn').disabled = !connected;
-    isConnected = connected;
-    const toggleBtn = document.getElementById('timerToggleBtn');
-    if (!connected) {
-        timerState = 'stopped';
-        if (toggleBtn) toggleBtn.textContent = 'Start Timer';
-    } else if (toggleBtn) {
-        if (timerState === 'stopped') toggleBtn.textContent = 'Start Timer';
-        else if (timerState === 'running') toggleBtn.textContent = 'Stop Timer';
-        else if (timerState === 'reset-required') toggleBtn.textContent = 'Reset Timer';
+    if (statusElement) {
+        statusElement.textContent = status;
+        statusElement.className = `status ${connected ? 'connected' : 'disconnected'}`;
     }
+    const connectBtn = document.getElementById('connectToggleBtn');
+    if (connectBtn) {
+        connectBtn.textContent = connected ? 'Disconnect' : 'Connect';
+        connectBtn.disabled = false;
+    }
+    const tareBtn = document.getElementById('tareBtn');
+    if (tareBtn) tareBtn.disabled = !connected;
+    const tareStartBtn = document.getElementById('tareStartBtn');
+    if (tareStartBtn) tareStartBtn.disabled = !connected;
+    const timerBtn = document.getElementById('timerToggleBtn');
+    if (timerBtn) {
+        timerBtn.disabled = !connected;
+        if (!connected) {
+            timerState = 'stopped';
+            timerBtn.textContent = 'Start Timer';
+        } else {
+            if (timerState === 'stopped') timerBtn.textContent = 'Start Timer';
+            else if (timerState === 'running') timerBtn.textContent = 'Stop Timer';
+            else if (timerState === 'reset-required') timerBtn.textContent = 'Reset Timer';
+        }
+    }
+    const beepLevel = document.getElementById('beepLevel');
+    if (beepLevel) beepLevel.disabled = !connected;
+    const autoOff = document.getElementById('autoOff');
+    if (autoOff) autoOff.disabled = !connected;
+    const flowSmoothing = document.getElementById('flowSmoothing');
+    if (flowSmoothing) flowSmoothing.disabled = !connected;
+    const targetRatioBtn = document.getElementById('targetRatioBtn');
+    if (targetRatioBtn) targetRatioBtn.disabled = !connected;
+    isConnected = connected;
 }
 
 function updateDisplay(scaleData) {
