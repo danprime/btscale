@@ -18,13 +18,13 @@
             </div>
         </div>
         <div id="status" class="status disconnected ritual-status" style="display:none;">Disconnected</div>
-        <div class="ritual-hero-weight" id="weightDisplay">0.00 g</div>
+        <div class="ritual-hero-weight" id="weightDisplay">0.0 g</div>
         <div class="ritual-timer-row">
-            <div class="ritual-timer" id="timer">00:00.000</div>
+            <div class="ritual-timer" id="timer">0:00</div>
         </div>
         <div class="ritual-controls">
             <button id="tareBtn" class="ritual-btn" onclick="sendTareCommand()" disabled>Tare</button>
-            <button id="tareStartBtn" class="ritual-btn" onclick="sendTareAndStartCommand()" disabled>Tare & Start</button>
+            <button id="tareStartBtn" class="ritual-btn" onclick="sendTareAndStartCommand()" disabled style="display:none;">Tare & Start</button>
             <button id="timerToggleBtn" class="ritual-btn" onclick="triStateTimer()" disabled>Start Timer</button>
         </div>
         <div class="ritual-controls ritual-ratio-controls">
@@ -41,7 +41,7 @@
                 <div class="ritual-info-label">Target Weight</div>
                 <div class="ritual-info-value" id="targetWeight">-- g</div>
             </div>
-            <div class="ritual-info-item">
+            <div class="ritual-info-item" id="remainderPanel">
                 <div class="ritual-info-label">Remainder</div>
                 <div class="ritual-info-value" id="remainder">-- g</div>
             </div>
@@ -72,6 +72,14 @@
                         <option value="+">+</option>
                         <option value="-">-</option>
                     </select>
+                </div>
+                <div class="modal-controls">
+                    <label for="showRemainder">Show Remainder:</label>
+                    <input type="checkbox" id="showRemainder">
+                </div>
+                <div class="modal-controls">
+                    <label for="showTareStart">Show Tare & Start:</label>
+                    <input type="checkbox" id="showTareStart">
                 </div>
                 <div class="controls">
                     <label for="logToggle">Enable Logging:</label>

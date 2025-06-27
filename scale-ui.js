@@ -35,6 +35,24 @@ window.addEventListener('DOMContentLoaded', () => {
             logPanel.style.display = logEnabled ? '' : 'none';
         });
     }
+    // Remainder panel logic
+    const showRemainder = document.getElementById('showRemainder');
+    const remainderPanel = document.getElementById('remainderPanel');
+    if (showRemainder && remainderPanel) {
+        remainderPanel.style.display = showRemainder.checked ? '' : 'none';
+        showRemainder.addEventListener('change', (e) => {
+            remainderPanel.style.display = e.target.checked ? '' : 'none';
+        });
+    }
+    // Tare & Start button logic
+    const showTareStart = document.getElementById('showTareStart');
+    const tareStartBtn = document.getElementById('tareStartBtn');
+    if (showTareStart && tareStartBtn) {
+        tareStartBtn.style.display = showTareStart.checked ? '' : 'none';
+        showTareStart.addEventListener('change', (e) => {
+            tareStartBtn.style.display = e.target.checked ? '' : 'none';
+        });
+    }
 });
 
 function log(message) {
@@ -94,15 +112,20 @@ function updateStatus(status, connected = false) {
 }
 
 function updateDisplay(scaleData) {
-    document.getElementById('weightDisplay').textContent = `${scaleData.weight.toFixed(2)} g`;
+    document.getElementById('weightDisplay').textContent = `${scaleData.weight.toFixed(1)} g`;
     document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(2)} g/s`;
     const totalSeconds = Math.floor(scaleData.milliseconds / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    document.getElementById('timer').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    if (targetWeight !== null) {
+    document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    const showRemainder = document.getElementById('showRemainder');
+    const remainderPanel = document.getElementById('remainderPanel');
+    if (targetWeight !== null && showRemainder && showRemainder.checked) {
         const remainder = targetWeight - scaleData.weight;
-        document.getElementById('remainder').textContent = `${remainder >= 0 ? '+' : ''}${remainder.toFixed(2)} g`;
+        document.getElementById('remainder').textContent = `${remainder >= 0 ? '+' : ''}${remainder.toFixed(1)} g`;
+        if (remainderPanel) remainderPanel.style.display = '';
+    } else if (remainderPanel) {
+        remainderPanel.style.display = 'none';
     }
 }
 
