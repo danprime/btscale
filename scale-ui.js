@@ -96,11 +96,10 @@ function updateStatus(status, connected = false) {
 function updateDisplay(scaleData) {
     document.getElementById('weightDisplay').textContent = `${scaleData.weight.toFixed(2)} g`;
     document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(2)} g/s`;
-    const totalSeconds = scaleData.milliseconds / 1000;
+    const totalSeconds = Math.floor(scaleData.milliseconds / 1000);
     const minutes = Math.floor(totalSeconds / 60);
-    const seconds = Math.floor(totalSeconds % 60);
-    const milliseconds = Math.floor((totalSeconds % 1) * 1000);
-    document.getElementById('timer').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+    const seconds = totalSeconds % 60;
+    document.getElementById('timer').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     if (targetWeight !== null) {
         const remainder = targetWeight - scaleData.weight;
         document.getElementById('remainder').textContent = `${remainder >= 0 ? '+' : ''}${remainder.toFixed(2)} g`;
