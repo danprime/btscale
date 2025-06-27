@@ -23,23 +23,6 @@
         </div>
         
         <div class="controls">
-            <label for="beepLevel">Beep Level (0-5):</label>
-            <input type="range" id="beepLevel" min="0" max="5" value="2" onchange="setBeepLevel(this.value)" disabled>
-            <span id="beepValue">2</span>
-        </div>
-        
-        <div class="controls">
-            <label for="autoOff">Auto-off (1-30 min):</label>
-            <input type="range" id="autoOff" min="1" max="30" value="5" onchange="setAutoOff(this.value)" disabled>
-            <span id="autoOffValue">5</span>
-        </div>
-        
-        <div class="controls">
-            <label for="flowSmoothing">Flow Smoothing:</label>
-            <input type="checkbox" id="flowSmoothing" onchange="setFlowSmoothing(this.checked)" disabled>
-        </div>
-        
-        <div class="controls">
             <label for="ratio">Ratio:</label>
             <input type="number" id="ratio" value="15" min="0.1" max="100" step="0.1">
             <button id="targetRatioBtn" onclick="setTargetRatio()" disabled>Target Ratio</button>
@@ -108,13 +91,37 @@
             </div>
         </div>
         
-        <div class="controls">
-            <label for="logToggle">Enable Logging:</label>
-            <input type="checkbox" id="logToggle" checked>
-            <span class="log-warning" style="color: #b77; font-size: 0.95em; margin-left: 0.5em;">(May affect UI responsiveness)</span>
+        <!-- Settings Modal Trigger -->
+        <button id="settingsBtn" onclick="openSettingsModal()">Settings</button>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close" id="closeSettingsModal" onclick="closeSettingsModal()">&times;</span>
+                <h2>Settings</h2>
+                <div class="modal-controls">
+                    <label for="beepLevel">Beep Level (0-5):</label>
+                    <input type="range" id="beepLevel" min="0" max="5" value="2" onchange="setBeepLevel(this.value)" disabled>
+                    <span id="beepValue">2</span>
+                </div>
+                <div class="modal-controls">
+                    <label for="autoOff">Auto-off (1-30 min):</label>
+                    <input type="range" id="autoOff" min="1" max="30" value="5" onchange="setAutoOff(this.value)" disabled>
+                    <span id="autoOffValue">5</span>
+                </div>
+                <div class="modal-controls">
+                    <label for="flowSmoothing">Flow Smoothing:</label>
+                    <input type="checkbox" id="flowSmoothing" onchange="setFlowSmoothing(this.checked)" disabled>
+                </div>
+                <div class="modal-controls">
+                    <label for="flowSymbol">Flow Symbol:</label>
+                    <select id="flowSymbolSetting" onchange="setFlowSymbol(this.value)" disabled>
+                        <option value="+">+</option>
+                        <option value="-">-</option>
+                    </select>
+                </div>
+            </div>
         </div>
-        
-        <div class="log" id="log"></div>
     </div>
 
     <script type="module" src="scale-ui.js"></script>

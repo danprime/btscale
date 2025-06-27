@@ -320,12 +320,24 @@ async function disconnect() {
 if (!navigator.bluetooth) {
     log('Web Bluetooth is not supported in this browser');
     updateStatus('Web Bluetooth not supported');
-    document.getElementById('connectBtn').disabled = true;
 } else {
     log('Web Bluetooth is supported');
 }
 
+// Settings modal logic
+function openSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'block';
+}
+function closeSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'none';
+}
+function setFlowSymbol(symbol) {
+    document.getElementById('flowSymbol').textContent = symbol;
+}
 // Attach UI functions to window for HTML onclick compatibility
+window.openSettingsModal = openSettingsModal;
+window.closeSettingsModal = closeSettingsModal;
+window.setFlowSymbol = setFlowSymbol;
 window.connectToScale = connectToScale;
 window.sendTareCommand = sendTareCommand;
 window.sendTareAndStartCommand = sendTareAndStartCommand;
@@ -339,3 +351,31 @@ window.setTargetRatio = setTargetRatio;
 window.disconnect = disconnect;
 window.toggleTimer = toggleTimer;
 window.toggleConnect = toggleConnect;
+
+// Optionally, handle ESC key and click outside modal to close
+window.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('settingsModal');
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeSettingsModal();
+    });
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) closeSettingsModal();
+    });
+});
+
+async function toggleConnect() {
+    const btn = document.getElementById('connectToggleBtn');
+    if (!isConnected) {
+        btn.disabled = true;
+        btn.textContent = 'Connecting...';
+        await connectToScale();
+        btn.disabled = false;
+        btn.textContent = 'Disconnect';
+    } else {
+        btn.disabled = true;
+        btn.textContent = 'Disconnecting...';
+        await disconnect();
+        btn.disabled = false;
+        btn.textContent = 'Connect';
+    }
+}
