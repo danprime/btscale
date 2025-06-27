@@ -7,89 +7,90 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="ritual-container">
-        <div class="ritual-header">
-            <div class="ritual-title">Scale</div>
-            <div class="ritual-header-actions">
-                <button id="connectToggleBtn" class="ritual-btn ritual-connect" onclick="toggleConnect()">Connect</button>
-                <button id="settingsBtn" class="ritual-btn ritual-settings" onclick="openSettingsModal()">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings w-5 h-5 text-amber-700"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+    <!-- Accessibility improvements: ARIA, labels, roles, focus, semantic structure -->
+    <main class="ritual-container" role="main">
+        <header class="ritual-header">
+            <h1 class="ritual-title" id="scaleAppTitle">Scale</h1>
+            <nav class="ritual-header-actions" aria-label="Main actions">
+                <button id="connectToggleBtn" class="ritual-btn ritual-connect" onclick="toggleConnect()" aria-pressed="false">Connect</button>
+                <button id="settingsBtn" class="ritual-btn ritual-settings" onclick="openSettingsModal()" aria-label="Open settings">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings w-5 h-5 text-amber-700" aria-hidden="true" focusable="false"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 </button>
-            </div>
-        </div>
-        <div id="status" class="status disconnected ritual-status" style="display:none;">Disconnected</div>
-        <div class="ritual-hero-weight" id="weightDisplay">0.0</div>
-        <div class="ritual-hero-unit">grams</div>
-        <div class="ritual-timer-row">
-            <div class="ritual-timer" id="timer">0:00</div>
-        </div>
-        <div class="ritual-controls">
-            <button id="tareBtn" class="ritual-btn" onclick="sendTareCommand()" disabled>Tare</button>
-            <button id="tareStartBtn" class="ritual-btn" onclick="sendTareAndStartCommand()" disabled style="display:none;">Tare & Start</button>
-            <button id="timerToggleBtn" class="ritual-btn" onclick="triStateTimer()" disabled>Start Timer</button>
-        </div>
-        <div class="ritual-controls ritual-ratio-controls">
+            </nav>
+        </header>
+        <div id="status" class="status disconnected ritual-status" style="display:none;" aria-live="polite">Disconnected</div>
+        <div class="ritual-hero-weight" id="weightDisplay" aria-live="polite" aria-atomic="true">0.0</div>
+        <div class="ritual-hero-unit" id="weightUnitLabel">grams</div>
+        <section class="ritual-timer-row" aria-label="Timer">
+            <div class="ritual-timer" id="timer" aria-live="polite" aria-atomic="true">0:00</div>
+        </section>
+        <section class="ritual-controls" aria-label="Scale controls">
+            <button id="tareBtn" class="ritual-btn" onclick="sendTareCommand()" disabled aria-label="Tare">Tare</button>
+            <button id="tareStartBtn" class="ritual-btn" onclick="sendTareAndStartCommand()" disabled style="display:none;" aria-label="Tare and Start">Tare & Start</button>
+            <button id="timerToggleBtn" class="ritual-btn" onclick="triStateTimer()" disabled aria-label="Start, Stop, or Reset Timer">Start Timer</button>
+        </section>
+        <section class="ritual-controls ritual-ratio-controls" aria-label="Ratio controls">
             <label for="ratio">Ratio:</label>
-            <input type="number" id="ratio" value="15" min="0.1" max="100" step="0.1">
-            <button id="targetRatioBtn" class="ritual-btn" onclick="setTargetRatio()" disabled>Target Ratio</button>
-        </div>
-        <div class="ritual-info">
+            <input type="number" id="ratio" value="15" min="0.1" max="100" step="0.1" aria-valuemin="0.1" aria-valuemax="100" aria-valuenow="15" aria-label="Ratio input">
+            <button id="targetRatioBtn" class="ritual-btn" onclick="setTargetRatio()" disabled aria-label="Set Target Ratio">Target Ratio</button>
+        </section>
+        <section class="ritual-info" aria-label="Scale info panels">
             <div class="ritual-info-item">
-                <div class="ritual-info-label">Flow Rate</div>
-                <div class="ritual-info-value" id="flowRate">0.00 g/s</div>
+                <div class="ritual-info-label" id="flowRateLabel">Flow Rate</div>
+                <div class="ritual-info-value" id="flowRate" aria-live="polite">0.00 g/s</div>
             </div>
             <div class="ritual-info-item">
-                <div class="ritual-info-label">Target Weight</div>
-                <div class="ritual-info-value" id="targetWeight">-- g</div>
+                <div class="ritual-info-label" id="targetWeightLabel">Target Weight</div>
+                <div class="ritual-info-value" id="targetWeight" aria-live="polite">-- g</div>
             </div>
             <div class="ritual-info-item" id="remainderPanel">
-                <div class="ritual-info-label">Remainder</div>
-                <div class="ritual-info-value" id="remainder">-- g</div>
+                <div class="ritual-info-label" id="remainderLabel">Remainder</div>
+                <div class="ritual-info-value" id="remainder" aria-live="polite">-- g</div>
             </div>
-        </div>
-        <div class="log" id="log" style="display:none;"></div>
+        </section>
+        <div class="log" id="log" style="display:none;" aria-live="polite"></div>
         <!-- Settings Modal -->
-        <div id="settingsModal" class="modal" style="display:none;">
+        <div id="settingsModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
             <div class="modal-content">
-                <span class="close" id="closeSettingsModal" onclick="closeSettingsModal()">&times;</span>
-                <h2>Settings</h2>
+                <button class="close" id="closeSettingsModal" onclick="closeSettingsModal()" aria-label="Close settings">&times;</button>
+                <h2 id="settingsTitle">Settings</h2>
                 <div class="modal-controls">
                     <label for="beepLevel">Beep Level (0-5):</label>
-                    <input type="range" id="beepLevel" min="0" max="5" value="2" onchange="setBeepLevel(this.value)" disabled>
+                    <input type="range" id="beepLevel" min="0" max="5" value="2" onchange="setBeepLevel(this.value)" disabled aria-valuemin="0" aria-valuemax="5" aria-valuenow="2" aria-label="Beep Level">
                     <span id="beepValue">2</span>
                 </div>
                 <div class="modal-controls">
                     <label for="autoOff">Auto-off (1-30 min):</label>
-                    <input type="range" id="autoOff" min="1" max="30" value="5" onchange="setAutoOff(this.value)" disabled>
+                    <input type="range" id="autoOff" min="1" max="30" value="5" onchange="setAutoOff(this.value)" disabled aria-valuemin="1" aria-valuemax="30" aria-valuenow="5" aria-label="Auto-off">
                     <span id="autoOffValue">5</span>
                 </div>
                 <div class="modal-controls">
                     <label for="flowSmoothing">Flow Smoothing:</label>
-                    <input type="checkbox" id="flowSmoothing" onchange="setFlowSmoothing(this.checked)" disabled>
+                    <input type="checkbox" id="flowSmoothing" onchange="setFlowSmoothing(this.checked)" disabled aria-label="Flow Smoothing">
                 </div>
                 <div class="modal-controls">
-                    <label for="flowSymbol">Flow Symbol:</label>
-                    <select id="flowSymbolSetting" onchange="setFlowSymbol(this.value)" disabled>
+                    <label for="flowSymbolSetting">Flow Symbol:</label>
+                    <select id="flowSymbolSetting" onchange="setFlowSymbol(this.value)" disabled aria-label="Flow Symbol">
                         <option value="+">+</option>
                         <option value="-">-</option>
                     </select>
                 </div>
                 <div class="modal-controls">
                     <label for="showRemainder">Show Remainder:</label>
-                    <input type="checkbox" id="showRemainder">
+                    <input type="checkbox" id="showRemainder" aria-label="Show Remainder">
                 </div>
                 <div class="modal-controls">
                     <label for="showTareStart">Show Tare & Start:</label>
-                    <input type="checkbox" id="showTareStart">
+                    <input type="checkbox" id="showTareStart" aria-label="Show Tare and Start">
                 </div>
                 <div class="controls">
                     <label for="logToggle">Enable Logging:</label>
-                    <input type="checkbox" id="logToggle">
+                    <input type="checkbox" id="logToggle" aria-label="Enable Logging">
                     <span class="log-warning" style="color: #b77; font-size: 0.95em; margin-left: 0.5em;">(May affect UI responsiveness)</span>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
     <script type="module" src="scale-ui.js"></script>
 </body>
 </html>

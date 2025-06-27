@@ -225,6 +225,77 @@ label {
     color: #fff;
     box-shadow: 0 4px 16px 0 rgba(180,83,9,0.18);
 }
+/* --- Accessibility improvements for WCAG 2.1 AA compliance --- */
+:focus {
+    outline: 3px solid #256029;
+    outline-offset: 2px;
+}
+.ritual-btn:focus, .ritual-btn:active, input:focus, select:focus {
+    outline: 3px solid #256029;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px #c8e6c9;
+}
+.ritual-btn[aria-pressed="true"] {
+    background: #a15c00;
+    color: #fff;
+}
+.ritual-btn, .ritual-connect, .ritual-settings {
+    /* Ensure sufficient contrast for all buttons */
+    color: #fff;
+    background: #b45309;
+    border: 2px solid #b45309;
+}
+.ritual-btn:hover, .ritual-btn:focus {
+    background: #8a3906;
+    color: #fff;
+    border-color: #8a3906;
+}
+.ritual-connect {
+    background: #256029;
+    color: #fff;
+    border: 2px solid #256029;
+}
+.ritual-connect:hover, .ritual-connect:focus {
+    background: #388e3c;
+    color: #fff;
+    border-color: #388e3c;
+}
+.ritual-settings {
+    background: #b77b2b;
+    color: #fff;
+    border: 2px solid #b77b2b;
+}
+.ritual-settings:hover, .ritual-settings:focus {
+    background: #a15c00;
+    color: #fff;
+    border-color: #a15c00;
+}
+.ritual-info-label, label, .modal-controls label {
+    color: #3d2c13;
+}
+.ritual-info-value {
+    color: #222;
+}
+.ritual-hero-weight, .ritual-hero-unit {
+    color: #222;
+}
+.ritual-timer {
+    color: #3d2c13;
+}
+input[type="number"], input[type="range"], select {
+    border: 2px solid #b77b2b;
+    color: #222;
+    background: #fff;
+}
+input[type="number"]:focus, input[type="range"]:focus, select:focus {
+    border: 2px solid #256029;
+}
+.modal {
+    background: rgba(0,0,0,0.30);
+}
+.modal-content {
+    color: #222;
+}
 @media (max-width: 600px) {
     .ritual-container {
         max-width: 98vw;
