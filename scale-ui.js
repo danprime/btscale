@@ -112,7 +112,7 @@ function updateStatus(status, connected = false) {
 }
 
 function updateDisplay(scaleData) {
-    document.getElementById('weightDisplay').textContent = `${scaleData.weight.toFixed(1)} g`;
+    document.getElementById('weightDisplay').textContent = `${scaleData.weight.toFixed(1)}`;
     document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(2)} g/s`;
     const totalSeconds = Math.floor(scaleData.milliseconds / 1000);
     const minutes = Math.floor(totalSeconds / 60);

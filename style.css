@@ -213,3 +213,16 @@ label {
 .log-warning {
     color: #b77b2b;
 }
+/* --- Start Timer button color to match ritual.html --- */
+#timerToggleBtn {
+    background: #ffb300;
+    color: #fff;
+    box-shadow: 0 2px 8px 0 rgba(255,193,7,0.13);
+    font-weight: 500;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+#timerToggleBtn:hover {
+    background: #ffa000;
+    color: #fff;
+    box-shadow: 0 4px 16px 0 rgba(255,193,7,0.18);
+}
