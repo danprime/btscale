@@ -74,12 +74,12 @@ body {
 }
 .ritual-hero-weight {
     text-align: center;
-    font-size: 5rem;
+    font-size: 6rem;
     font-weight: 300;
     color: #b45309;
     margin: 40px 0 8px 0;
     letter-spacing: -0.03em;
-    line-height: 1.1;
+    line-height: -2.4px;
 }
 .ritual-hero-unit {
     text-align: center;
