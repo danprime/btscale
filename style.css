@@ -234,11 +234,12 @@ label {
         padding: 10px 10px 0 10px;
     }
     .ritual-hero-weight {
-        font-size: 6.5rem;
-        margin: 32px 0 4px 0;
+        font-size: 16vw;
+        /* fallback for older browsers */
+        margin: 24px 0 4px 0;
     }
     .ritual-hero-unit {
-        font-size: 1.3rem;
+        font-size: 6vw;
         margin-bottom: 18px;
     }
     .ritual-timer {
