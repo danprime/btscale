@@ -9,13 +9,13 @@
 <body>
     <div class="ritual-container">
         <div class="ritual-header">
-            <div class="ritual-title">BOOKOO Mini Scale Reader</div>
+            <div class="ritual-title">Scale</div>
             <div class="ritual-header-actions">
                 <button id="connectToggleBtn" class="ritual-btn ritual-connect" onclick="toggleConnect()">Connect</button>
                 <button id="settingsBtn" class="ritual-btn ritual-settings" onclick="openSettingsModal()">Settings</button>
             </div>
         </div>
-        <div id="status" class="status disconnected ritual-status">Disconnected</div>
+        <div id="status" class="status disconnected ritual-status" style="display:none;">Disconnected</div>
         <div class="ritual-hero-weight" id="weightDisplay">0.00 g</div>
         <div class="ritual-timer-row">
             <div class="ritual-timer" id="timer">00:00.000</div>
