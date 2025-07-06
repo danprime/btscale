@@ -53,6 +53,15 @@ window.addEventListener('DOMContentLoaded', () => {
             tareStartBtn.style.display = e.target.checked ? '' : 'none';
         });
     }
+    // Current Ratio panel logic
+    const showCurrentRatio = document.getElementById('showCurrentRatio');
+    const currentRatioPanel = document.getElementById('currentRatioPanel');
+    if (showCurrentRatio && currentRatioPanel) {
+        currentRatioPanel.style.display = showCurrentRatio.checked ? '' : 'none';
+        showCurrentRatio.addEventListener('change', (e) => {
+            currentRatioPanel.style.display = e.target.checked ? '' : 'none';
+        });
+    }
 });
 
 function log(message) {
@@ -126,6 +135,26 @@ function updateDisplay(scaleData) {
         if (remainderPanel) remainderPanel.style.display = '';
     } else if (remainderPanel) {
         remainderPanel.style.display = 'none';
+    }
+    // Current Ratio logic
+    const showCurrentRatio = document.getElementById('showCurrentRatio');
+    const currentRatioPanel = document.getElementById('currentRatioPanel');
+    const currentRatioValue = document.getElementById('currentRatio');
+    let ratio = parseFloat(document.getElementById('ratio').value);
+    if (showCurrentRatio && currentRatioPanel && currentRatioValue) {
+        if (showCurrentRatio.checked && targetWeight && ratio) {
+            const beanWeight = targetWeight / ratio;
+            if (beanWeight > 0) {
+                const currentRatio = scaleData.weight / beanWeight;
+                currentRatioValue.textContent = `${currentRatio.toFixed(1)}:1`;
+            } else {
+                currentRatioValue.textContent = '--';
+            }
+            currentRatioPanel.style.display = '';
+        } else {
+            currentRatioValue.textContent = '--';
+            currentRatioPanel.style.display = 'none';
+        }
     }
 }
 
