@@ -196,6 +196,35 @@ async function sendTareAndStartCommand() {
     }
 }
 
+// --- Screen Wake Lock API integration ---
+let wakeLock = null;
+
+async function requestWakeLock() {
+    try {
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => {
+                log('Screen Wake Lock released');
+            });
+            log('Screen Wake Lock acquired');
+        }
+    } catch (err) {
+        log('Wake Lock error: ' + err.message);
+    }
+}
+
+async function releaseWakeLock() {
+    if (wakeLock) {
+        try {
+            await wakeLock.release();
+            wakeLock = null;
+        } catch (err) {
+            log('Wake Lock release error: ' + err.message);
+        }
+    }
+}
+
+// Patch triStateTimer to manage wake lock
 async function triStateTimer() {
     if (!isConnected || !commandCharacteristic) {
         log('Not connected to scale');
@@ -210,6 +239,7 @@ async function triStateTimer() {
             log('Start timer command sent');
             timerState = 'running';
             if (btn) btn.textContent = 'Stop Timer';
+            requestWakeLock();
         } else if (timerState === 'running') {
             // Stop timer
             const command = new Uint8Array([0x03, 0x0A, 0x05, 0x00, 0x00, 0x0D]);
@@ -217,6 +247,7 @@ async function triStateTimer() {
             log('Stop timer command sent');
             timerState = 'reset-required';
             if (btn) btn.textContent = 'Reset Timer';
+            releaseWakeLock();
         } else if (timerState === 'reset-required') {
             // Reset timer
             const command = new Uint8Array([0x03, 0x0A, 0x06, 0x00, 0x00, 0x0C]);
@@ -224,6 +255,7 @@ async function triStateTimer() {
             log('Reset timer command sent');
             timerState = 'stopped';
             if (btn) btn.textContent = 'Start Timer';
+            releaseWakeLock();
         }
     } catch (error) {
         log(`Error in timer button: ${error.message}`);
