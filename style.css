@@ -409,15 +409,50 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     border-radius: 50%;
     padding: 0;
     font-size: 1.1rem;
-    font-weight: 500;
-    background: #fffbe8;
-    color: #b77b2b;
-    box-shadow: 0 2px 8px 0 rgba(255,193,7,0.08);
+}
+.ritual-btn.main-action.timer-action {
+    width: 80px;
+    height: 80px;
+    font-size: 1.25rem;
+    background: #b77b2b;
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
+    box-shadow: 0 2px 8px 0 rgba(255,193,7,0.10);
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
 }
+.ritual-btn.main-action.timer-action:disabled {
+    background: #e0c08a;
+    color: #fff;
+    opacity: 0.7;
+}
+.timer-action svg {
+    display: block;
+    margin: 0 auto;
+}
+.ritual-btn.main-action.timer-action {
+    width: 80px;
+    height: 80px;
+    font-size: 1.25rem;
+    background: #b77b2b;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px 0 rgba(255,193,7,0.10);
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.ritual-btn.main-action.timer-action:disabled {
+    background: #e0c08a;
+    color: #fff;
+    opacity: 0.7;
+}
+.timer-action svg {
+    display: block;
+    margin: 0 auto;
+}
+/* Removed erroneous duplicate block */
 .ritual-btn.main-action:focus {
     outline: 3px solid #256029;
     outline-offset: 2px;

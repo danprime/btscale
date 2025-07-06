@@ -105,24 +105,28 @@ function updateStatus(status, connected = false) {
         connectBtn.disabled = false;
     }
     const tareBtn = document.getElementById('tareBtn');
-    if (tareBtn) tareBtn.disabled = !connected;
+    if (tareBtn) {
+        tareBtn.disabled = !connected;
+        tareBtn.textContent = 'T';
+    }
     const tareStartBtn = document.getElementById('tareStartBtn');
     if (tareStartBtn) tareStartBtn.disabled = !connected;
     const tareBeanBtn = document.getElementById('tareBeanBtn');
     if (tareBeanBtn) {
         tareBeanBtn.disabled = !connected;
-        tareBeanBtn.textContent = 'Set Beans';
+        tareBeanBtn.innerHTML = `<?xml version="1.0" encoding="utf-8"?><svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 122.88 96.84" style="enable-background:new 0 0 122.88 96.84" xml:space="preserve"><style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#5E361C;}</style><g><path class="st0" d="M31.96,0c14.08,0,26.03,12.61,30.29,30.11c-1.07,0.94-2.12,1.92-3.15,2.95c-9.36,9.36-15.11,20.63-16.82,31.26 c-1.2,7.41-0.44,14.53,2.38,20.54c-2.72,1.63-5.64,2.76-8.69,3.29c5.92-23.37,3.06-34.99-1.37-45.75 c-4.29-10.42-10.11-21.59-3.54-42.39C31.35,0.01,31.66,0,31.96,0L31.96,0z M115.57,26.95c12.48,12.48,8.59,36.61-8.69,53.89 c-15.95,15.95-37.73,20.49-50.8,11.29c20.71-12.34,26.9-22.58,31.38-33.32c4.33-10.4,8.12-22.42,27.47-32.47 C115.14,26.53,115.36,26.74,115.57,26.95L115.57,26.95z M53.98,90.46c-0.34-0.3-0.67-0.61-0.99-0.93 c-12.48-12.48-8.59-36.61,8.69-53.89c16.28-16.28,38.63-20.67,51.6-10.7C92.53,35.42,86.92,44.22,82.36,55.17 C78.08,65.43,73.45,78.58,53.98,90.46L53.98,90.46z M33.31,88.46c-0.45,0.03-0.9,0.04-1.35,0.04C14.31,88.5,0,68.69,0,44.25 C0,21.23,12.7,2.31,28.93,0.2c-7.27,22.08-5.01,32.27-0.5,43.23C32.66,53.72,38.68,66.29,33.31,88.46L33.31,88.46z"/></g></svg>`;
     }
     const timerBtn = document.getElementById('timerToggleBtn');
+    const timerIcon = document.getElementById('timerBtnIcon');
     if (timerBtn) {
         timerBtn.disabled = !connected;
         if (!connected) {
             timerState = 'stopped';
-            timerBtn.textContent = 'Start Timer';
+            if (timerIcon) timerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play w-8 h-8 text-white ml-1"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>`;
         } else {
-            if (timerState === 'stopped') timerBtn.textContent = 'Start Timer';
-            else if (timerState === 'running') timerBtn.textContent = 'Stop Timer';
-            else if (timerState === 'reset-required') timerBtn.textContent = 'Reset Timer';
+            if (timerState === 'stopped' && timerIcon) timerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play w-8 h-8 text-white ml-1"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>`;
+            else if (timerState === 'running' && timerIcon) timerIcon.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square w-8 h-8 text-white"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
+            else if (timerState === 'reset-required' && timerIcon) timerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw w-6 h-6 text-amber-700"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>`;
         }
     }
     const beepLevel = document.getElementById('beepLevel');
@@ -284,6 +288,7 @@ async function triStateTimer() {
         return;
     }
     const btn = document.getElementById('timerToggleBtn');
+    const timerIcon = document.getElementById('timerBtnIcon');
     try {
         if (timerState === 'stopped') {
             // Start timer
@@ -291,7 +296,7 @@ async function triStateTimer() {
             await commandCharacteristic.writeValue(command);
             log('Start timer command sent');
             timerState = 'running';
-            if (btn) btn.textContent = 'Stop Timer';
+            if (timerIcon) timerIcon.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square w-8 h-8 text-white"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
             requestWakeLock();
         } else if (timerState === 'running') {
             // Stop timer
@@ -299,7 +304,7 @@ async function triStateTimer() {
             await commandCharacteristic.writeValue(command);
             log('Stop timer command sent');
             timerState = 'reset-required';
-            if (btn) btn.textContent = 'Reset Timer';
+            if (timerIcon) timerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw w-6 h-6 text-amber-700"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>`;
             releaseWakeLock();
         } else if (timerState === 'reset-required') {
             // Reset timer
@@ -307,7 +312,7 @@ async function triStateTimer() {
             await commandCharacteristic.writeValue(command);
             log('Reset timer command sent');
             timerState = 'stopped';
-            if (btn) btn.textContent = 'Start Timer';
+            if (timerIcon) timerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play w-8 h-8 text-white ml-1"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>`;
             releaseWakeLock();
         }
     } catch (error) {
