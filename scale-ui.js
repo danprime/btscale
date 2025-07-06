@@ -97,6 +97,11 @@ function updateStatus(status, connected = false) {
     if (tareBtn) tareBtn.disabled = !connected;
     const tareStartBtn = document.getElementById('tareStartBtn');
     if (tareStartBtn) tareStartBtn.disabled = !connected;
+    const tareBeanBtn = document.getElementById('tareBeanBtn');
+    if (tareBeanBtn) {
+        tareBeanBtn.disabled = !connected;
+        tareBeanBtn.textContent = 'Set Beans';
+    }
     const timerBtn = document.getElementById('timerToggleBtn');
     if (timerBtn) {
         timerBtn.disabled = !connected;
@@ -387,7 +392,7 @@ async function setFlowSmoothing(enabled) {
     }
 }
 
-async function setTargetRatio() {
+async function tareBean() {
     if (!isConnected) {
         log('Not connected to scale');
         return;
@@ -401,9 +406,9 @@ async function setTargetRatio() {
         document.getElementById('targetWeight').textContent = `${targetWeight.toFixed(2)} g`;
         const tareCommand = new Uint8Array([0x03, 0x0A, 0x01, 0x00, 0x00, 0x08]);
         await commandCharacteristic.writeValue(tareCommand);
-        log(`Target ratio set: ${currentWeight.toFixed(2)}g × ${ratio} = ${targetWeight.toFixed(2)}g (scale tared)`);
+        log(`Set Beans: ${currentWeight.toFixed(2)}g × ${ratio} = ${targetWeight.toFixed(2)}g (scale tared)`);
     } catch (error) {
-        log(`Error setting target ratio: ${error.message}`);
+        log(`Error in Tare Bean: ${error.message}`);
     }
 }
 
@@ -455,7 +460,7 @@ window.sendResetTimerCommand = sendResetTimerCommand;
 window.setBeepLevel = setBeepLevel;
 window.setAutoOff = setAutoOff;
 window.setFlowSmoothing = setFlowSmoothing;
-window.setTargetRatio = setTargetRatio;
+window.tareBean = tareBean;
 window.disconnect = disconnect;
 window.triStateTimer = triStateTimer;
 window.toggleConnect = toggleConnect;
