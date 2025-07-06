@@ -305,17 +305,45 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
 }
 .progress-ring-container {
     position: relative;
-    width: 220px;
-    height: 220px;
+    width: 240px;
+    height: 320px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+}
+.progress-weight-display {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 2;
+    margin-top: 10px;
+    margin-bottom: 0px !important;
+    padding-bottom: 0px !important;
+}
+.progress-weight-value {
+    font-size: 2.3rem;
+    font-weight: 300;
+    color: #b77b2b;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+.progress-weight-unit {
+    font-size: 1rem;
+    color: #b77b2b;
+    opacity: 0.7;
+    margin-bottom: 2px;
 }
 .progress-ring-svg {
     width: 100%;
     height: 100%;
     display: block;
     transform: rotate(-90deg);
+    margin-top: 0px;
 }
 .progress-ring-bg {
     stroke: #ffe0b2;
@@ -333,6 +361,9 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     align-items: center;
     justify-content: center;
     pointer-events: none;
+}
+.progress-ring-center > * {
+    pointer-events: auto;
 }
 .progress-timer {
     font-size: 2.2rem;
@@ -432,25 +463,33 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     overflow: hidden;
     margin-bottom: 24px;
     background: none;
+    user-select: none;
+    touch-action: none;
+    cursor: grab;
 }
 .ratio-slider-option {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 54px;
-    font-size: 1.3rem;
+    height: 70px;
+    font-size: 2rem;
     color: #b77b2b;
     font-weight: 400;
-    border-radius: 12px;
-    margin: 2px 0;
+    border-radius: 18px;
+    margin: 6px 0;
     transition: background 0.18s, color 0.18s, font-weight 0.18s, transform 0.18s;
     cursor: pointer;
+    outline: none;
+    border: none;
+    background: none;
 }
 .ratio-slider-option.selected {
     background: #ffd180;
     color: #a15c00;
     font-weight: 600;
-    transform: scale(1.08);
+    transform: scale(1.12);
+    box-shadow: 0 2px 12px 0 rgba(255,193,7,0.10);
 }
 .ratio-slider-option:focus {
     outline: 3px solid #256029;

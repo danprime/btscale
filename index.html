@@ -21,6 +21,10 @@
         <!-- Progress Ring Section -->
         <section class="ritual-progress-ring" aria-label="Progress">
             <div class="progress-ring-container">
+                <div class="progress-weight-hero" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 18px;">
+                    <div class="progress-weight-unit" style="font-size: 1.15rem; color: #b77b2b; opacity: 0.7; margin-bottom: 2px;">grams</div>
+                    <div id="weightDisplay" class="progress-weight-value" style="font-size: 3.6rem; font-weight: 400; color: #b77b2b; line-height: 1.05; letter-spacing: -0.04em;">--</div>
+                </div>
                 <svg class="progress-ring-svg" viewBox="0 0 100 100" aria-hidden="true">
                     <circle class="progress-ring-bg" cx="50" cy="50" r="45" fill="none" stroke="#ffe0b2" stroke-width="2" />
                     <circle class="progress-ring-fg" id="progressRingFg" cx="50" cy="50" r="45" fill="none" stroke="#b77b2b" stroke-width="2" stroke-linecap="round" stroke-dasharray="282.743" stroke-dashoffset="282.743" />
@@ -61,8 +65,8 @@
         <div id="ratioSliderOverlay" class="ratio-slider-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ratioSliderTitle">
             <div class="ratio-slider-content">
                 <h3 id="ratioSliderTitle">Select Ratio</h3>
-                <div class="ratio-slider-track" id="ratioSliderTrack">
-                    <!-- Ratio options will be injected here by JS -->
+                <div class="ratio-slider-track" id="ratioSliderTrack" tabindex="0" aria-label="Ratio options">
+                    <!-- Ratio options will be injected here by JS as divs -->
                 </div>
                 <button id="closeRatioSliderBtn" class="ritual-btn" aria-label="Close Ratio Selector">Done</button>
             </div>

@@ -455,37 +455,104 @@ function updateProgressRing(weight, targetWeight, timerSeconds) {
 }
 
 // --- Ratio Slider Overlay Logic ---
+// --- Ritual2-style Ratio Slider Overlay Logic ---
+let ratioSliderState = {
+    isDragging: false,
+    startY: 0,
+    startOffset: 0,
+    offset: 0,
+    selectedIdx: 0
+};
+
+function renderRatioSlider() {
+    const track = document.getElementById('ratioSliderTrack');
+    if (!track) return;
+    const ratios = currentBrewMode === 'brew' ? brewRatios : espressoRatios;
+    track.innerHTML = '';
+    ratios.forEach((r, i) => {
+        const option = document.createElement('div');
+        option.className = 'ratio-slider-option' + (i === ratioSliderState.selectedIdx ? ' selected' : '');
+        option.setAttribute('tabindex', '0');
+        option.setAttribute('role', 'option');
+        option.setAttribute('aria-label', `${r.ratio}:1 ${r.label}`);
+        option.innerHTML = `<div style="font-size:2rem;">${r.ratio}:1</div><div style="font-size:0.95rem; color:#b77b2b; opacity:0.7;">${r.label}</div>`;
+        option.onmousedown = (e) => { ratioSliderStartDrag(e, i); };
+        option.ontouchstart = (e) => { ratioSliderStartDrag(e, i); };
+        option.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                selectRatioIdx(i);
+            }
+        };
+        track.appendChild(option);
+    });
+    // Position track
+    track.style.transform = `translateY(${160 - ratioSliderState.selectedIdx * 70 + ratioSliderState.offset}px)`;
+}
+
 function openRatioSlider() {
     const overlay = document.getElementById('ratioSliderOverlay');
-    const track = document.getElementById('ratioSliderTrack');
-    if (!overlay || !track) return;
-    // Clear track
-    track.innerHTML = '';
+    if (!overlay) return;
     const ratios = currentBrewMode === 'brew' ? brewRatios : espressoRatios;
-    ratios.forEach((r, i) => {
-        const btn = document.createElement('button');
-        btn.className = 'ratio-slider-option' + (r.ratio === currentRatio ? ' selected' : '');
-        btn.setAttribute('tabindex', '0');
-        btn.setAttribute('aria-label', `${r.ratio}:1 ${r.label}`);
-        btn.textContent = `${r.ratio}:1  (${r.label})`;
-        btn.onclick = () => {
-            currentRatio = r.ratio;
-            document.getElementById('ratioLabel').textContent = `${currentRatio}:1`;
-            // Update selection highlight
-            Array.from(track.children).forEach(child => child.classList.remove('selected'));
-            btn.classList.add('selected');
-        };
-        btn.onkeydown = (e) => {
-            if (e.key === 'Enter' || e.key === ' ') btn.click();
-        };
-        track.appendChild(btn);
-    });
+    // Set selectedIdx to currentRatio
+    let idx = ratios.findIndex(r => r.ratio === currentRatio);
+    if (idx < 0) idx = 0;
+    ratioSliderState.selectedIdx = idx;
+    ratioSliderState.offset = 0;
+    renderRatioSlider();
     overlay.style.display = '';
-    // Focus first selected
-    setTimeout(() => {
-        const sel = track.querySelector('.selected');
-        if (sel) sel.focus();
-    }, 50);
+    document.body.style.overflow = 'hidden'; // Prevent background scroll
+}
+
+// (Removed duplicate closeRatioSlider definition)
+
+function selectRatioIdx(idx) {
+    const ratios = currentBrewMode === 'brew' ? brewRatios : espressoRatios;
+    ratioSliderState.selectedIdx = idx;
+    currentRatio = ratios[idx].ratio;
+    document.getElementById('ratioLabel').textContent = `${currentRatio}:1`;
+    renderRatioSlider();
+}
+
+function ratioSliderStartDrag(e, idx) {
+    e.preventDefault();
+    ratioSliderState.isDragging = true;
+    ratioSliderState.startY = e.touches ? e.touches[0].clientY : e.clientY;
+    ratioSliderState.startOffset = ratioSliderState.offset;
+    document.addEventListener('mousemove', ratioSliderDragMove);
+    document.addEventListener('mouseup', ratioSliderDragEnd);
+    document.addEventListener('touchmove', ratioSliderDragMove, {passive:false});
+    document.addEventListener('touchend', ratioSliderDragEnd);
+}
+
+function ratioSliderDragMove(e) {
+    if (!ratioSliderState.isDragging) return;
+    let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    let delta = clientY - ratioSliderState.startY;
+    ratioSliderState.offset = ratioSliderState.startOffset + delta;
+    // Clamp offset
+    const ratios = currentBrewMode === 'brew' ? brewRatios : espressoRatios;
+    const minOffset = -((ratios.length-1) * 70);
+    const maxOffset = 0;
+    if (ratioSliderState.offset < minOffset) ratioSliderState.offset = minOffset;
+    if (ratioSliderState.offset > maxOffset) ratioSliderState.offset = maxOffset;
+    // Snap to nearest
+    const idx = Math.round(-ratioSliderState.offset / 70);
+    if (idx !== ratioSliderState.selectedIdx && idx >= 0 && idx < ratios.length) {
+        selectRatioIdx(idx);
+    } else {
+        renderRatioSlider();
+    }
+}
+
+function ratioSliderDragEnd(e) {
+    ratioSliderState.isDragging = false;
+    document.removeEventListener('mousemove', ratioSliderDragMove);
+    document.removeEventListener('mouseup', ratioSliderDragEnd);
+    document.removeEventListener('touchmove', ratioSliderDragMove);
+    document.removeEventListener('touchend', ratioSliderDragEnd);
+    // Snap to selected
+    ratioSliderState.offset = -ratioSliderState.selectedIdx * 70;
+    renderRatioSlider();
 }
 function closeRatioSlider() {
     const overlay = document.getElementById('ratioSliderOverlay');
@@ -508,6 +575,10 @@ window.addEventListener('DOMContentLoaded', () => {
     // Set initial ratio label
     const ratioLabel = document.getElementById('ratioLabel');
     if (ratioLabel) ratioLabel.textContent = `${currentRatio}:1`;
+    // Render ratio slider if overlay is open (for hot reload/dev)
+    if (document.getElementById('ratioSliderOverlay').style.display !== 'none') {
+        renderRatioSlider();
+    }
 });
 
 // Patch tareBean to use currentRatio
@@ -535,6 +606,19 @@ window.addEventListener('keydown', (e) => {
     const overlay = document.getElementById('ratioSliderOverlay');
     if (overlay && overlay.style.display !== 'none') {
         if (e.key === 'Escape') closeRatioSlider();
+        // Up/down arrow navigation
+        const ratios = currentBrewMode === 'brew' ? brewRatios : espressoRatios;
+        if (e.key === 'ArrowUp') {
+            if (ratioSliderState.selectedIdx > 0) {
+                selectRatioIdx(ratioSliderState.selectedIdx - 1);
+                e.preventDefault();
+            }
+        } else if (e.key === 'ArrowDown') {
+            if (ratioSliderState.selectedIdx < ratios.length - 1) {
+                selectRatioIdx(ratioSliderState.selectedIdx + 1);
+                e.preventDefault();
+            }
+        }
     }
 });
 
