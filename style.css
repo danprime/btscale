@@ -296,6 +296,189 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
 .modal-content {
     color: #222;
 }
+/* --- Progress Ring Styles --- */
+.ritual-progress-ring {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 32px 0 18px 0;
+}
+.progress-ring-container {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.progress-ring-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    transform: rotate(-90deg);
+}
+.progress-ring-bg {
+    stroke: #ffe0b2;
+    opacity: 0.5;
+}
+.progress-ring-fg {
+    stroke: #b77b2b;
+    transition: stroke-dashoffset 0.4s cubic-bezier(.4,1.2,.4,1);
+}
+.progress-ring-center {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+.progress-timer {
+    font-size: 2.2rem;
+    font-weight: 400;
+    color: #b77b2b;
+    margin-bottom: 4px;
+    pointer-events: auto;
+}
+.progress-ratio-btn {
+    background: #fffbe8;
+    color: #b77b2b;
+    border: none;
+    border-radius: 999px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    padding: 7px 22px;
+    margin-top: 6px;
+    box-shadow: 0 2px 8px 0 rgba(255,193,7,0.08);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    pointer-events: auto;
+}
+.progress-ratio-btn:focus {
+    outline: 3px solid #256029;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px #c8e6c9;
+}
+.progress-ratio-btn:hover {
+    background: #ffd180;
+    color: #a15c00;
+}
+
+/* --- Main Action Button Group --- */
+.ritual-main-actions {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin: 0 0 32px 0;
+}
+.ritual-btn.main-action {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    padding: 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+    background: #fffbe8;
+    color: #b77b2b;
+    box-shadow: 0 2px 8px 0 rgba(255,193,7,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.ritual-btn.main-action:focus {
+    outline: 3px solid #256029;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px #c8e6c9;
+}
+.ritual-btn.main-action:hover {
+    background: #ffd180;
+    color: #a15c00;
+    transform: scale(1.08);
+}
+
+/* --- Ratio Slider Overlay --- */
+.ratio-slider-overlay {
+    position: fixed;
+    z-index: 2000;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ratio-slider-content {
+    background: #fffbe8;
+    border-radius: 28px;
+    padding: 36px 18px 24px 18px;
+    min-width: 320px;
+    max-width: 95vw;
+    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.13);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.ratio-slider-content h3 {
+    color: #b77b2b;
+    font-size: 1.3rem;
+    font-weight: 500;
+    margin-bottom: 18px;
+}
+.ratio-slider-track {
+    position: relative;
+    width: 100%;
+    height: 320px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    background: none;
+}
+.ratio-slider-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 54px;
+    font-size: 1.3rem;
+    color: #b77b2b;
+    font-weight: 400;
+    border-radius: 12px;
+    margin: 2px 0;
+    transition: background 0.18s, color 0.18s, font-weight 0.18s, transform 0.18s;
+    cursor: pointer;
+}
+.ratio-slider-option.selected {
+    background: #ffd180;
+    color: #a15c00;
+    font-weight: 600;
+    transform: scale(1.08);
+}
+.ratio-slider-option:focus {
+    outline: 3px solid #256029;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px #c8e6c9;
+}
+#closeRatioSliderBtn {
+    margin-top: 8px;
+    background: #b77b2b;
+    color: #fff;
+    border-radius: 999px;
+    padding: 10px 32px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    border: none;
+    box-shadow: 0 2px 8px 0 rgba(255,193,7,0.08);
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+#closeRatioSliderBtn:hover {
+    background: #a15c00;
+    color: #fff;
+}
+#closeRatioSliderBtn:focus {
+    outline: 3px solid #256029;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px #c8e6c9;
+}
+
 @media (max-width: 600px) {
     .ritual-container {
         max-width: 98vw;
@@ -330,5 +513,18 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     }
     .modal-content {
         padding: 24px 8px 18px 8px;
+    }
+    .progress-ring-container {
+        width: 92vw;
+        height: 92vw;
+        max-width: 98vw;
+        max-height: 98vw;
+    }
+    .ratio-slider-content {
+        min-width: 90vw;
+        padding: 18px 2vw 12px 2vw;
+    }
+    .ratio-slider-track {
+        height: 220px;
     }
 }

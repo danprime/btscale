@@ -1,6 +1,17 @@
 // Import utility functions for testability
 import { calculateChecksum, verifyChecksum, parseWeightData } from './scale-utils.js';
 
+// --- Settings modal logic (moved to top for global availability) ---
+function openSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'block';
+}
+function closeSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'none';
+}
+function setFlowSymbol(symbol) {
+    document.getElementById('flowSymbol').textContent = symbol;
+}
+
 let bluetoothDevice;
 let bluetoothServer;
 let commandCharacteristic;
@@ -161,6 +172,14 @@ function updateDisplay(scaleData) {
             currentRatioPanel.style.display = 'none';
         }
     }
+    // Update progress ring
+    const timerText = document.getElementById('timer').textContent;
+    const [min, sec] = timerText.split(':').map(Number);
+    const timerSeconds = min * 60 + sec;
+    updateProgressRing(scaleData.weight, targetWeight, timerSeconds);
+    // Update ratio label
+    const ratioLabel = document.getElementById('ratioLabel');
+    if (ratioLabel) ratioLabel.textContent = `${currentRatio}:1`;
 }
 
 function handleWeightData(event) {
@@ -392,6 +411,106 @@ async function setFlowSmoothing(enabled) {
     }
 }
 
+// --- Progress Ring Animation and Ratio Slider Overlay ---
+const PROGRESS_RING_CIRCUM = 2 * Math.PI * 45; // r=45
+const MAX_TIMER_SECONDS = 600; // 10 minutes
+
+// Ratio presets
+const brewRatios = [
+    { ratio: 12, label: 'Very Strong' },
+    { ratio: 13, label: 'Strong' },
+    { ratio: 14, label: 'Bold' },
+    { ratio: 15, label: 'Medium' },
+    { ratio: 16, label: 'Balanced' },
+    { ratio: 17, label: 'Light' },
+    { ratio: 18, label: 'Very Light' }
+];
+const espressoRatios = [
+    { ratio: 1, label: 'Ristretto' },
+    { ratio: 1.5, label: 'Short' },
+    { ratio: 2, label: 'Normal' },
+    { ratio: 2.5, label: 'Long' }
+];
+let currentBrewMode = 'brew'; // or 'espresso'
+let currentRatio = 16; // default
+
+function setProgressRing(percent) {
+    const fg = document.getElementById('progressRingFg');
+    if (fg) {
+        const offset = PROGRESS_RING_CIRCUM * (1 - percent);
+        fg.setAttribute('stroke-dashoffset', offset);
+    }
+}
+
+function updateProgressRing(weight, targetWeight, timerSeconds) {
+    if (targetWeight && targetWeight > 0) {
+        // Show weight progress
+        const percent = Math.min(weight / targetWeight, 1);
+        setProgressRing(percent);
+    } else {
+        // Show timer progress (max 10 min)
+        const percent = Math.min(timerSeconds / MAX_TIMER_SECONDS, 1);
+        setProgressRing(percent);
+    }
+}
+
+// --- Ratio Slider Overlay Logic ---
+function openRatioSlider() {
+    const overlay = document.getElementById('ratioSliderOverlay');
+    const track = document.getElementById('ratioSliderTrack');
+    if (!overlay || !track) return;
+    // Clear track
+    track.innerHTML = '';
+    const ratios = currentBrewMode === 'brew' ? brewRatios : espressoRatios;
+    ratios.forEach((r, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'ratio-slider-option' + (r.ratio === currentRatio ? ' selected' : '');
+        btn.setAttribute('tabindex', '0');
+        btn.setAttribute('aria-label', `${r.ratio}:1 ${r.label}`);
+        btn.textContent = `${r.ratio}:1  (${r.label})`;
+        btn.onclick = () => {
+            currentRatio = r.ratio;
+            document.getElementById('ratioLabel').textContent = `${currentRatio}:1`;
+            // Update selection highlight
+            Array.from(track.children).forEach(child => child.classList.remove('selected'));
+            btn.classList.add('selected');
+        };
+        btn.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') btn.click();
+        };
+        track.appendChild(btn);
+    });
+    overlay.style.display = '';
+    // Focus first selected
+    setTimeout(() => {
+        const sel = track.querySelector('.selected');
+        if (sel) sel.focus();
+    }, 50);
+}
+function closeRatioSlider() {
+    const overlay = document.getElementById('ratioSliderOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
+function switchBrewMode(mode) {
+    currentBrewMode = mode;
+    openRatioSlider();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    // Ratio slider button
+    const ratioBtn = document.getElementById('openRatioSliderBtn');
+    if (ratioBtn) {
+        ratioBtn.addEventListener('click', openRatioSlider);
+    }
+    // Overlay close
+    const closeBtn = document.getElementById('closeRatioSliderBtn');
+    if (closeBtn) closeBtn.addEventListener('click', closeRatioSlider);
+    // Set initial ratio label
+    const ratioLabel = document.getElementById('ratioLabel');
+    if (ratioLabel) ratioLabel.textContent = `${currentRatio}:1`;
+});
+
+// Patch tareBean to use currentRatio
 async function tareBean() {
     if (!isConnected) {
         log('Not connected to scale');
@@ -399,54 +518,30 @@ async function tareBean() {
     }
     try {
         // Use the displayed weight as the current weight
-        const weightDisplay = document.getElementById('weightDisplay').textContent;
-        const currentWeight = parseFloat(weightDisplay.replace(' g', ''));
-        const ratio = parseFloat(document.getElementById('ratio').value);
-        targetWeight = currentWeight * ratio;
+        const weightDisplay = document.getElementById('weightDisplay');
+        const currentWeight = weightDisplay ? parseFloat(weightDisplay.textContent) : 0;
+        targetWeight = currentWeight * currentRatio;
         document.getElementById('targetWeight').textContent = `${targetWeight.toFixed(2)} g`;
         const tareCommand = new Uint8Array([0x03, 0x0A, 0x01, 0x00, 0x00, 0x08]);
         await commandCharacteristic.writeValue(tareCommand);
-        log(`Set Beans: ${currentWeight.toFixed(2)}g × ${ratio} = ${targetWeight.toFixed(2)}g (scale tared)`);
+        log(`Set Beans: ${currentWeight.toFixed(2)}g × ${currentRatio} = ${targetWeight.toFixed(2)}g (scale tared)`);
     } catch (error) {
         log(`Error in Tare Bean: ${error.message}`);
     }
 }
 
-function onDisconnected() {
-    log('Device disconnected');
-    updateStatus('Disconnected');
-    bluetoothDevice = null;
-    bluetoothServer = null;
-    commandCharacteristic = null;
-    weightCharacteristic = null;
-    targetWeight = null;
-    document.getElementById('targetWeight').textContent = '-- g';
-    document.getElementById('remainder').textContent = '-- g';
-}
-
-async function disconnect() {
-    if (bluetoothServer) {
-        bluetoothServer.disconnect();
+// Keyboard accessibility for overlay
+window.addEventListener('keydown', (e) => {
+    const overlay = document.getElementById('ratioSliderOverlay');
+    if (overlay && overlay.style.display !== 'none') {
+        if (e.key === 'Escape') closeRatioSlider();
     }
-}
+});
 
-if (!navigator.bluetooth) {
-    log('Web Bluetooth is not supported in this browser');
-    updateStatus('Web Bluetooth not supported');
-} else {
-    log('Web Bluetooth is supported');
-}
-
-// Settings modal logic
-function openSettingsModal() {
-    document.getElementById('settingsModal').style.display = 'block';
-}
-function closeSettingsModal() {
-    document.getElementById('settingsModal').style.display = 'none';
-}
-function setFlowSymbol(symbol) {
-    document.getElementById('flowSymbol').textContent = symbol;
-}
+// Expose for HTML
+window.openRatioSlider = openRatioSlider;
+window.closeRatioSlider = closeRatioSlider;
+window.switchBrewMode = switchBrewMode;
 // Attach UI functions to window for HTML onclick compatibility
 window.openSettingsModal = openSettingsModal;
 window.closeSettingsModal = closeSettingsModal;
@@ -475,6 +570,24 @@ window.addEventListener('DOMContentLoaded', () => {
         if (e.target === modal) closeSettingsModal();
     });
 });
+
+function onDisconnected() {
+    log('Device disconnected');
+    updateStatus('Disconnected');
+    bluetoothDevice = null;
+    bluetoothServer = null;
+    commandCharacteristic = null;
+    weightCharacteristic = null;
+    targetWeight = null;
+    document.getElementById('targetWeight').textContent = '-- g';
+    document.getElementById('remainder').textContent = '-- g';
+}
+
+async function disconnect() {
+    if (bluetoothServer) {
+        bluetoothServer.disconnect();
+    }
+}
 
 async function toggleConnect() {
     const btn = document.getElementById('connectToggleBtn');
