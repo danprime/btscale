@@ -1,0 +1,3 @@
+/* Keen Slider CSS (minified, v6.x) - for vertical slider */
+.keen-slider{position:relative;display:flex;overflow:hidden;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:pan-y;}.keen-slider[data-keen-slider-v]{flex-direction:column;}.keen-slider__slide{min-height:0;min-width:0;flex:0 0 auto;}.keen-slider__slide[aria-selected="true"]{z-index:2;}
+/* Add more custom styles in style.css for ritual2 look */
