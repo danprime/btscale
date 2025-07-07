@@ -1,3 +1,66 @@
+// --- Memory Feature: Persistent Storage for Weights ---
+
+const MEMORY_KEY = 'scaleMemoryV1';
+let memory = {
+  beans: null, // { weight: number }
+  carafe: null, // { weight: number }
+  portafilter: null // { weight: number }
+};
+
+function loadMemory() {
+  try {
+    const raw = localStorage.getItem(MEMORY_KEY);
+    if (raw) memory = JSON.parse(raw);
+  } catch {}
+  updateMemoryTable();
+}
+
+function saveMemory() {
+  localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
+  updateMemoryTable();
+}
+
+function updateMemoryTable() {
+  document.getElementById('memoryBeansWeight').textContent = memory.beans?.weight != null ? memory.beans.weight.toFixed(2) : '--';
+  document.getElementById('memoryCarafeWeight').textContent = memory.carafe?.weight != null ? memory.carafe.weight.toFixed(2) : '--';
+  document.getElementById('memoryPortafilterWeight').textContent = memory.portafilter?.weight != null ? memory.portafilter.weight.toFixed(2) : '--';
+}
+
+// Confirmation modal logic
+let memoryOverwriteTarget = null;
+function openMemoryConfirm(target) {
+  memoryOverwriteTarget = target;
+  let currentWeight = '--';
+  const weightDisplay = document.getElementById('weightDisplay');
+  if (weightDisplay) {
+    const w = parseFloat(weightDisplay.textContent);
+    if (!isNaN(w)) currentWeight = w.toFixed(2) + ' g';
+  }
+  document.getElementById('memoryConfirmText').textContent = `This will replace the stored weight with ${currentWeight}. Continue?`;
+  document.getElementById('memoryConfirmModal').style.display = 'flex';
+}
+function closeMemoryConfirm() {
+  document.getElementById('memoryConfirmModal').style.display = 'none';
+  memoryOverwriteTarget = null;
+}
+function confirmMemoryOverwrite() {
+  if (!memoryOverwriteTarget) return;
+  const weightDisplay = document.getElementById('weightDisplay');
+  let w = weightDisplay ? parseFloat(weightDisplay.textContent) : null;
+  if (w != null && !isNaN(w)) {
+    memory[memoryOverwriteTarget] = { weight: w };
+    saveMemory();
+  }
+  closeMemoryConfirm();
+}
+
+window.openMemoryConfirm = openMemoryConfirm;
+window.closeMemoryConfirm = closeMemoryConfirm;
+
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('memoryConfirmBtn').onclick = confirmMemoryOverwrite;
+  loadMemory();
+});
 // Import utility functions for testability
 import { calculateChecksum, verifyChecksum, parseWeightData } from './scale-utils.js';
 
@@ -598,6 +661,11 @@ async function tareBean() {
         const currentWeight = weightDisplay ? parseFloat(weightDisplay.textContent) : 0;
         targetWeight = currentWeight * currentRatio;
         document.getElementById('targetWeight').textContent = `${targetWeight.toFixed(2)} g`;
+        // Store bean weight in memory
+        if (!isNaN(currentWeight)) {
+            memory.beans = { weight: currentWeight };
+            saveMemory();
+        }
         const tareCommand = new Uint8Array([0x03, 0x0A, 0x01, 0x00, 0x00, 0x08]);
         await commandCharacteristic.writeValue(tareCommand);
         log(`Set Beans: ${currentWeight.toFixed(2)}g × ${currentRatio} = ${targetWeight.toFixed(2)}g (scale tared)`);

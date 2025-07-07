@@ -1,3 +1,71 @@
+/* Memory Table Styles */
+.memory-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1em;
+  font-size: 1.05em;
+}
+.memory-table th, .memory-table td {
+  border-bottom: 1px solid #e0c9a6;
+  padding: 0.4em 0.5em;
+}
+.memory-table th {
+  color: #b77b2b;
+  font-weight: 500;
+  background: #fff8ed;
+}
+.memory-table td {
+  color: #5e361c;
+}
+.memory-overwrite {
+  background: #ffe0b2;
+  color: #b77b2b;
+  border: 1px solid #e0c9a6;
+  font-size: 0.98em;
+  padding: 0.2em 0.9em;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.memory-overwrite:hover, .memory-overwrite:focus {
+  background: #ffcc80;
+}
+/* Memory Confirm Modal */
+#memoryConfirmModal {
+  display: none;
+  position: fixed;
+  z-index: 1002;
+  left: 0; top: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.18);
+  align-items: center;
+  justify-content: center;
+}
+#memoryConfirmModal .modal-content {
+  max-width: 340px;
+  margin: 10vh auto;
+  background: #fff8ed;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px 0 #b77b2b22;
+  padding: 2em 1.5em 1.5em 1.5em;
+  text-align: left;
+}
+#memoryConfirmText {
+  color: #5e361c;
+  font-size: 1.08em;
+}
+.memory-confirm-btn {
+  background: #b77b2b;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.3em 1.2em;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.memory-confirm-btn:hover, .memory-confirm-btn:focus {
+  background: #8d5c1a;
+}
 body {
     font-family: ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     background: linear-gradient(to bottom, #fff8e1 0%, #ffe0b2 100%);

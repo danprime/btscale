@@ -79,6 +79,42 @@
         <!-- Settings Modal -->
         <div id="settingsModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
             <div class="modal-content">
+                <!-- Memory Table -->
+                <h3 style="margin-top:1.5em;">Memory</h3>
+                <table id="memoryTable" class="memory-table" style="width:100%;margin-bottom:1em;">
+                  <thead>
+                    <tr><th style="text-align:left;">Label</th><th style="text-align:right;">Stored Weight (g)</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Beans</td>
+                      <td id="memoryBeansWeight" style="text-align:right;">--</td>
+                      <td><button class="ritual-btn memory-overwrite" onclick="openMemoryConfirm('beans')">Overwrite</button></td>
+                    </tr>
+                    <tr>
+                      <td>Carafe/Server</td>
+                      <td id="memoryCarafeWeight" style="text-align:right;">--</td>
+                      <td><button class="ritual-btn memory-overwrite" onclick="openMemoryConfirm('carafe')">Overwrite</button></td>
+                    </tr>
+                    <tr>
+                      <td>Portafilter</td>
+                      <td id="memoryPortafilterWeight" style="text-align:right;">--</td>
+                      <td><button class="ritual-btn memory-overwrite" onclick="openMemoryConfirm('portafilter')">Overwrite</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <!-- Memory Overwrite Confirmation Modal -->
+                <div id="memoryConfirmModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="memoryConfirmTitle">
+                  <div class="modal-content">
+                    <h3 id="memoryConfirmTitle">Overwrite Memory</h3>
+                    <div id="memoryConfirmText">Are you sure you want to overwrite?</div>
+                    <div style="margin-top:1em;display:flex;gap:1em;justify-content:flex-end;">
+                      <button class="ritual-btn" onclick="closeMemoryConfirm()">Cancel</button>
+                      <button class="ritual-btn memory-confirm-btn" id="memoryConfirmBtn">Overwrite</button>
+                    </div>
+                  </div>
+                </div>
                 <button class="close" id="closeSettingsModal" onclick="closeSettingsModal()" aria-label="Close settings">&times;</button>
                 <h2 id="settingsTitle">Settings</h2>
                 <div class="modal-controls">
