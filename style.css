@@ -1,3 +1,23 @@
+/* Shrink the bean SVG inside the button by 30% */
+#tareBeanBtn svg {
+    width: 56px !important;
+    height: 48px !important;
+    max-width: 56px !important;
+    max-height: 48px !important;
+    display: block;
+    margin: auto;
+    pointer-events: none;
+}
+/* Make the T in the Tare Beans button match the bean icon size */
+#tareBeanBtn .tare-t {
+    font-size: 48px !important;
+    line-height: 1;
+    display: inline-block;
+    vertical-align: middle;
+    height: 48px;
+    width: 56px;
+    text-align: center;
+}
 /* Memory Table Styles */
 .memory-table {
   border-collapse: collapse;
@@ -114,7 +134,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.15rem;
+    font-size: 2.15rem;
     font-weight: 500;
     border: none;
     outline: none;
