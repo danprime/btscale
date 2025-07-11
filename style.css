@@ -1,3 +1,9 @@
+/* Thicker lines for Start, Stop, and Reset icons in timer action buttons */
+.ritual-btn.timer-action svg,
+.ritual-btn .timer-action svg,
+#timerToggleBtn svg {
+    stroke-width: 2.5 !important;
+}
 /* Shrink the bean SVG inside the button by 30% */
 #tareBeanBtn svg {
     width: 56px !important;
