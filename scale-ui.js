@@ -223,23 +223,32 @@ function updateDisplay(scaleData) {
     } else if (remainderPanel) {
         remainderPanel.style.display = 'none';
     }
-    // Current Ratio logic
+    // Calculated Ratio in Progress Ring
+    const calculatedRatioDisplay = document.getElementById('calculatedRatioDisplay');
+    let beanWeight = memory.beans?.weight || null;
+    let ratioStr = '';
+    if (beanWeight && beanWeight > 0) {
+        const calcRatio = scaleData.weight / beanWeight;
+        if (isFinite(calcRatio) && calcRatio > 0) {
+            ratioStr = `1:${calcRatio.toFixed(1)}`;
+        }
+    }
+    if (calculatedRatioDisplay) calculatedRatioDisplay.textContent = ratioStr;
+    // Current Ratio panel logic (unchanged)
     const showCurrentRatio = document.getElementById('showCurrentRatio');
     const currentRatioPanel = document.getElementById('currentRatioPanel');
     const currentRatioValue = document.getElementById('currentRatio');
-    let ratio = parseFloat(document.getElementById('ratio').value);
     if (showCurrentRatio && currentRatioPanel && currentRatioValue) {
-        if (showCurrentRatio.checked && targetWeight && ratio) {
-            const beanWeight = targetWeight / ratio;
-            if (beanWeight > 0) {
-                const currentRatio = scaleData.weight / beanWeight;
-                currentRatioValue.textContent = `${currentRatio.toFixed(1)}:1`;
+        if (showCurrentRatio.checked && targetWeight && memory.beans?.weight) {
+            const currentRatio = scaleData.weight / memory.beans.weight;
+            if (isFinite(currentRatio) && currentRatio > 0) {
+                currentRatioValue.textContent = `1:${currentRatio.toFixed(1)}`;
             } else {
-                currentRatioValue.textContent = '--';
+                currentRatioValue.textContent = '';
             }
             currentRatioPanel.style.display = '';
         } else {
-            currentRatioValue.textContent = '--';
+            currentRatioValue.textContent = '';
             currentRatioPanel.style.display = 'none';
         }
     }
@@ -248,9 +257,6 @@ function updateDisplay(scaleData) {
     const [min, sec] = timerText.split(':').map(Number);
     const timerSeconds = min * 60 + sec;
     updateProgressRing(scaleData.weight, targetWeight, timerSeconds);
-    // Update ratio label
-    const ratioLabel = document.getElementById('ratioLabel');
-    if (ratioLabel) ratioLabel.textContent = `${currentRatio}:1`;
 }
 
 function handleWeightData(event) {

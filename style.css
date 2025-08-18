@@ -1,3 +1,17 @@
+/* Calculated Ratio Display in Progress Ring */
+.progress-ratio-value {
+    font-size: 1.25rem;
+    color: #b77b2b;
+    font-weight: 500;
+    background: none;
+    border: none;
+    margin-top: 6px;
+    padding: 0 18px;
+    border-radius: 999px;
+    text-align: center;
+    min-height: 1.7em;
+    letter-spacing: 0.01em;
+}
 /* Thicker lines for Start, Stop, and Reset icons in timer action buttons */
 .ritual-btn.timer-action svg,
 .ritual-btn .timer-action svg,
