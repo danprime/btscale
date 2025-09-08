@@ -710,7 +710,8 @@ window.openRatioSlider = openRatioSlider;
 window.closeRatioSlider = closeRatioSlider;
 window.switchBrewMode = switchBrewMode;
 // Attach UI functions to window for HTML onclick compatibility
-window.openSettingsModal = openSettingsModal;
+// Do not expose openSettingsModal globally to prevent accidental opening.
+// Instead attach explicit click handler to the settings button below.
 window.closeSettingsModal = closeSettingsModal;
 window.setFlowSymbol = setFlowSymbol;
 window.connectToScale = connectToScale;
@@ -736,6 +737,14 @@ window.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('click', (e) => {
         if (e.target === modal) closeSettingsModal();
     });
+    // Settings button only opens modal on explicit click
+    const settingsBtn = document.getElementById('settingsBtn');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openSettingsModal();
+        });
+    }
 });
 
 function onDisconnected() {
