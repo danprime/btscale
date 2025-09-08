@@ -728,6 +728,23 @@ window.disconnect = disconnect;
 window.triStateTimer = triStateTimer;
 window.toggleConnect = toggleConnect;
 
+// Test helpers (test-only): allow E2E tests to inject memory and update UI deterministically.
+window.__test_setMemory = (m) => {
+    try {
+        memory = Object.assign({}, memory, m);
+        updateMemoryTable();
+    } catch (e) {
+        // ignore in production
+    }
+};
+window.__test_updateDisplay = (data) => {
+    try {
+        updateDisplay(data);
+    } catch (e) {
+        // ignore in production
+    }
+};
+
 // Optionally, handle ESC key and click outside modal to close
 window.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('settingsModal');
