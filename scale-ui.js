@@ -64,6 +64,7 @@ window.addEventListener('DOMContentLoaded', () => {
 // Import utility functions for testability
 import { calculateChecksum, verifyChecksum, parseWeightData } from './scale-utils.js';
 import { BleScale, installMock } from './ble-scale.js';
+import ScaleController from './bookoo-scale.js';
 
 // --- Settings modal logic (moved to top for global availability) ---
 function openSettingsModal() {
@@ -263,7 +264,17 @@ function updateDisplay(scaleData) {
 }
 
 function handleWeightData(event) {
-    const data = new Uint8Array(event.target.value.buffer);
+    // Accept either a characteristicvaluechanged event or a raw Uint8Array/ArrayBuffer
+    let data;
+    if (event instanceof Uint8Array) {
+        data = event;
+    } else if (event && event.buffer && event.byteLength) {
+        data = new Uint8Array(event);
+    } else if (event && event.target && event.target.value && event.target.value.buffer) {
+        data = new Uint8Array(event.target.value.buffer);
+    } else {
+        return; // unknown format
+    }
     log(`Received data: ${Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
     const scaleData = parseWeightData(data);
     if (scaleData) {
@@ -274,21 +285,21 @@ function handleWeightData(event) {
 
 async function connectToScale() {
     try {
-    log('Requesting Bluetooth device...');
-    // Use BleScale wrapper to manage bluetooth interactions
-    if (!window.__bleInstance) window.__bleInstance = new BleScale();
-    const ble = window.__bleInstance;
-    const devInfo = await ble.connect({ services: [SERVICE_UUID] });
-    bluetoothDevice = ble.device;
-    bluetoothServer = ble.server;
-    // pull characteristics provided by the BleScale mock/instance
-    commandCharacteristic = ble.commandChar;
-    weightCharacteristic = ble.weightChar;
-    // subscribe to BleScale events
-    ble.addEventListener('value', handleWeightData);
-    ble.addEventListener('disconnect', onDisconnected);
-    log(`Connected to device: ${devInfo.name}`);
-    updateStatus(`Connected to ${devInfo.name}`, true);
+        log('Requesting Bluetooth device...');
+        // Use high-level ScaleController which wraps BleScale
+        if (!window.__scaleController) window.__scaleController = new ScaleController();
+        const sc = window.__scaleController;
+        const info = await sc.connect({ services: [SERVICE_UUID] });
+        // subscribe to parsed data
+        sc.addEventListener('data', (parsed) => { updateDisplay(parsed); });
+        sc.addEventListener('raw', handleWeightData);
+        sc.addEventListener('disconnected', onDisconnected);
+        bluetoothDevice = sc.ble.device;
+        bluetoothServer = sc.ble.server;
+        commandCharacteristic = sc.ble.commandChar;
+        weightCharacteristic = sc.ble.weightChar;
+        log(`Connected to device: ${info.name}`);
+        updateStatus(`Connected to ${info.name}`, true);
     } catch (error) {
         log(`Connection error: ${error.message}`);
         updateStatus(`Error: ${error.message}`);
@@ -296,13 +307,13 @@ async function connectToScale() {
 }
 
 async function sendTareCommand() {
-    if (!isConnected || !commandCharacteristic) {
+    const sc = window.__scaleController;
+    if (!sc || !sc.isConnected()) {
         log('Not connected to scale');
         return;
     }
     try {
-        const tareCommand = new Uint8Array([0x03, 0x0A, 0x01, 0x00, 0x00, 0x08]);
-        await commandCharacteristic.writeValue(tareCommand);
+        await sc.tare();
         log('Tare command sent');
     } catch (error) {
         log(`Error sending tare command: ${error.message}`);
@@ -310,13 +321,13 @@ async function sendTareCommand() {
 }
 
 async function sendTareAndStartCommand() {
-    if (!isConnected || !commandCharacteristic) {
+    const sc = window.__scaleController;
+    if (!sc || !sc.isConnected()) {
         log('Not connected to scale');
         return;
     }
     try {
-        const command = new Uint8Array([0x03, 0x0A, 0x07, 0x00, 0x00, 0x00]);
-        await commandCharacteristic.writeValue(command);
+        await sc.tareAndStart();
         log('Tare and start timer command sent');
         timerState = 'running';
         const toggleBtn = document.getElementById('timerToggleBtn');
@@ -363,26 +374,22 @@ async function triStateTimer() {
     const btn = document.getElementById('timerToggleBtn');
     const timerIcon = document.getElementById('timerBtnIcon');
     try {
+        const sc = window.__scaleController;
+        if (!sc || !sc.isConnected()) { log('Not connected to scale'); return; }
         if (timerState === 'stopped') {
-            // Start timer
-            const command = new Uint8Array([0x03, 0x0A, 0x04, 0x00, 0x00, 0x0A]);
-            await commandCharacteristic.writeValue(command);
+            await sc.startTimer();
             log('Start timer command sent');
             timerState = 'running';
             if (timerIcon) timerIcon.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square w-8 h-8 text-white"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
             requestWakeLock();
         } else if (timerState === 'running') {
-            // Stop timer
-            const command = new Uint8Array([0x03, 0x0A, 0x05, 0x00, 0x00, 0x0D]);
-            await commandCharacteristic.writeValue(command);
+            await sc.stopTimer();
             log('Stop timer command sent');
             timerState = 'reset-required';
             if (timerIcon) timerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw w-6 h-6 text-amber-700"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>`;
             releaseWakeLock();
         } else if (timerState === 'reset-required') {
-            // Reset timer
-            const command = new Uint8Array([0x03, 0x0A, 0x06, 0x00, 0x00, 0x0C]);
-            await commandCharacteristic.writeValue(command);
+            await sc.resetTimer();
             log('Reset timer command sent');
             timerState = 'stopped';
             if (timerIcon) timerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play w-8 h-8 text-white ml-1"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>`;
@@ -394,13 +401,10 @@ async function triStateTimer() {
 }
 
 async function sendStartTimerCommand() {
-    if (!isConnected || !commandCharacteristic) {
-        log('Not connected to scale');
-        return;
-    }
+    const sc = window.__scaleController;
+    if (!sc || !sc.isConnected()) { log('Not connected to scale'); return; }
     try {
-        const command = new Uint8Array([0x03, 0x0A, 0x04, 0x00, 0x00, 0x0A]);
-        await commandCharacteristic.writeValue(command);
+        await sc.startTimer();
         log('Start timer command sent');
     } catch (error) {
         log(`Error sending start timer command: ${error.message}`);
@@ -408,13 +412,10 @@ async function sendStartTimerCommand() {
 }
 
 async function sendStopTimerCommand() {
-    if (!isConnected || !commandCharacteristic) {
-        log('Not connected to scale');
-        return;
-    }
+    const sc = window.__scaleController;
+    if (!sc || !sc.isConnected()) { log('Not connected to scale'); return; }
     try {
-        const command = new Uint8Array([0x03, 0x0A, 0x05, 0x00, 0x00, 0x0D]);
-        await commandCharacteristic.writeValue(command);
+        await sc.stopTimer();
         log('Stop timer command sent');
     } catch (error) {
         log(`Error sending stop timer command: ${error.message}`);
@@ -422,13 +423,10 @@ async function sendStopTimerCommand() {
 }
 
 async function sendResetTimerCommand() {
-    if (!isConnected || !commandCharacteristic) {
-        log('Not connected to scale');
-        return;
-    }
+    const sc = window.__scaleController;
+    if (!sc || !sc.isConnected()) { log('Not connected to scale'); return; }
     try {
-        const command = new Uint8Array([0x03, 0x0A, 0x06, 0x00, 0x00, 0x0C]);
-        await commandCharacteristic.writeValue(command);
+        await sc.resetTimer();
         log('Reset timer command sent');
         timerLocked = false;
         timerRunning = false;
@@ -440,16 +438,12 @@ async function sendResetTimerCommand() {
 }
 
 async function setBeepLevel(level) {
-    if (!isConnected || !commandCharacteristic) {
-        log('Not connected to scale');
-        return;
-    }
+    const sc = window.__scaleController;
+    if (!sc || !sc.isConnected()) { log('Not connected to scale'); return; }
     try {
-        const levelByte = parseInt(level);
-        const checksum = 0x03 ^ 0x0A ^ 0x02 ^ levelByte ^ 0x00;
-        const command = new Uint8Array([0x03, 0x0A, 0x02, levelByte, 0x00, checksum]);
-        await commandCharacteristic.writeValue(command);
-        document.getElementById('beepValue').textContent = level;
+        await sc.setBeep(level);
+        const beepValueEl = document.getElementById('beepValue');
+        if (beepValueEl) beepValueEl.textContent = level;
         log(`Beep level set to ${level}`);
     } catch (error) {
         log(`Error setting beep level: ${error.message}`);
@@ -457,16 +451,12 @@ async function setBeepLevel(level) {
 }
 
 async function setAutoOff(minutes) {
-    if (!isConnected || !commandCharacteristic) {
-        log('Not connected to scale');
-        return;
-    }
+    const sc = window.__scaleController;
+    if (!sc || !sc.isConnected()) { log('Not connected to scale'); return; }
     try {
-        const minutesByte = parseInt(minutes);
-        const checksum = 0x03 ^ 0x0A ^ 0x03 ^ minutesByte ^ 0x00;
-        const command = new Uint8Array([0x03, 0x0A, 0x03, minutesByte, 0x00, checksum]);
-        await commandCharacteristic.writeValue(command);
-        document.getElementById('autoOffValue').textContent = minutes;
+        await sc.setAutoOff(minutes);
+        const el = document.getElementById('autoOffValue');
+        if (el) el.textContent = minutes;
         log(`Auto-off set to ${minutes} minutes`);
     } catch (error) {
         log(`Error setting auto-off: ${error.message}`);
@@ -474,15 +464,10 @@ async function setAutoOff(minutes) {
 }
 
 async function setFlowSmoothing(enabled) {
-    if (!isConnected || !commandCharacteristic) {
-        log('Not connected to scale');
-        return;
-    }
+    const sc = window.__scaleController;
+    if (!sc || !sc.isConnected()) { log('Not connected to scale'); return; }
     try {
-        const enabledByte = enabled ? 0x01 : 0x00;
-        const checksum = 0x03 ^ 0x0A ^ 0x08 ^ enabledByte ^ 0x00;
-        const command = new Uint8Array([0x03, 0x0A, 0x08, enabledByte, 0x00, checksum]);
-        await commandCharacteristic.writeValue(command);
+        await sc.setFlowSmoothing(enabled);
         log(`Flow smoothing ${enabled ? 'enabled' : 'disabled'}`);
     } catch (error) {
         log(`Error setting flow smoothing: ${error.message}`);
@@ -661,23 +646,21 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // Patch tareBean to use currentRatio
 async function tareBean() {
-    if (!isConnected) {
-        log('Not connected to scale');
-        return;
-    }
+    const sc = window.__scaleController;
+    if (!sc || !sc.isConnected()) { log('Not connected to scale'); return; }
     try {
         // Use the displayed weight as the current weight
         const weightDisplay = document.getElementById('weightDisplay');
         const currentWeight = weightDisplay ? parseFloat(weightDisplay.textContent) : 0;
         targetWeight = currentWeight * currentRatio;
-        document.getElementById('targetWeight').textContent = `${targetWeight.toFixed(2)} g`;
+        const twEl = document.getElementById('targetWeight');
+        if (twEl) twEl.textContent = `${targetWeight.toFixed(2)} g`;
         // Store bean weight in memory
         if (!isNaN(currentWeight)) {
             memory.beans = { weight: currentWeight };
             saveMemory();
         }
-        const tareCommand = new Uint8Array([0x03, 0x0A, 0x01, 0x00, 0x00, 0x08]);
-        await commandCharacteristic.writeValue(tareCommand);
+        await sc.tare();
         log(`Set Beans: ${currentWeight.toFixed(2)}g × ${currentRatio} = ${targetWeight.toFixed(2)}g (scale tared)`);
     } catch (error) {
         log(`Error in Tare Bean: ${error.message}`);
@@ -805,9 +788,13 @@ function onDisconnected() {
 }
 
 async function disconnect() {
-    if (bluetoothServer) {
-        bluetoothServer.disconnect();
+    const sc = window.__scaleController;
+    if (sc && typeof sc.disconnect === 'function') {
+        await sc.disconnect();
+    } else if (bluetoothServer) {
+        try { bluetoothServer.disconnect(); } catch (e) {}
     }
+    onDisconnected();
 }
 
 async function toggleConnect() {
@@ -817,12 +804,12 @@ async function toggleConnect() {
         btn.textContent = 'Connecting...';
         await connectToScale();
         btn.disabled = false;
-        btn.textContent = 'Disconnect';
+        btn.textContent = isConnected ? 'Disconnect' : 'Connect';
     } else {
         btn.disabled = true;
         btn.textContent = 'Disconnecting...';
         await disconnect();
         btn.disabled = false;
-        btn.textContent = 'Connect';
+        btn.textContent = isConnected ? 'Disconnect' : 'Connect';
     }
 }
