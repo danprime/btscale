@@ -63,6 +63,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 // Import utility functions for testability
 import { calculateChecksum, verifyChecksum, parseWeightData } from './scale-utils.js';
+import { BleScale, installMock } from './ble-scale.js';
 
 // --- Settings modal logic (moved to top for global availability) ---
 function openSettingsModal() {
@@ -273,24 +274,21 @@ function handleWeightData(event) {
 
 async function connectToScale() {
     try {
-        log('Requesting Bluetooth device...');
-        bluetoothDevice = await navigator.bluetooth.requestDevice({
-            filters: [{ services: [SERVICE_UUID] }]
-        });
-        log(`Connected to device: ${bluetoothDevice.name}`);
-        updateStatus(`Connected to ${bluetoothDevice.name}`, true);
-        bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
-        log('Connecting to GATT server...');
-        bluetoothServer = await bluetoothDevice.gatt.connect();
-        log('Getting service...');
-        const service = await bluetoothServer.getPrimaryService(SERVICE_UUID);
-        log('Getting characteristics...');
-        commandCharacteristic = await service.getCharacteristic(COMMAND_CHAR_UUID);
-        weightCharacteristic = await service.getCharacteristic(WEIGHT_CHAR_UUID);
-        log('Starting notifications...');
-        await weightCharacteristic.startNotifications();
-        weightCharacteristic.addEventListener('characteristicvaluechanged', handleWeightData);
-        log('Successfully connected and subscribed to weight notifications!');
+    log('Requesting Bluetooth device...');
+    // Use BleScale wrapper to manage bluetooth interactions
+    if (!window.__bleInstance) window.__bleInstance = new BleScale();
+    const ble = window.__bleInstance;
+    const devInfo = await ble.connect({ services: [SERVICE_UUID] });
+    bluetoothDevice = ble.device;
+    bluetoothServer = ble.server;
+    // pull characteristics provided by the BleScale mock/instance
+    commandCharacteristic = ble.commandChar;
+    weightCharacteristic = ble.weightChar;
+    // subscribe to BleScale events
+    ble.addEventListener('value', handleWeightData);
+    ble.addEventListener('disconnect', onDisconnected);
+    log(`Connected to device: ${devInfo.name}`);
+    updateStatus(`Connected to ${devInfo.name}`, true);
     } catch (error) {
         log(`Connection error: ${error.message}`);
         updateStatus(`Error: ${error.message}`);
@@ -764,65 +762,15 @@ window.__test_emitWeight = (scaleData) => {
     } catch (e) {}
 };
 
-// Test-only BLE API mock installer
+// Delegate test-only BLE mock installer to the library's installMock
 window.__test_installBLEMock = () => {
-    const original = navigator.bluetooth;
-    const listeners = {};
-
-    class MockCharacteristic {
-        constructor(uuid) { this.uuid = uuid; this._listeners = {}; }
-        async startNotifications() { return; }
-        addEventListener(ev, cb) { this._listeners[ev] = cb; }
-        removeEventListener(ev) { delete this._listeners[ev]; }
-        async writeValue(buf) { /* noop for tests */ }
-        // helper to emit characteristicvaluechanged
-        __emit(buffer) {
-            const event = { target: { value: { buffer } } };
-            const cb = this._listeners['characteristicvaluechanged'];
-            if (cb) cb(event);
-        }
+    try {
+        const m = installMock();
+        return m;
+    } catch (e) {
+        // fallback: noop mock
+        return { uninstall: () => {}, getWeightCharacteristic: async () => null };
     }
-
-    class MockService {
-        constructor() {
-            this._chars = {};
-            this._chars[COMMAND_CHAR_UUID] = new MockCharacteristic(COMMAND_CHAR_UUID);
-            this._chars[WEIGHT_CHAR_UUID] = new MockCharacteristic(WEIGHT_CHAR_UUID);
-        }
-        async getCharacteristic(uuid) { return this._chars[uuid]; }
-    }
-
-    class MockGATTServer {
-        constructor(device) { this.device = device; this._service = new MockService(); }
-        async connect() { return this; }
-        async getPrimaryService(uuid) { return this._service; }
-    }
-
-    class MockDevice {
-        constructor() { this.name = 'MockScale'; this.gatt = new MockGATTServer(this); }
-        addEventListener(ev, cb) { listeners[ev] = cb; }
-    }
-
-    // use a singleton mock device so tests can access the same characteristic instance
-    const sharedDevice = new MockDevice();
-    const mock = {
-        requestDevice: async (opts) => sharedDevice
-    };
-
-    // install mock
-    Object.defineProperty(navigator, 'bluetooth', { value: mock, configurable: true });
-
-    // return uninstall and accessors
-    return {
-        uninstall: () => { Object.defineProperty(navigator, 'bluetooth', { value: original, configurable: true }); },
-        getWeightCharacteristic: async () => {
-            // simulate device request to get characteristic instance
-            const dev = await mock.requestDevice();
-            const server = await dev.gatt.connect();
-            const svc = await server.getPrimaryService(SERVICE_UUID);
-            return svc._chars[WEIGHT_CHAR_UUID];
-        }
-    };
 };
 
 // Optionally, handle ESC key and click outside modal to close
