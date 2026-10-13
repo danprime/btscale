@@ -50,7 +50,7 @@ test('connectToScale works with BLE mock and delivers weight updates', async ({ 
   await page.evaluate(() => connectToScale());
 
   // ensure UI reflects connected status
-  await page.waitForSelector('#status.connected', { timeout: 2000 });
+  await page.waitForSelector('#scaleIcon:not([hidden])', { timeout: 2000 });
 
   // get a handle to the mocked weight characteristic on the page and emit a fake notification
   // Emit a fake notification from the mocked characteristic inside the page
