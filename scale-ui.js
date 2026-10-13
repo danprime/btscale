@@ -110,7 +110,8 @@ function chartData() {
     }
     // In EC mode, weight is drawn as a second line on its own axis
     const weightPoints = mode === 'ec' ? rows.filter((r) => r.source === 'scale' && r.weight != null).map((r) => ({ t: r.t, v: r.weight })) : null;
-    return { mode, points, weightPoints, elapsed: chartCleared ? 0 : recorder.elapsed(), target: targetWeight, running: recorder.running };
+    const hint = deviceConnected('scale') || deviceConnected('portal') ? 'Press Start' : 'Please connect device and press start.';
+    return { mode, points, weightPoints, elapsed: chartCleared ? 0 : recorder.elapsed(), target: targetWeight, running: recorder.running, hint };
 }
 
 function refreshChart() {
