@@ -7,20 +7,13 @@
  * This file is ESM and exports the BleScale class and an `installMock` helper.
  */
 
+import { SimpleEmitter } from './emitter.js';
+import { installMockBluetooth } from './ble-mock.js';
+
 // Service and characteristic UUIDs (numeric form to match existing code)
-const SERVICE_UUID = 0x0FFE;
+export const SERVICE_UUID = 0x0FFE;
 const COMMAND_CHAR_UUID = 0xFF12;
 const WEIGHT_CHAR_UUID = 0xFF11;
-
-/**
- * Lightweight EventTarget-like API (not full spec) used for tests and UI wiring.
- */
-class SimpleEmitter {
-  constructor() { this._listeners = Object.create(null); }
-  addEventListener(name, cb) { this._listeners[name] = cb; }
-  removeEventListener(name) { delete this._listeners[name]; }
-  emit(name, arg) { const cb = this._listeners[name]; if (cb) cb(arg); }
-}
 
 /**
  * BleScale
@@ -29,23 +22,37 @@ class SimpleEmitter {
 export class BleScale extends SimpleEmitter {
   constructor(options = {}) {
     super();
-    this.bluetooth = options.bluetooth || (typeof navigator !== 'undefined' && navigator.bluetooth);
+    // Resolved lazily at connect time so a mock installed later is picked up.
+    this.bluetooth = options.bluetooth || null;
     this.device = null;
     this.server = null;
     this.commandChar = null;
     this.weightChar = null;
     this._connected = false;
+    this._onGattDisconnected = this._onGattDisconnected.bind(this);
   }
 
   /**
-   * Connect to a device exposing the service UUIDs. Returns the device name.
-   * @param {{services: Array<number>}} opts
+   * Connect to the scale. Pass `device` to connect to an already-chosen device
+   * (e.g. a remembered one from getDevices()); otherwise a picker is shown.
+   * Returns the device name.
+   * @param {{services?: Array<number>, device?: any}} opts
    */
-  async connect(opts = { services: [SERVICE_UUID] }) {
-    if (!this.bluetooth || !this.bluetooth.requestDevice) throw new Error('Bluetooth not available');
-    const dev = await this.bluetooth.requestDevice({ filters: [{ services: opts.services }] });
+  async connect(opts = {}) {
+    const bluetooth = this.bluetooth || (typeof navigator !== 'undefined' && navigator.bluetooth);
+    let dev = opts.device;
+    if (!dev) {
+      if (!bluetooth || !bluetooth.requestDevice) throw new Error('Bluetooth not available');
+      dev = await bluetooth.requestDevice({ filters: [{ services: opts.services || [SERVICE_UUID] }] });
+    }
+    if (this.device && this.device !== dev && this.device.removeEventListener) {
+      this.device.removeEventListener('gattserverdisconnected', this._onGattDisconnected);
+    }
     this.device = dev;
-    if (dev.addEventListener) dev.addEventListener('gattserverdisconnected', () => this._onGattDisconnected());
+    if (dev.addEventListener) {
+      dev.removeEventListener?.('gattserverdisconnected', this._onGattDisconnected);
+      dev.addEventListener('gattserverdisconnected', this._onGattDisconnected);
+    }
     this.server = await dev.gatt.connect();
     const svc = await this.server.getPrimaryService(SERVICE_UUID);
     this.commandChar = await svc.getCharacteristic(COMMAND_CHAR_UUID);
@@ -67,79 +74,28 @@ export class BleScale extends SimpleEmitter {
   }
 
   async disconnect() {
+    const wasConnected = this._connected;
+    this._connected = false;
     if (this.server && typeof this.server.disconnect === 'function') {
       this.server.disconnect();
     }
-    this._connected = false;
-    this.emit('disconnect');
+    if (wasConnected) this.emit('disconnect');
   }
 
   isConnected() { return !!this._connected; }
 
   _onGattDisconnected() {
+    if (!this._connected) return;
     this._connected = false;
     this.emit('disconnect');
   }
 }
 
 /**
- * installMock - installs a test-only navigator.bluetooth mock and returns helpers
+ * installMock - installs a test-only navigator.bluetooth mock exposing a single
+ * scale and returns helpers.
  * @returns {{uninstall: function():void, getWeightCharacteristic: function():Promise<any>}}
  */
 export function installMock() {
-  const original = typeof navigator !== 'undefined' ? navigator.bluetooth : undefined;
-  // simple listener store for device events
-  const listeners = {};
-
-  class MockCharacteristic {
-    constructor(uuid) { this.uuid = uuid; this._listeners = {}; }
-    async startNotifications() { return; }
-    addEventListener(ev, cb) { this._listeners[ev] = cb; }
-    removeEventListener(ev) { delete this._listeners[ev]; }
-    async writeValue(buf) { /* noop for tests */ }
-    __emit(buffer) {
-      const event = { target: { value: { buffer } } };
-      const cb = this._listeners['characteristicvaluechanged'];
-      if (cb) cb(event);
-    }
-  }
-
-  class MockService {
-    constructor() {
-      this._chars = {};
-      this._chars[COMMAND_CHAR_UUID] = new MockCharacteristic(COMMAND_CHAR_UUID);
-      this._chars[WEIGHT_CHAR_UUID] = new MockCharacteristic(WEIGHT_CHAR_UUID);
-    }
-    async getCharacteristic(uuid) { return this._chars[uuid]; }
-  }
-
-  class MockGATTServer {
-    constructor(device) { this.device = device; this._service = new MockService(); }
-    async connect() { return this; }
-    async getPrimaryService(uuid) { return this._service; }
-    disconnect() { /* noop */ }
-  }
-
-  class MockDevice {
-    constructor() { this.name = 'MockScale'; this.gatt = new MockGATTServer(this); }
-    addEventListener(ev, cb) { listeners[ev] = cb; }
-  }
-
-  const sharedDevice = new MockDevice();
-  const mock = { requestDevice: async (opts) => sharedDevice };
-
-  // install mock
-  if (typeof navigator !== 'undefined') {
-    Object.defineProperty(navigator, 'bluetooth', { value: mock, configurable: true });
-  }
-
-  return {
-    uninstall: () => { if (typeof navigator !== 'undefined') Object.defineProperty(navigator, 'bluetooth', { value: original, configurable: true }); },
-    getWeightCharacteristic: async () => {
-      const dev = await mock.requestDevice();
-      const server = await dev.gatt.connect();
-      const svc = await server.getPrimaryService(SERVICE_UUID);
-      return svc._chars[WEIGHT_CHAR_UUID];
-    }
-  };
+  return installMockBluetooth({ devices: ['scale'] });
 }

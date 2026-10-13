@@ -7,13 +7,7 @@
  */
 import { BleScale, installMock as _installMock } from './ble-scale.js';
 import { parseWeightData } from './scale-utils.js';
-
-class SimpleEmitter {
-  constructor() { this._listeners = Object.create(null); }
-  addEventListener(name, cb) { this._listeners[name] = cb; }
-  removeEventListener(name) { delete this._listeners[name]; }
-  emit(name, arg) { const cb = this._listeners[name]; if (cb) cb(arg); }
-}
+import { SimpleEmitter } from './emitter.js';
 
 export class ScaleController extends SimpleEmitter {
   /**
@@ -25,6 +19,9 @@ export class ScaleController extends SimpleEmitter {
     this._onRaw = this._onRaw.bind(this);
     this._onDisconnect = this._onDisconnect.bind(this);
     this._connected = false;
+    // Subscribe once; re-subscribing on every connect would duplicate events.
+    this.ble.addEventListener('value', this._onRaw);
+    this.ble.addEventListener('disconnect', this._onDisconnect);
   }
 
   static installMock() {
@@ -35,9 +32,6 @@ export class ScaleController extends SimpleEmitter {
     try {
       const info = await this.ble.connect(opts);
       this._connected = true;
-      // subscribe to raw BLE events
-      this.ble.addEventListener('value', this._onRaw);
-      this.ble.addEventListener('disconnect', this._onDisconnect);
       this.emit('connected', info);
       return info;
     } catch (err) {
@@ -48,8 +42,9 @@ export class ScaleController extends SimpleEmitter {
 
   _onRaw(ev) {
     try {
-      // ev.target.value.buffer -> ArrayBuffer
-      const buf = new Uint8Array(ev.target.value.buffer);
+      // ev.target.value is a DataView; respect its offset/length within the buffer
+      const v = ev.target.value;
+      const buf = new Uint8Array(v.buffer, v.byteOffset || 0, v.byteLength ?? v.buffer.byteLength);
       this.emit('raw', buf);
       const parsed = parseWeightData(buf);
       if (parsed) this.emit('data', parsed);
@@ -59,17 +54,18 @@ export class ScaleController extends SimpleEmitter {
   }
 
   _onDisconnect() {
+    if (!this._connected) return;
     this._connected = false;
     this.emit('disconnected');
   }
 
   async disconnect() {
+    // BleScale emits 'disconnect' (handled by _onDisconnect) when it was connected.
     await this.ble.disconnect();
-    this._connected = false;
-    this.emit('disconnected');
+    this._onDisconnect();
   }
 
-  isConnected() { return !!this._connected || this.ble.isConnected(); }
+  isConnected() { return !!this._connected && this.ble.isConnected(); }
 
   // Raw write
   async writeRaw(buf) {
