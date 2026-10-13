@@ -58,7 +58,7 @@ test('weight and calculated ratio update correctly', async ({ page }) => {
 
   // flowRate updated
   const flow = await page.textContent('#flowRate');
-  expect(flow.trim()).toBe('1.23 g/s');
+  expect(flow.trim()).toBe('1.2 g/s');
 
   await new Promise((r) => server.close(r));
 });

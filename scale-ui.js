@@ -185,15 +185,12 @@ function renderConnectionState(errorText) {
     const all = scaleOn && portalOn;
     isConnected = any;
 
+    // The header icons show what is connected; the status line is only used for errors.
     const statusElement = document.getElementById('status');
     if (statusElement) {
-        const names = [];
-        if (scaleOn) names.push(devices.names.scale || 'Scale');
-        if (portalOn) names.push(devices.names.portal || 'EC meter');
-        statusElement.textContent = errorText || (any ? `Connected to ${names.join(' + ')}` : 'Disconnected');
+        statusElement.textContent = errorText || '';
         statusElement.className = `status ${any ? 'connected' : 'disconnected'} ritual-status`;
-        // Show status when connected or on error; hide otherwise to preserve initial layout.
-        statusElement.style.display = any || errorText ? '' : 'none';
+        statusElement.style.display = errorText ? '' : 'none';
     }
 
     // One button: connect whatever is missing, or disconnect both when both are connected.
@@ -280,7 +277,7 @@ function renderElapsed(ms) {
 function updateDisplay(scaleData) {
     lastScaleData = scaleData;
     document.getElementById('weightDisplay').textContent = `${scaleData.weight.toFixed(1)}`;
-    document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(2)} g/s`;
+    document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(1)} g/s`;
     const showRemainder = document.getElementById('showRemainder');
     const remainderPanel = document.getElementById('remainderPanel');
     if (targetWeight !== null && showRemainder && showRemainder.checked) {
