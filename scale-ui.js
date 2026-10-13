@@ -108,14 +108,17 @@ function chartData() {
         if (mode === 'ec' && r.source === 'portal' && r.ec != null) points.push({ t: r.t, v: r.ec });
         else if (mode === 'weight' && r.source === 'scale' && r.weight != null) points.push({ t: r.t, v: r.weight });
     }
-    return { mode, points, elapsed: chartCleared ? 0 : recorder.elapsed(), target: targetWeight, running: recorder.running };
+    // In EC mode, weight is drawn as a second line on its own axis
+    const weightPoints = mode === 'ec' ? rows.filter((r) => r.source === 'scale' && r.weight != null).map((r) => ({ t: r.t, v: r.weight })) : null;
+    return { mode, points, weightPoints, elapsed: chartCleared ? 0 : recorder.elapsed(), target: targetWeight, running: recorder.running };
 }
 
 function refreshChart() {
     if (!brewChart) return;
     const label = document.getElementById('brewChartLabel');
-    const text = chartData().mode === 'ec' ? 'EC · mS/cm' : 'Weight · g';
-    if (label && label.textContent !== text) label.textContent = text;
+    const ec = chartData().mode === 'ec';
+    const html = ec ? 'EC · mS/cm<span class="brew-chart-label-weight">Weight · g</span>' : 'Weight · g';
+    if (label && label.innerHTML !== html) label.innerHTML = html;
     brewChart.requestDraw();
 }
 

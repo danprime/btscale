@@ -146,7 +146,7 @@ Timer
 - Elapsed time comes from the scale's timer when the scale is connected and driven; otherwise the app's own clock is used.
 
 Brew chart
-- A live line chart sits under the weight, timer and ratio (it replaced the progress ring). With the EC meter connected it plots EC on a fixed 0-5 mS/cm axis (stretched if a reading goes higher); with only the scale it plots weight, with the target weight as a dashed line.
+- A live line chart sits under the weight, timer and ratio (it replaced the progress ring). With the EC meter connected it plots EC on a fixed 0-5 mS/cm axis (stretched if a reading goes higher), plus weight as a thinner second line with its own gram axis on the right, so pours can be read against extraction. With only the scale it plots weight alone. The target weight shows as a dashed line.
 - The time axis covers the whole brew from Start to now. The finished curve stays after Stop and clears on Reset. Code: `brew-chart.js`.
 
 Recording

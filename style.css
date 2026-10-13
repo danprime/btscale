@@ -797,3 +797,8 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
         height: 150px;
     }
 }
+.brew-chart-label-weight {
+    float: right;
+    color: #8d6e63;
+    padding-right: 4px;
+}

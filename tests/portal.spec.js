@@ -238,8 +238,11 @@ test('brew chart plots EC with the EC meter, weight without it, and clears on re
 
   // EC meter connected: EC chart
   await page.evaluate(() => toggleConnect());
-  await expect(label).toHaveText('EC · mS/cm');
+  await expect(label).toHaveText(/^EC · mS\/cm\s*Weight · g$/);
   await page.evaluate(() => triStateTimer());
   await page.evaluate(() => window.__mock.emitPortal({ ec: 3.14, temp: 90 }));
   await expect(chart).toHaveAttribute('aria-label', /^EC chart, latest 3\.14 mS\/cm at 0:\d\d$/);
+  // Weight is added as a second line on the EC chart
+  await page.evaluate(() => window.__emitScale(window.__mock, 48.2, 2000));
+  await expect(chart).toHaveAttribute('aria-label', /^EC chart, latest 3\.14 mS\/cm at 0:\d\d; weight 48\.2 g$/);
 });
