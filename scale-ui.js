@@ -63,8 +63,10 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 // Import utility functions for testability
 import { calculateChecksum, verifyChecksum, parseWeightData } from './scale-utils.js';
-import { BleScale, installMock } from './ble-scale.js';
-import ScaleController from './bookoo-scale.js';
+import { installMock } from './ble-scale.js';
+import { installMockBluetooth } from './ble-mock.js';
+import { DeviceManager } from './device-manager.js';
+import { BrewRecorder } from './brew-recorder.js';
 
 // --- Settings modal logic (moved to top for global availability) ---
 function openSettingsModal() {
@@ -77,22 +79,24 @@ function setFlowSymbol(symbol) {
     document.getElementById('flowSymbol').textContent = symbol;
 }
 
-let bluetoothDevice;
-let bluetoothServer;
-let commandCharacteristic;
-let weightCharacteristic;
-let isConnected = false;
+// Both BLE devices (scale + Belka Portal EC meter) are owned by the DeviceManager.
+const devices = new DeviceManager();
+window.__devices = devices;
+window.__scaleController = devices.scale; // kept for existing callers/tests
+
+let isConnected = false; // true when at least one device is connected
 let packetCount = 0;
 let targetWeight = null;
 let timerRunning = false;
 let timerLocked = false;
 let timerState = 'stopped'; // Global timerState declaration
 
-// Service and characteristic UUIDs
-const SERVICE_UUID = 0x0FFE;
-const COMMAND_CHAR_UUID = 0xFF12;
-const WEIGHT_CHAR_UUID = 0xFF11;
+// Brew recording (weight, flow, temperature, EC) between Start and Stop
+const recorder = new BrewRecorder();
+let lastScaleData = null;
 
+// Test-only connection overrides (see __test_setConnected); null = use real state
+const testConnected = { scale: null, portal: null };
 // Throttled log implementation
 let logBuffer = [];
 let logScheduled = false;
@@ -158,66 +162,125 @@ function log(message) {
     }
 }
 
-function updateStatus(status, connected = false) {
-    const statusElement = document.getElementById('status');
-    if (statusElement) {
-        statusElement.textContent = status;
-    statusElement.className = `status ${connected ? 'connected' : 'disconnected'}`;
-    // Show status when connected or on error; hide otherwise to preserve initial layout.
-    statusElement.style.display = connected ? '' : 'none';
-    }
-    const connectBtn = document.getElementById('connectToggleBtn');
-    if (connectBtn) {
-        connectBtn.textContent = connected ? 'Disconnect' : 'Connect';
-        connectBtn.disabled = false;
-    }
-    const tareBtn = document.getElementById('tareBtn');
-    if (tareBtn) {
-        tareBtn.disabled = !connected;
-        tareBtn.textContent = 'T';
-    }
-    const tareStartBtn = document.getElementById('tareStartBtn');
-    if (tareStartBtn) tareStartBtn.disabled = !connected;
-    const tareBeanBtn = document.getElementById('tareBeanBtn');
-    if (tareBeanBtn) {
-        tareBeanBtn.disabled = !connected;
-        tareBeanBtn.innerHTML = `<?xml version="1.0" encoding="utf-8"?>
-        <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="68" height="54" viewBox="0 0 122.88 96.84" style="enable-background:new 0 0 122.88 96.84; display:block; margin:auto;" xml:space="preserve">
-        <style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#5E361C;}</style>
-        <g><path class="st0" d="M31.96,0c14.08,0,26.03,12.61,30.29,30.11c-1.07,0.94-2.12,1.92-3.15,2.95c-9.36,9.36-15.11,20.63-16.82,31.26 c-1.2,7.41-0.44,14.53,2.38,20.54c-2.72,1.63-5.64,2.76-8.69,3.29c5.92-23.37,3.06-34.99-1.37-45.75 c-4.29-10.42-10.11-21.59-3.54-42.39C31.35,0.01,31.66,0,31.96,0L31.96,0z M115.57,26.95c12.48,12.48,8.59,36.61-8.69,53.89 c-15.95,15.95-37.73,20.49-50.8,11.29c20.71-12.34,26.9-22.58,31.38-33.32c4.33-10.4,8.12-22.42,27.47-32.47 C115.14,26.53,115.36,26.74,115.57,26.95L115.57,26.95z M53.98,90.46c-0.34-0.3-0.67-0.61-0.99-0.93 c-12.48-12.48-8.59-36.61,8.69-53.89c16.28-16.28,38.63-20.67,51.6-10.7C92.53,35.42,86.92,44.22,82.36,55.17 C78.08,65.43,73.45,78.58,53.98,90.46L53.98,90.46z M33.31,88.46c-0.45,0.03-0.9,0.04-1.35,0.04C14.31,88.5,0,68.69,0,44.25 C0,21.23,12.7,2.31,28.93,0.2c-7.27,22.08-5.01,32.27-0.5,43.23C32.66,53.72,38.68,66.29,33.31,88.46L33.31,88.46z"/></g>
-        </svg>`;
-    }
-    const timerBtn = document.getElementById('timerToggleBtn');
-    const timerIcon = document.getElementById('timerBtnIcon');
-    if (timerBtn) {
-        timerBtn.disabled = !connected;
-        if (!connected) {
-            timerState = 'stopped';
-            if (timerIcon) timerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play w-8 h-8 text-white ml-1"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>`;
-        } else {
-            if (timerState === 'stopped' && timerIcon) timerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play w-8 h-8 text-white ml-1"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>`;
-            else if (timerState === 'running' && timerIcon) timerIcon.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square w-8 h-8 text-white"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
-            else if (timerState === 'reset-required' && timerIcon) timerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw w-6 h-6 text-amber-700"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>`;
-        }
-    }
-    const beepLevel = document.getElementById('beepLevel');
-    if (beepLevel) beepLevel.disabled = !connected;
-    const autoOff = document.getElementById('autoOff');
-    if (autoOff) autoOff.disabled = !connected;
-    const flowSmoothing = document.getElementById('flowSmoothing');
-    if (flowSmoothing) flowSmoothing.disabled = !connected;
-    const targetRatioBtn = document.getElementById('targetRatioBtn');
-    if (targetRatioBtn) targetRatioBtn.disabled = !connected;
-    isConnected = connected;
+// --- Connection state ---
+function deviceConnected(type) {
+    return testConnected[type] ?? devices.isConnected(type);
 }
 
-function updateDisplay(scaleData) {
-    document.getElementById('weightDisplay').textContent = `${scaleData.weight.toFixed(1)}`;
-    document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(2)} g/s`;
-    const totalSeconds = Math.floor(scaleData.milliseconds / 1000);
+const PLAY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play w-8 h-8 text-white ml-1"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>`;
+const STOP_ICON = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square w-8 h-8 text-white"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
+const RESET_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw w-6 h-6 text-amber-700"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>`;
+
+function renderTimerIcon() {
+    const timerIcon = document.getElementById('timerBtnIcon');
+    if (!timerIcon) return;
+    timerIcon.innerHTML = timerState === 'running' ? STOP_ICON : timerState === 'reset-required' ? RESET_ICON : PLAY_ICON;
+}
+
+/** Refresh every connection-dependent piece of UI from the current device state. */
+function renderConnectionState(errorText) {
+    const scaleOn = deviceConnected('scale');
+    const portalOn = deviceConnected('portal');
+    const any = scaleOn || portalOn;
+    const all = scaleOn && portalOn;
+    isConnected = any;
+
+    const statusElement = document.getElementById('status');
+    if (statusElement) {
+        const names = [];
+        if (scaleOn) names.push(devices.names.scale || 'Scale');
+        if (portalOn) names.push(devices.names.portal || 'EC meter');
+        statusElement.textContent = errorText || (any ? `Connected to ${names.join(' + ')}` : 'Disconnected');
+        statusElement.className = `status ${any ? 'connected' : 'disconnected'} ritual-status`;
+        // Show status when connected or on error; hide otherwise to preserve initial layout.
+        statusElement.style.display = any || errorText ? '' : 'none';
+    }
+
+    // One button: connect whatever is missing, or disconnect both when both are connected.
+    const connectBtn = document.getElementById('connectToggleBtn');
+    if (connectBtn) {
+        connectBtn.textContent = all ? 'Disconnect' : scaleOn ? 'Connect EC meter' : portalOn ? 'Connect scale' : 'Connect';
+        connectBtn.setAttribute('aria-pressed', String(all));
+        connectBtn.disabled = false;
+    }
+    const disconnectAllBtn = document.getElementById('disconnectAllBtn');
+    if (disconnectAllBtn) disconnectAllBtn.hidden = !(any && !all);
+
+    const scaleIcon = document.getElementById('scaleIcon');
+    if (scaleIcon) scaleIcon.hidden = !scaleOn;
+    const portalIcon = document.getElementById('portalIcon');
+    if (portalIcon) portalIcon.hidden = !portalOn;
+    const portalInfo = document.getElementById('portalInfo');
+    if (portalInfo) portalInfo.style.display = portalOn ? '' : 'none';
+
+    // Scale-only controls
+    for (const id of ['tareBtn', 'tareStartBtn', 'tareBeanBtn', 'beepLevel', 'autoOff', 'flowSmoothing', 'targetRatioBtn']) {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !scaleOn;
+    }
+
+    // The timer works with either device (the app keeps its own clock as a fallback).
+    const timerBtn = document.getElementById('timerToggleBtn');
+    if (timerBtn) timerBtn.disabled = !any;
+    if (!any && timerState === 'running') {
+        // Everything dropped mid-brew: stop locally and keep what was recorded.
+        appTimer.stop();
+        recorder.stop();
+        timerState = 'reset-required';
+        releaseWakeLock();
+    }
+    renderTimerIcon();
+    updateExportButton();
+}
+
+// Backwards-compatible wrapper (older code/tests call updateStatus).
+function updateStatus(status, connected = false) {
+    renderConnectionState(connected ? undefined : status !== 'Disconnected' ? status : undefined);
+}
+
+// --- Elapsed time: the scale's timer when it is connected and driven, otherwise the app's own clock ---
+const appTimer = {
+    startedAt: null,
+    elapsedMs: 0,
+    interval: null,
+    now: () => performance.now(),
+    elapsed() { return this.elapsedMs + (this.startedAt != null ? this.now() - this.startedAt : 0); },
+    start() {
+        this.elapsedMs = 0;
+        this.startedAt = this.now();
+        clearInterval(this.interval);
+        this.interval = setInterval(() => { if (!scaleIsTimeSource()) renderElapsed(this.elapsed()); }, 200);
+    },
+    stop() {
+        if (this.startedAt != null) this.elapsedMs += this.now() - this.startedAt;
+        this.startedAt = null;
+        clearInterval(this.interval);
+        this.interval = null;
+    },
+    reset() { this.stop(); this.elapsedMs = 0; },
+};
+
+function timerDrives(type) {
+    const el = document.getElementById(type === 'scale' ? 'driveScaleTimer' : 'drivePortalTimer');
+    return el ? el.checked : true;
+}
+
+function scaleIsTimeSource() {
+    return deviceConnected('scale') && timerDrives('scale');
+}
+
+function renderElapsed(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    updateProgressRing(lastScaleData ? lastScaleData.weight : 0, targetWeight, totalSeconds);
+}
+
+function updateDisplay(scaleData) {
+    lastScaleData = scaleData;
+    document.getElementById('weightDisplay').textContent = `${scaleData.weight.toFixed(1)}`;
+    document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(2)} g/s`;
     const showRemainder = document.getElementById('showRemainder');
     const remainderPanel = document.getElementById('remainderPanel');
     if (targetWeight !== null && showRemainder && showRemainder.checked) {
@@ -256,15 +319,35 @@ function updateDisplay(scaleData) {
             currentRatioPanel.style.display = 'none';
         }
     }
-    // Update progress ring
-    const timerText = document.getElementById('timer').textContent;
-    const [min, sec] = timerText.split(':').map(Number);
-    const timerSeconds = min * 60 + sec;
-    updateProgressRing(scaleData.weight, targetWeight, timerSeconds);
+    // Elapsed time (also updates the progress ring)
+    renderElapsed(scaleIsTimeSource() ? scaleData.milliseconds : appTimer.elapsed());
+    const scaleIcon = document.getElementById('scaleIcon');
+    if (scaleIcon && scaleData.batteryPercent != null) scaleIcon.title = `Scale connected · battery ${scaleData.batteryPercent}%`;
+}
+
+/** EC meter (Belka Portal) readings: temperature and EC cards. */
+function updatePortalDisplay(portalData) {
+    const tempEl = document.getElementById('tempValue');
+    if (tempEl) tempEl.textContent = `${portalData.temp.toFixed(1)} °C`;
+    const ecEl = document.getElementById('ecValue');
+    if (ecEl) ecEl.textContent = `${portalData.ec.toFixed(2)} mS/cm`;
+    const portalIcon = document.getElementById('portalIcon');
+    if (portalIcon) portalIcon.title = `EC meter connected · battery ${portalData.battery}%`;
+}
+
+function onScaleData(scaleData) {
+    recorder.addScale(scaleData);
+    updateDisplay(scaleData);
+    log(`Weight: ${scaleData.weight.toFixed(2)}g, Flow: ${scaleData.flowRate.toFixed(2)}g/s, Battery: ${scaleData.batteryPercent}%`);
+}
+
+function onPortalData(portalData) {
+    recorder.addPortal(portalData);
+    updatePortalDisplay(portalData);
 }
 
 function handleWeightData(event) {
-    // Accept either a characteristicvaluechanged event or a raw Uint8Array/ArrayBuffer
+    // Raw packet logging only; parsing happens in ScaleController ('data' event).
     let data;
     if (event instanceof Uint8Array) {
         data = event;
@@ -276,35 +359,45 @@ function handleWeightData(event) {
         return; // unknown format
     }
     log(`Received data: ${Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
-    const scaleData = parseWeightData(data);
-    if (scaleData) {
-        updateDisplay(scaleData);
-        log(`Weight: ${scaleData.weight.toFixed(2)}g, Flow: ${scaleData.flowRate.toFixed(2)}g/s, Battery: ${scaleData.batteryPercent}%`);
+}
+
+// Subscribe once to both devices.
+devices.scale.addEventListener('data', onScaleData);
+devices.scale.addEventListener('raw', handleWeightData);
+devices.portal.addEventListener('data', onPortalData);
+devices.addEventListener('change', ({ type, connected }) => {
+    log(`${type === 'scale' ? 'Scale' : 'EC meter'} ${connected ? 'connected' : 'disconnected'}`);
+    if (!connected) {
+        recorder.clearSource(type);
+        if (type === 'scale') onScaleDisconnected();
+        if (type === 'portal') resetPortalDisplay();
+    }
+    renderConnectionState();
+});
+
+function resetPortalDisplay() {
+    const tempEl = document.getElementById('tempValue');
+    if (tempEl) tempEl.textContent = '-- °C';
+    const ecEl = document.getElementById('ecValue');
+    if (ecEl) ecEl.textContent = '-- mS/cm';
+}
+
+/** Connect whichever devices are missing (must run from a click). */
+async function connectDevices() {
+    try {
+        log('Requesting Bluetooth device(s)...');
+        const { connected, failed } = await devices.connectMissing();
+        for (const t of connected) log(`Connected: ${devices.names[t]}`);
+        for (const f of failed) log(`Connection error (${f.type}): ${f.error?.message}`);
+        renderConnectionState(failed.length && !devices.anyConnected() ? `Error: ${failed[0].error?.message}` : undefined);
+    } catch (error) {
+        log(`Connection error: ${error.message}`);
+        renderConnectionState(`Error: ${error.message}`);
     }
 }
 
-async function connectToScale() {
-    try {
-        log('Requesting Bluetooth device...');
-        // Use high-level ScaleController which wraps BleScale
-        if (!window.__scaleController) window.__scaleController = new ScaleController();
-        const sc = window.__scaleController;
-        const info = await sc.connect({ services: [SERVICE_UUID] });
-        // subscribe to parsed data
-        sc.addEventListener('data', (parsed) => { updateDisplay(parsed); });
-        sc.addEventListener('raw', handleWeightData);
-        sc.addEventListener('disconnected', onDisconnected);
-        bluetoothDevice = sc.ble.device;
-        bluetoothServer = sc.ble.server;
-        commandCharacteristic = sc.ble.commandChar;
-        weightCharacteristic = sc.ble.weightChar;
-        log(`Connected to device: ${info.name}`);
-        updateStatus(`Connected to ${info.name}`, true);
-    } catch (error) {
-        log(`Connection error: ${error.message}`);
-        updateStatus(`Error: ${error.message}`);
-    }
-}
+// Kept for existing callers/tests
+const connectToScale = connectDevices;
 
 async function sendTareCommand() {
     const sc = window.__scaleController;
@@ -320,6 +413,7 @@ async function sendTareCommand() {
     }
 }
 
+
 async function sendTareAndStartCommand() {
     const sc = window.__scaleController;
     if (!sc || !sc.isConnected()) {
@@ -329,9 +423,7 @@ async function sendTareAndStartCommand() {
     try {
         await sc.tareAndStart();
         log('Tare and start timer command sent');
-        timerState = 'running';
-        const toggleBtn = document.getElementById('timerToggleBtn');
-        if (toggleBtn) toggleBtn.textContent = 'Stop Timer';
+        await startBrew({ scaleAlreadyStarted: true });
     } catch (error) {
         log(`Error sending tare and start command: ${error.message}`);
     }
@@ -365,40 +457,110 @@ async function releaseWakeLock() {
     }
 }
 
-// Patch triStateTimer to manage wake lock
+// --- Brew timer: drives the connected devices selected in Settings ---
+function timerTargets() {
+    return ['scale', 'portal'].filter((t) => deviceConnected(t) && timerDrives(t));
+}
+
+async function sendToDevices(action, types) {
+    const label = { start: 'Start', stop: 'Stop', reset: 'Reset' }[action];
+    await Promise.all(types.map(async (t) => {
+        try {
+            if (t === 'scale') {
+                const sc = devices.scale;
+                if (action === 'start') await sc.startTimer();
+                else if (action === 'stop') await sc.stopTimer();
+                else await sc.resetTimer();
+            } else if (action !== 'reset') {
+                // The EC meter has no reset; its timer restarts on the next start.
+                if (action === 'start') await devices.portal.startTimer();
+                else await devices.portal.stopTimer();
+            }
+            log(`${label} timer command sent (${t === 'scale' ? 'scale' : 'EC meter'})`);
+        } catch (error) {
+            log(`Error sending ${label.toLowerCase()} to ${t}: ${error.message}`);
+        }
+    }));
+}
+
+async function startBrew({ scaleAlreadyStarted = false } = {}) {
+    const targets = timerTargets().filter((t) => !(scaleAlreadyStarted && t === 'scale'));
+    appTimer.start();
+    recorder.start();
+    timerState = 'running';
+    renderTimerIcon();
+    updateExportButton();
+    requestWakeLock();
+    await sendToDevices('start', targets);
+}
+
+async function stopBrew() {
+    appTimer.stop();
+    recorder.stop();
+    timerState = 'reset-required';
+    renderTimerIcon();
+    updateExportButton();
+    releaseWakeLock();
+    await sendToDevices('stop', timerTargets());
+}
+
+async function resetBrew() {
+    appTimer.reset();
+    timerState = 'stopped';
+    renderTimerIcon();
+    renderElapsed(0);
+    await sendToDevices('reset', timerTargets());
+}
+
 async function triStateTimer() {
-    if (!isConnected || !commandCharacteristic) {
-        log('Not connected to scale');
+    if (!isConnected) {
+        log('Not connected');
         return;
     }
-    const btn = document.getElementById('timerToggleBtn');
-    const timerIcon = document.getElementById('timerBtnIcon');
     try {
-        const sc = window.__scaleController;
-        if (!sc || !sc.isConnected()) { log('Not connected to scale'); return; }
-        if (timerState === 'stopped') {
-            await sc.startTimer();
-            log('Start timer command sent');
-            timerState = 'running';
-            if (timerIcon) timerIcon.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square w-8 h-8 text-white"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
-            requestWakeLock();
-        } else if (timerState === 'running') {
-            await sc.stopTimer();
-            log('Stop timer command sent');
-            timerState = 'reset-required';
-            if (timerIcon) timerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw w-6 h-6 text-amber-700"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>`;
-            releaseWakeLock();
-        } else if (timerState === 'reset-required') {
-            await sc.resetTimer();
-            log('Reset timer command sent');
-            timerState = 'stopped';
-            if (timerIcon) timerIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play w-8 h-8 text-white ml-1"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>`;
-            releaseWakeLock();
-        }
+        if (timerState === 'stopped') await startBrew();
+        else if (timerState === 'running') await stopBrew();
+        else if (timerState === 'reset-required') await resetBrew();
     } catch (error) {
         log(`Error in timer button: ${error.message}`);
     }
 }
+
+// --- Brew CSV export ---
+function updateExportButton() {
+    const btn = document.getElementById('exportCsvBtn');
+    if (btn) btn.hidden = recorder.running || !recorder.hasData();
+}
+
+function exportBrewCsv() {
+    if (!recorder.hasData()) return;
+    const blob = new Blob([recorder.toCSV()], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = recorder.fileName();
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    log(`Exported ${recorder.rows.length} samples`);
+}
+
+// --- Timer settings (persisted) ---
+const TIMER_DRIVES_KEY = 'timerDrivesV1';
+window.addEventListener('DOMContentLoaded', () => {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(TIMER_DRIVES_KEY)) || {}; } catch {}
+    for (const [id, key] of [['driveScaleTimer', 'scale'], ['drivePortalTimer', 'portal']]) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        if (typeof saved[key] === 'boolean') el.checked = saved[key];
+        el.addEventListener('change', () => {
+            const value = { scale: timerDrives('scale'), portal: timerDrives('portal') };
+            try { localStorage.setItem(TIMER_DRIVES_KEY, JSON.stringify(value)); } catch {}
+        });
+    }
+    renderConnectionState();
+});
 
 async function sendStartTimerCommand() {
     const sc = window.__scaleController;
@@ -698,6 +860,7 @@ window.switchBrewMode = switchBrewMode;
 window.closeSettingsModal = closeSettingsModal;
 window.setFlowSymbol = setFlowSymbol;
 window.connectToScale = connectToScale;
+window.connectDevices = connectDevices;
 window.sendTareCommand = sendTareCommand;
 window.sendTareAndStartCommand = sendTareAndStartCommand;
 window.sendStartTimerCommand = sendStartTimerCommand;
@@ -710,6 +873,7 @@ window.tareBean = tareBean;
 window.disconnect = disconnect;
 window.triStateTimer = triStateTimer;
 window.toggleConnect = toggleConnect;
+window.exportBrewCsv = exportBrewCsv;
 
 // Test helpers (test-only): allow E2E tests to inject memory and update UI deterministically.
 window.__test_setMemory = (m) => {
@@ -730,20 +894,34 @@ window.__test_updateDisplay = (data) => {
 
 // BLE mock helpers for tests
 window.__test_setConnected = (connected) => {
-    // Toggle UI connected state without real BLE
-    isConnected = !!connected;
-    updateStatus(connected ? 'Connected (mock)' : 'Disconnected', !!connected);
+    // Toggle the scale's UI connected state without real BLE
+    testConnected.scale = !!connected;
+    renderConnectionState();
+};
+window.__test_setPortalConnected = (connected) => {
+    testConnected.portal = !!connected;
+    renderConnectionState();
 };
 window.__test_disconnect = () => {
     // Simulate disconnect cleanup
-    onDisconnected();
+    testConnected.scale = false;
+    testConnected.portal = false;
+    onScaleDisconnected();
+    resetPortalDisplay();
+    renderConnectionState();
 };
 window.__test_emitWeight = (scaleData) => {
-    // Call updateDisplay directly with a provided scaleData object
+    // Call the scale data handler directly with a provided scaleData object
     try {
-        updateDisplay(scaleData);
+        onScaleData(scaleData);
     } catch (e) {}
 };
+window.__test_emitPortal = (portalData) => {
+    try {
+        onPortalData(portalData);
+    } catch (e) {}
+};
+window.__test_recorder = recorder;
 
 // Delegate test-only BLE mock installer to the library's installMock
 window.__test_installBLEMock = () => {
@@ -755,6 +933,8 @@ window.__test_installBLEMock = () => {
         return { uninstall: () => {}, getWeightCharacteristic: async () => null };
     }
 };
+// Multi-device mock (scale and/or EC meter), e.g. { devices: ['scale', 'portal'] }
+window.__test_installMultiBLEMock = (opts) => installMockBluetooth(opts);
 
 // Optionally, handle ESC key and click outside modal to close
 window.addEventListener('DOMContentLoaded', () => {
@@ -775,41 +955,37 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function onDisconnected() {
-    log('Device disconnected');
-    updateStatus('Disconnected');
-    bluetoothDevice = null;
-    bluetoothServer = null;
-    commandCharacteristic = null;
-    weightCharacteristic = null;
+function onScaleDisconnected() {
+    log('Scale disconnected');
+    lastScaleData = null;
     targetWeight = null;
     document.getElementById('targetWeight').textContent = '-- g';
     document.getElementById('remainder').textContent = '-- g';
 }
 
+// Kept for existing callers: scale disconnect cleanup + UI refresh
+function onDisconnected() {
+    onScaleDisconnected();
+    renderConnectionState();
+}
+
 async function disconnect() {
-    const sc = window.__scaleController;
-    if (sc && typeof sc.disconnect === 'function') {
-        await sc.disconnect();
-    } else if (bluetoothServer) {
-        try { bluetoothServer.disconnect(); } catch (e) {}
-    }
-    onDisconnected();
+    testConnected.scale = null;
+    testConnected.portal = null;
+    await devices.disconnectAll();
+    renderConnectionState();
 }
 
 async function toggleConnect() {
     const btn = document.getElementById('connectToggleBtn');
-    if (!isConnected) {
-        btn.disabled = true;
+    const allConnected = deviceConnected('scale') && deviceConnected('portal');
+    btn.disabled = true;
+    if (!allConnected) {
         btn.textContent = 'Connecting...';
-        await connectToScale();
-        btn.disabled = false;
-        btn.textContent = isConnected ? 'Disconnect' : 'Connect';
+        await connectDevices();
     } else {
-        btn.disabled = true;
         btn.textContent = 'Disconnecting...';
         await disconnect();
-        btn.disabled = false;
-        btn.textContent = isConnected ? 'Disconnect' : 'Connect';
     }
+    renderConnectionState();
 }

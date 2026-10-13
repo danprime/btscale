@@ -713,3 +713,62 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
         height: 220px;
     }
 }
+
+/* --- Connected device indicators (header) --- */
+[hidden] {
+    display: none !important;
+}
+.ritual-header-actions {
+    align-items: center;
+}
+.device-icons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #b77b2b;
+}
+.device-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #fff3e0;
+}
+
+/* --- EC meter panels sit directly under the scale panels --- */
+#portalInfo {
+    margin-top: -18px;
+}
+
+/* --- Connect / disconnect controls in settings --- */
+.connect-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.modal .connect-controls .ritual-btn {
+    max-width: none;
+    max-height: none;
+    white-space: nowrap;
+}
+.ritual-disconnect {
+    background: #fff3e0;
+    color: #8a3b12;
+    border: 2px solid #e0c08a;
+    font-size: 0.95rem;
+}
+.setting-heading {
+    display: block;
+    color: #b77b2b;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+@media (max-width: 600px) {
+    #portalInfo {
+        margin-top: -10px;
+    }
+}

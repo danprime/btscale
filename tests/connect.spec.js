@@ -41,10 +41,17 @@ test('connect and disconnect flow updates UI controls', async ({ page }) => {
   await expect(connectBtn).toHaveText('Connect');
   await expect(page.locator('#tareBtn')).toBeDisabled();
 
-  // Simulate connect
+  // Simulate scale connected: the single button now offers to connect the missing EC meter,
+  // and a separate Disconnect button appears.
   await page.evaluate(() => window.__test_setConnected(true));
-  await expect(connectBtn).toHaveText('Disconnect');
+  await expect(connectBtn).toHaveText('Connect EC meter');
+  await expect(page.locator('#disconnectAllBtn')).not.toHaveAttribute('hidden', '');
   await expect(page.locator('#tareBtn')).toBeEnabled();
+
+  // Both connected: the single button becomes Disconnect
+  await page.evaluate(() => window.__test_setPortalConnected(true));
+  await expect(connectBtn).toHaveText('Disconnect');
+  await expect(page.locator('#disconnectAllBtn')).toHaveAttribute('hidden', '');
 
   // Simulate disconnect
   await page.evaluate(() => window.__test_disconnect());

@@ -123,3 +123,27 @@ Notes
 - `ScaleController` is ESM and expects to be run in a secure context (HTTPS or localhost).
 - The parsed `data` object shape comes from `scale-utils.js`'s `parseWeightData()` and includes `weight` (grams), `flowRate` (g/s), `batteryPercent`, and timing fields.
 - If you need a CommonJS/UMD bundle or TypeScript types, I can add a build step and `.d.ts` file.
+
+## EC meter support (Belka PORTAL)
+
+The app can also connect to a Belka PORTAL EC meter alongside the scale. Weight stays the main reading; with the EC meter connected, Temperature (°C) and EC (mS/cm) cards appear under the scale panels.
+
+Files
+- `belka-portal.js` - `BelkaPortal` driver: connects (service `0x7400`), parses the 13-byte stream packet (`parsePortalPacket()`), and sends start/stop timer commands. Protocol notes: `belka_portal_protocol.md`.
+- `device-manager.js` - `DeviceManager` owns both connections and implements the single Connect button.
+- `brew-recorder.js` - `BrewRecorder` records weight, flow, temperature and EC between Start and Stop and produces the CSV.
+- `emitter.js` - shared `SimpleEmitter` (multiple listeners per event).
+- `ble-mock.js` - `installMockBluetooth({ devices, permitted })`, a multi-device `navigator.bluetooth` mock used by the tests.
+
+Connecting
+- One Connect button (Settings). Browsers allow only one device picker per tap, so the first time you press it once per device: the picker lists both device types, and the next press offers whichever is still missing.
+- Devices you have connected before are reconnected without a picker where the browser supports `navigator.bluetooth.getDevices()`, so one press connects both.
+- With both connected the button becomes Disconnect (both). With only one connected, a separate Disconnect button is shown.
+- Header icons show what is connected: a dumbbell for the scale, a lightning bolt for the EC meter (hover for battery %).
+
+Timer
+- Settings > "Start/Stop also controls" chooses which connected devices the Start/Stop button drives (scale timer, EC meter timer + beep). Only connected devices are sent commands.
+- Elapsed time comes from the scale's timer when the scale is connected and driven; otherwise the app's own clock is used.
+
+Recording
+- Samples are recorded from Start to Stop. After Stop, a download button exports a CSV with one row per packet from either device (`t_s,weight_g,flow_gps,temp_c,ec_mScm,source`), with the latest value from the other device filled in.
