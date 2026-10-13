@@ -112,6 +112,14 @@ body {
     margin: 0;
     padding: 0;
     min-height: 100vh;
+    /* Visible viewport on phones (100vh includes the hidden address bar) */
+    min-height: 100dvh;
+    /* Contain the container's margins so they don't add to the page height */
+    display: flow-root;
+}
+/* No pull-to-refresh / bounce: a stray swipe mid-brew would reload and drop Bluetooth */
+html, body {
+    overscroll-behavior-y: none;
 }
 .ritual-container {
     max-width: 420px;
@@ -613,6 +621,7 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     .ritual-container {
         max-width: 98vw;
         padding: 0 0 16px 0;
+        margin: 16px auto;
     }
     .ritual-header {
         padding: 10px 10px 0 10px;
