@@ -811,3 +811,19 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     color: #8d6e63;
     padding-right: 4px;
 }
+
+/* --- Header without a visible title: keep the icons on the right --- */
+.ritual-header {
+    justify-content: flex-end;
+}
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
