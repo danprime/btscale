@@ -13,6 +13,7 @@ export class BrewRecorder {
     this.running = false;
     this.startedAt = null; // wall-clock Date, used for the file name
     this._t0 = 0;
+    this._t1 = null; // stop time (ms), null while running
     this._latest = { weight: null, flow: null, temp: null, ec: null };
   }
 
@@ -21,9 +22,19 @@ export class BrewRecorder {
     this.running = true;
     this.startedAt = new Date();
     this._t0 = this.now();
+    this._t1 = null;
   }
 
-  stop() { this.running = false; }
+  stop() {
+    if (this.running) this._t1 = this.now();
+    this.running = false;
+  }
+
+  /** Seconds since start (frozen at the stop time once stopped). */
+  elapsed() {
+    if (this.startedAt == null) return 0;
+    return ((this._t1 ?? this.now()) - this._t0) / 1000;
+  }
 
   hasData() { return this.rows.length > 0; }
 
