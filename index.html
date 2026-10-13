@@ -12,6 +12,14 @@
         <header class="ritual-header">
             <h1 class="ritual-title" id="scaleAppTitle">Scale</h1>
             <nav class="ritual-header-actions" aria-label="Main actions">
+                <div class="device-icons" aria-live="polite">
+                    <span id="scaleIcon" class="device-icon" role="img" aria-label="Scale connected" title="Scale connected" hidden>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z"/><path d="m2.5 21.5 1.4-1.4"/><path d="m20.1 3.9 1.4-1.4"/><path d="M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z"/><path d="m9.6 14.4 4.8-4.8"/></svg>
+                    </span>
+                    <span id="portalIcon" class="device-icon" role="img" aria-label="EC meter connected" title="EC meter connected" hidden>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
+                    </span>
+                </div>
                 <button id="settingsBtn" class="ritual-btn ritual-settings" aria-label="Open settings">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings w-5 h-5 text-amber-700" aria-hidden="true" focusable="false"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 </button>
@@ -54,6 +62,17 @@
                 <div class="ritual-info-value" id="currentRatio" aria-live="polite">--</div>
             </div>
         </section>
+        <!-- EC meter (Belka Portal) panels: shown only while it is connected -->
+        <section class="ritual-info" id="portalInfo" aria-label="EC meter info panels" style="display:none;">
+            <div class="ritual-info-item" id="tempPanel">
+                <div class="ritual-info-label" id="tempLabel">Temperature</div>
+                <div class="ritual-info-value" id="tempValue" aria-live="polite">-- °C</div>
+            </div>
+            <div class="ritual-info-item" id="ecPanel">
+                <div class="ritual-info-label" id="ecLabel">EC</div>
+                <div class="ritual-info-value" id="ecValue" aria-live="polite">-- mS/cm</div>
+            </div>
+        </section>
         <!-- Main Action Buttons -->
         <section class="ritual-controls ritual-main-actions" aria-label="Main actions">
             <button id="tareBtn" class="ritual-btn main-action" onclick="sendTareCommand()" disabled aria-label="Tare">T</button>
@@ -63,7 +82,9 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play w-8 h-8 text-white ml-1"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
                 </span>
             </button>
-
+            <button id="exportCsvBtn" class="ritual-btn main-action" onclick="exportBrewCsv()" aria-label="Download brew data as CSV" title="Download brew data (CSV)" hidden>
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            </button>
         </section>
         <!-- Ratio Slider Overlay (hidden by default) -->
         <div id="ratioSliderOverlay" class="ratio-slider-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ratioSliderTitle">
@@ -117,8 +138,14 @@
                 </div>
                 <button class="close" id="closeSettingsModal" onclick="closeSettingsModal()" aria-label="Close settings">&times;</button>
                 <h2 id="settingsTitle">Settings</h2>
-                <div class="modal-controls">
+                <div class="modal-controls connect-controls">
                     <button id="connectToggleBtn" class="ritual-btn ritual-connect" onclick="toggleConnect()" aria-pressed="false">Connect</button>
+                    <button id="disconnectAllBtn" class="ritual-btn ritual-disconnect" onclick="disconnect()" hidden>Disconnect</button>
+                </div>
+                <div class="modal-controls">
+                    <span class="setting-heading">Start/Stop also controls:</span>
+                    <label for="driveScaleTimer"><input type="checkbox" id="driveScaleTimer" checked aria-label="Scale timer"> Scale timer</label>
+                    <label for="drivePortalTimer"><input type="checkbox" id="drivePortalTimer" checked aria-label="EC meter timer"> EC meter timer</label>
                 </div>
                 <div class="modal-controls">
                     <label for="beepLevel">Beep Level (0-5):</label>
