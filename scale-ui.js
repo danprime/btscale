@@ -277,7 +277,7 @@ function renderElapsed(ms) {
 function updateDisplay(scaleData) {
     lastScaleData = scaleData;
     document.getElementById('weightDisplay').textContent = `${scaleData.weight.toFixed(1)}`;
-    document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(2)} g/s`;
+    document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(1)} g/s`;
     const showRemainder = document.getElementById('showRemainder');
     const remainderPanel = document.getElementById('remainderPanel');
     if (targetWeight !== null && showRemainder && showRemainder.checked) {
