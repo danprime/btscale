@@ -25,8 +25,8 @@ const COLORS = {
 };
 
 const MODES = {
-  ec: { unit: 'mS/cm', hint: 'EC will plot when the timer starts' },
-  weight: { unit: 'g', hint: 'Weight will plot when the timer starts' },
+  ec: { unit: 'mS/cm', hint: 'Press Start' },
+  weight: { unit: 'g', hint: 'Press Start' },
 };
 
 export function formatSeconds(s) {
