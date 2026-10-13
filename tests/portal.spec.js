@@ -219,3 +219,30 @@ test('EC meter dropping out mid-brew hides its cards and keeps the scale running
   await page.evaluate(() => window.__emitScale(window.__mock, 42.0, 5000));
   await expect(page.locator('#weightDisplay')).toHaveText('42.0');
 });
+
+test('brew chart plots EC with the EC meter, weight without it, and clears on reset', async ({ page }) => {
+  const chart = page.locator('#brewChartCanvas');
+  const label = page.locator('#brewChartLabel');
+
+  // Scale only: weight chart
+  await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['scale', 'portal'] }); });
+  await page.evaluate(() => toggleConnect());
+  await expect(label).toHaveText('Weight · g');
+  await page.evaluate(() => triStateTimer());
+  await page.evaluate(() => window.__emitScale(window.__mock, 25.5, 1000));
+  await expect(chart).toHaveAttribute('aria-label', /^Weight chart, latest 25\.5 g at 0:\d\d$/);
+  await page.evaluate(() => triStateTimer()); // stop: curve stays
+  await expect(chart).toHaveAttribute('aria-label', /latest 25\.5 g/);
+  await page.evaluate(() => triStateTimer()); // reset: cleared
+  await expect(chart).toHaveAttribute('aria-label', 'Weight chart, no data yet');
+
+  // EC meter connected: EC chart
+  await page.evaluate(() => toggleConnect());
+  await expect(label).toHaveText(/^EC · mS\/cm\s*Weight · g$/);
+  await page.evaluate(() => triStateTimer());
+  await page.evaluate(() => window.__mock.emitPortal({ ec: 3.14, temp: 90 }));
+  await expect(chart).toHaveAttribute('aria-label', /^EC chart, latest 3\.14 mS\/cm at 0:\d\d$/);
+  // Weight is added as a second line on the EC chart
+  await page.evaluate(() => window.__emitScale(window.__mock, 48.2, 2000));
+  await expect(chart).toHaveAttribute('aria-label', /^EC chart, latest 3\.14 mS\/cm at 0:\d\d; weight 48\.2 g$/);
+});

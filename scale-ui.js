@@ -67,6 +67,7 @@ import { installMock } from './ble-scale.js';
 import { installMockBluetooth } from './ble-mock.js';
 import { DeviceManager } from './device-manager.js';
 import { BrewRecorder } from './brew-recorder.js';
+import { BrewChart } from './brew-chart.js';
 
 // --- Settings modal logic (moved to top for global availability) ---
 function openSettingsModal() {
@@ -94,6 +95,38 @@ let timerState = 'stopped'; // Global timerState declaration
 // Brew recording (weight, flow, temperature, EC) between Start and Stop
 const recorder = new BrewRecorder();
 let lastScaleData = null;
+
+// Live brew chart (replaces the progress ring). Cleared on Reset, refilled from Start.
+let brewChart = null;
+let chartCleared = true;
+
+function chartData() {
+    const rows = chartCleared ? [] : recorder.rows;
+    const mode = rows.some((r) => r.source === 'portal') || deviceConnected('portal') ? 'ec' : 'weight';
+    const points = [];
+    for (const r of rows) {
+        if (mode === 'ec' && r.source === 'portal' && r.ec != null) points.push({ t: r.t, v: r.ec });
+        else if (mode === 'weight' && r.source === 'scale' && r.weight != null) points.push({ t: r.t, v: r.weight });
+    }
+    // In EC mode, weight is drawn as a second line on its own axis
+    const weightPoints = mode === 'ec' ? rows.filter((r) => r.source === 'scale' && r.weight != null).map((r) => ({ t: r.t, v: r.weight })) : null;
+    return { mode, points, weightPoints, elapsed: chartCleared ? 0 : recorder.elapsed(), target: targetWeight, running: recorder.running };
+}
+
+function refreshChart() {
+    if (!brewChart) return;
+    const label = document.getElementById('brewChartLabel');
+    const ec = chartData().mode === 'ec';
+    const html = ec ? 'EC · mS/cm<span class="brew-chart-label-weight">Weight · g</span>' : 'Weight · g';
+    if (label && label.innerHTML !== html) label.innerHTML = html;
+    brewChart.requestDraw();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('brewChartCanvas');
+    if (canvas) brewChart = new BrewChart(canvas, chartData);
+    refreshChart();
+});
 
 // Test-only connection overrides (see __test_setConnected); null = use real state
 const testConnected = { scale: null, portal: null };
@@ -228,6 +261,7 @@ function renderConnectionState(errorText) {
     }
     renderTimerIcon();
     updateExportButton();
+    refreshChart();
 }
 
 // Backwards-compatible wrapper (older code/tests call updateStatus).
@@ -246,7 +280,10 @@ const appTimer = {
         this.elapsedMs = 0;
         this.startedAt = this.now();
         clearInterval(this.interval);
-        this.interval = setInterval(() => { if (!scaleIsTimeSource()) renderElapsed(this.elapsed()); }, 200);
+        this.interval = setInterval(() => {
+            if (!scaleIsTimeSource()) renderElapsed(this.elapsed());
+            refreshChart(); // keeps the time axis moving between readings
+        }, 200);
     },
     stop() {
         if (this.startedAt != null) this.elapsedMs += this.now() - this.startedAt;
@@ -271,7 +308,6 @@ function renderElapsed(ms) {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    updateProgressRing(lastScaleData ? lastScaleData.weight : 0, targetWeight, totalSeconds);
 }
 
 function updateDisplay(scaleData) {
@@ -287,7 +323,7 @@ function updateDisplay(scaleData) {
     } else if (remainderPanel) {
         remainderPanel.style.display = 'none';
     }
-    // Calculated Ratio in Progress Ring
+    // Calculated ratio (next to the timer)
     const calculatedRatioDisplay = document.getElementById('calculatedRatioDisplay');
     let beanWeight = memory.beans?.weight || null;
     let ratioStr = '';
@@ -316,7 +352,7 @@ function updateDisplay(scaleData) {
             currentRatioPanel.style.display = 'none';
         }
     }
-    // Elapsed time (also updates the progress ring)
+    // Elapsed time
     renderElapsed(scaleIsTimeSource() ? scaleData.milliseconds : appTimer.elapsed());
     const scaleIcon = document.getElementById('scaleIcon');
     if (scaleIcon && scaleData.batteryPercent != null) scaleIcon.title = `Scale connected · battery ${scaleData.batteryPercent}%`;
@@ -335,12 +371,14 @@ function updatePortalDisplay(portalData) {
 function onScaleData(scaleData) {
     recorder.addScale(scaleData);
     updateDisplay(scaleData);
+    refreshChart();
     log(`Weight: ${scaleData.weight.toFixed(2)}g, Flow: ${scaleData.flowRate.toFixed(2)}g/s, Battery: ${scaleData.batteryPercent}%`);
 }
 
 function onPortalData(portalData) {
     recorder.addPortal(portalData);
     updatePortalDisplay(portalData);
+    refreshChart();
 }
 
 function handleWeightData(event) {
@@ -484,6 +522,8 @@ async function startBrew({ scaleAlreadyStarted = false } = {}) {
     const targets = timerTargets().filter((t) => !(scaleAlreadyStarted && t === 'scale'));
     appTimer.start();
     recorder.start();
+    chartCleared = false;
+    refreshChart();
     timerState = 'running';
     renderTimerIcon();
     updateExportButton();
@@ -494,6 +534,7 @@ async function startBrew({ scaleAlreadyStarted = false } = {}) {
 async function stopBrew() {
     appTimer.stop();
     recorder.stop();
+    refreshChart();
     timerState = 'reset-required';
     renderTimerIcon();
     updateExportButton();
@@ -503,6 +544,8 @@ async function stopBrew() {
 
 async function resetBrew() {
     appTimer.reset();
+    chartCleared = true;
+    refreshChart();
     timerState = 'stopped';
     renderTimerIcon();
     renderElapsed(0);
@@ -633,9 +676,7 @@ async function setFlowSmoothing(enabled) {
     }
 }
 
-// --- Progress Ring Animation and Ratio Slider Overlay ---
-const PROGRESS_RING_CIRCUM = 2 * Math.PI * 45; // r=45
-const MAX_TIMER_SECONDS = 600; // 10 minutes
+// --- Ratio presets and Ratio Slider Overlay ---
 
 // Ratio presets
 const brewRatios = [
@@ -655,26 +696,6 @@ const espressoRatios = [
 ];
 let currentBrewMode = 'brew'; // or 'espresso'
 let currentRatio = 16; // default
-
-function setProgressRing(percent) {
-    const fg = document.getElementById('progressRingFg');
-    if (fg) {
-        const offset = PROGRESS_RING_CIRCUM * (1 - percent);
-        fg.setAttribute('stroke-dashoffset', offset);
-    }
-}
-
-function updateProgressRing(weight, targetWeight, timerSeconds) {
-    if (targetWeight && targetWeight > 0) {
-        // Show weight progress
-        const percent = Math.min(weight / targetWeight, 1);
-        setProgressRing(percent);
-    } else {
-        // Show timer progress (max 10 min)
-        const percent = Math.min(timerSeconds / MAX_TIMER_SECONDS, 1);
-        setProgressRing(percent);
-    }
-}
 
 // --- Ratio Slider Overlay Logic ---
 // --- Ritual2-style Ratio Slider Overlay Logic ---
@@ -814,6 +835,7 @@ async function tareBean() {
         targetWeight = currentWeight * currentRatio;
         const twEl = document.getElementById('targetWeight');
         if (twEl) twEl.textContent = `${targetWeight.toFixed(2)} g`;
+        refreshChart(); // target line on the weight chart
         // Store bean weight in memory
         if (!isNaN(currentWeight)) {
             memory.beans = { weight: currentWeight };

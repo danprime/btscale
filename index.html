@@ -26,22 +26,19 @@
             </nav>
         </header>
         <div id="status" class="status disconnected ritual-status" style="display:none;" aria-live="polite">Disconnected</div>
-        <!-- Progress Ring Section -->
-        <section class="ritual-progress-ring" aria-label="Progress">
-            <div class="progress-ring-container">
-                <div class="progress-weight-hero" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 18px;">
-                    <div class="progress-weight-unit" style="font-size: 1.15rem; color: #b77b2b; opacity: 0.7; margin-bottom: 2px;">grams</div>
-                    <div id="weightDisplay" class="progress-weight-value" style="font-size: 3.6rem; font-weight: 400; color: #b77b2b; line-height: 1.05; letter-spacing: -0.04em;">--</div>
-                </div>
-                <svg class="progress-ring-svg" viewBox="0 0 100 100" aria-hidden="true">
-                    <circle class="progress-ring-bg" cx="50" cy="50" r="45" fill="none" stroke="#ffe0b2" stroke-width="2" />
-                    <circle class="progress-ring-fg" id="progressRingFg" cx="50" cy="50" r="45" fill="none" stroke="#b77b2b" stroke-width="2" stroke-linecap="round" stroke-dasharray="282.743" stroke-dashoffset="282.743" />
-                </svg>
-                <div class="progress-ring-center">
-                    <div class="progress-timer" id="timer" aria-live="polite" aria-atomic="true">0:00</div>
-                    <div id="calculatedRatioDisplay" class="progress-ratio-value" aria-live="polite" style="margin-top:6px;"></div>
-                </div>
+        <!-- Weight (hero), then elapsed time and ratio -->
+        <section class="ritual-hero" aria-label="Brew progress">
+            <div class="progress-weight-unit">grams</div>
+            <div id="weightDisplay" class="progress-weight-value">--</div>
+            <div class="hero-meta">
+                <div class="progress-timer" id="timer" aria-live="polite" aria-atomic="true">0:00</div>
+                <div id="calculatedRatioDisplay" class="progress-ratio-value" aria-live="polite"></div>
             </div>
+        </section>
+        <!-- Live brew chart: EC when the EC meter is connected, otherwise weight -->
+        <section class="brew-chart" aria-label="Brew chart">
+            <div class="brew-chart-label" id="brewChartLabel">EC · mS/cm</div>
+            <canvas id="brewChartCanvas" role="img" aria-label="Brew chart, no data yet"></canvas>
         </section>
         <!-- Info Panels -->
         <section class="ritual-info" aria-label="Scale info panels">
