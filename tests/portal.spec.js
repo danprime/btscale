@@ -361,3 +361,48 @@ for (const size of [{ width: 375, height: 812 }, { width: 375, height: 667 }]) {
     expect(dims.view - dims.buttonsBottom).toBeLessThanOrEqual(20);
   });
 }
+
+test('after Stop the main readouts freeze on final values and live readings move to the strip', async ({ page }) => {
+  const text = (id) => page.locator(`#${id}`);
+  await page.evaluate(async () => {
+    window.__mock = window.__test_installMultiBLEMock({ devices: ['scale', 'portal'] });
+    await toggleConnect();
+    await toggleConnect();
+    window.__test_setMemory({ beans: { weight: 16 } });
+  });
+  await page.evaluate(() => triStateTimer()); // start
+  await page.evaluate(async () => {
+    window.__mock.emitPortal({ ec: 4.2, temp: 92 });
+    window.__mock.emitPortal({ ec: 1.1, temp: 87.2 });
+    await window.__emitScale(window.__mock, 240.6, 121000, 2);
+  });
+  await page.evaluate(() => triStateTimer()); // stop
+  // Cup lifted after the brew: live weight drops and the scale reports a flow spike
+  await page.evaluate(async () => {
+    await window.__emitScale(window.__mock, 80.3, 121000, 344.3);
+    window.__mock.emitPortal({ ec: 0.92, temp: 88 });
+  });
+
+  await expect(text('weightUnitLabel')).toHaveText('Final · grams');
+  await expect(text('weightDisplay')).toHaveText('240.6');
+  await expect(text('timer')).toHaveText('2:01');
+  await expect(text('calculatedRatioDisplay')).toHaveText('1:15.0');
+  await expect(text('flowRateLabel')).toHaveText('Avg flow');
+  await expect(text('flowRate')).toHaveText('2.0 g/s');
+  await expect(text('tempLabel')).toHaveText('Temp at stop');
+  await expect(text('tempValue')).toHaveText('87.2 °C');
+  await expect(text('ecLabel')).toHaveText('Peak EC');
+  await expect(text('ecValue')).toHaveText('4.20 mS/cm');
+  await expect(text('liveStrip')).toBeVisible();
+  await expect(text('liveStrip')).toHaveText('Live 80.3 g · 88.0 °C · 0.92 mS/cm');
+
+  // Reset: back to live readings
+  await page.evaluate(() => triStateTimer());
+  await expect(text('weightUnitLabel')).toHaveText('grams');
+  await expect(text('weightDisplay')).toHaveText('80.3');
+  await expect(text('flowRateLabel')).toHaveText('Flow Rate');
+  await expect(text('tempValue')).toHaveText('88.0 °C');
+  await expect(text('ecLabel')).toHaveText('EC');
+  await expect(text('ecValue')).toHaveText('0.92 mS/cm');
+  await expect(text('liveStrip')).toBeHidden();
+});

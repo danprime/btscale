@@ -95,6 +95,9 @@ let timerState = 'stopped'; // Global timerState declaration
 // Brew recording (weight, flow, temperature, EC) between Start and Stop
 const recorder = new BrewRecorder();
 let lastScaleData = null;
+let lastPortalData = null;
+// Final values captured at Stop; while set, the main readouts stay frozen
+let finalSnapshot = null;
 
 // Live brew chart (replaces the progress ring). Cleared on Reset, refilled from Start.
 let brewChart = null;
@@ -242,7 +245,9 @@ function renderConnectionState(errorText) {
     const portalIcon = document.getElementById('portalIcon');
     if (portalIcon) portalIcon.hidden = !portalOn;
     const portalInfo = document.getElementById('portalInfo');
-    if (portalInfo) portalInfo.style.display = portalOn ? '' : 'none';
+    // Keep the frozen Temp/Peak EC cards after Stop even if the EC meter has gone
+    if (portalInfo) portalInfo.style.display = portalOn || finalSnapshot?.peakEc != null ? '' : 'none';
+    renderLiveStrip();
 
     // Scale-only controls
     for (const id of ['tareBtn', 'tareStartBtn', 'tareBeanBtn', 'beepLevel', 'autoOff', 'flowSmoothing', 'targetRatioBtn']) {
@@ -258,6 +263,7 @@ function renderConnectionState(errorText) {
         appTimer.stop();
         recorder.stop();
         timerState = 'reset-required';
+        captureFinal();
         releaseWakeLock();
     }
     renderTimerIcon();
@@ -371,15 +377,89 @@ function updatePortalDisplay(portalData) {
 
 function onScaleData(scaleData) {
     recorder.addScale(scaleData);
-    updateDisplay(scaleData);
+    lastScaleData = scaleData;
+    if (finalSnapshot) renderLiveStrip();
+    else updateDisplay(scaleData);
     refreshChart();
     log(`Weight: ${scaleData.weight.toFixed(2)}g, Flow: ${scaleData.flowRate.toFixed(2)}g/s, Battery: ${scaleData.batteryPercent}%`);
 }
 
 function onPortalData(portalData) {
     recorder.addPortal(portalData);
-    updatePortalDisplay(portalData);
+    lastPortalData = portalData;
+    if (finalSnapshot) renderLiveStrip();
+    else updatePortalDisplay(portalData);
     refreshChart();
+}
+
+// --- Stopped view: final values frozen in the main readouts, live readings in a strip ---
+function captureFinal() {
+    const ms = scaleIsTimeSource() && lastScaleData ? lastScaleData.milliseconds : appTimer.elapsed();
+    const weight = lastScaleData ? lastScaleData.weight : null;
+    const ecs = recorder.rows.filter((r) => r.source === 'portal' && r.ec != null).map((r) => r.ec);
+    finalSnapshot = {
+        ms,
+        weight,
+        avgFlow: weight != null && ms > 0 ? weight / (ms / 1000) : null,
+        peakEc: ecs.length ? Math.max(...ecs) : null,
+        // Only if the EC meter took part in this brew
+        temp: ecs.length && lastPortalData ? lastPortalData.temp : null,
+    };
+    renderFinal();
+}
+
+function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el && el.textContent !== text) el.textContent = text;
+}
+
+function renderFinal() {
+    const f = finalSnapshot;
+    if (!f) return;
+    setText('weightUnitLabel', 'Final · grams');
+    if (f.weight != null) {
+        // updateDisplay remembers what it shows as the latest reading; keep the live one
+        const live = lastScaleData;
+        updateDisplay({ ...(live || {}), weight: f.weight, flowRate: 0, milliseconds: f.ms });
+        lastScaleData = live;
+    }
+    renderElapsed(f.ms);
+    setText('flowRateLabel', 'Avg flow');
+    setText('flowRate', f.avgFlow != null ? `${f.avgFlow.toFixed(1)} g/s` : '-- g/s');
+    setText('tempLabel', 'Temp at stop');
+    setText('tempValue', f.temp != null ? `${f.temp.toFixed(1)} °C` : '-- °C');
+    setText('ecLabel', 'Peak EC');
+    setText('ecValue', f.peakEc != null ? `${f.peakEc.toFixed(2)} mS/cm` : '-- mS/cm');
+    renderLiveStrip();
+}
+
+function clearFinal() {
+    finalSnapshot = null;
+    setText('weightUnitLabel', 'grams');
+    setText('flowRateLabel', 'Flow Rate');
+    setText('tempLabel', 'Temperature');
+    setText('ecLabel', 'EC');
+    if (lastScaleData && deviceConnected('scale')) updateDisplay(lastScaleData);
+    else {
+        setText('weightDisplay', '--');
+        setText('flowRate', '0.0 g/s');
+    }
+    if (lastPortalData && deviceConnected('portal')) updatePortalDisplay(lastPortalData);
+    else resetPortalDisplay();
+    renderLiveStrip();
+}
+
+function renderLiveStrip() {
+    const strip = document.getElementById('liveStrip');
+    if (!strip) return;
+    const parts = [];
+    if (finalSnapshot) {
+        if (deviceConnected('scale') && lastScaleData) parts.push(`${lastScaleData.weight.toFixed(1)} g`);
+        if (deviceConnected('portal') && lastPortalData) parts.push(`${lastPortalData.temp.toFixed(1)} °C`, `${lastPortalData.ec.toFixed(2)} mS/cm`);
+    }
+    strip.hidden = !parts.length;
+    const text = parts.length ? `Live  ${parts.join(' · ')}` : '';
+    if (strip.textContent !== text) strip.textContent = text;
 }
 
 function handleWeightData(event) {
@@ -521,6 +601,7 @@ async function sendToDevices(action, types) {
 
 async function startBrew({ scaleAlreadyStarted = false } = {}) {
     const targets = timerTargets().filter((t) => !(scaleAlreadyStarted && t === 'scale'));
+    if (finalSnapshot) clearFinal();
     appTimer.start();
     recorder.start();
     chartCleared = false;
@@ -537,6 +618,7 @@ async function stopBrew() {
     recorder.stop();
     refreshChart();
     timerState = 'reset-required';
+    captureFinal();
     renderTimerIcon();
     updateExportButton();
     releaseWakeLock();
@@ -548,6 +630,7 @@ async function resetBrew() {
     chartCleared = true;
     refreshChart();
     timerState = 'stopped';
+    clearFinal();
     renderTimerIcon();
     renderElapsed(0);
     await sendToDevices('reset', timerTargets());

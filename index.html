@@ -28,7 +28,7 @@
         <div id="status" class="status disconnected ritual-status" style="display:none;" aria-live="polite">Disconnected</div>
         <!-- Weight (hero), then elapsed time and ratio -->
         <section class="ritual-hero" aria-label="Brew progress">
-            <div class="progress-weight-unit">grams</div>
+            <div class="progress-weight-unit" id="weightUnitLabel">grams</div>
             <div id="weightDisplay" class="progress-weight-value">--</div>
             <div class="hero-meta">
                 <div class="progress-timer" id="timer" aria-live="polite" aria-atomic="true">0:00</div>
@@ -40,6 +40,8 @@
             <div class="brew-chart-label" id="brewChartLabel">EC · mS/cm</div>
             <canvas id="brewChartCanvas" role="img" aria-label="Brew chart, no data yet"></canvas>
         </section>
+        <!-- After Stop: the big values are frozen, live readings show here -->
+        <div class="live-strip" id="liveStrip" aria-live="polite" hidden></div>
         <!-- Info Panels -->
         <section class="ritual-info" aria-label="Scale info panels">
             <div class="ritual-info-item">
