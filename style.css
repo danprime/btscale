@@ -844,3 +844,35 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
         margin-bottom: 0;
     }
 }
+
+/* --- Focus ring for keyboard users only; nothing lingers after a tap --- */
+.ritual-btn:focus:not(:focus-visible),
+.ritual-btn.main-action:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+}
+/* Touch screens keep :hover after a tap, so restore each button's resting colours */
+@media (hover: none) {
+    .ritual-btn:hover, .ritual-btn.main-action:hover,
+    .ritual-btn:focus:not(:focus-visible), .ritual-btn.main-action:focus:not(:focus-visible) {
+        background: #fff3e0;
+        color: #b45309;
+    }
+    #timerToggleBtn:hover, #timerToggleBtn:focus:not(:focus-visible) {
+        background: #b45309;
+        color: #fff;
+    }
+    .ritual-btn.ritual-connect:hover, .ritual-btn.ritual-connect:focus:not(:focus-visible) {
+        background: #256029;
+        color: #fff;
+        border-color: #256029;
+    }
+    .ritual-btn.ritual-disconnect:hover, .ritual-btn.ritual-disconnect:focus:not(:focus-visible) {
+        background: #fff3e0;
+        color: #8a3b12;
+    }
+    .ritual-header .ritual-settings:hover, .ritual-header .ritual-settings:focus:not(:focus-visible) {
+        background: #fff3e0;
+        color: #b77b2b;
+    }
+}
