@@ -23,9 +23,8 @@
     display: inline-flex;
     align-items: baseline;
     line-height: 1;
-    /* centre the letter itself (not letter + subscript) on the button:
-       offset by the subscript's width */
-    margin-left: 0.32em;
+    /* sit between centring the "M" alone (0.32em) and centring "M"+"B" (0) */
+    margin-left: 0.16em;
 }
 #tareBeanBtn .key-sub {
     font-size: 0.45em;          /* subscript "B" (beans) */
