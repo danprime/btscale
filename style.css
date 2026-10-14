@@ -18,25 +18,21 @@
 #timerToggleBtn svg {
     stroke-width: 2.5 !important;
 }
-/* Shrink the bean SVG inside the button by 30% */
-#tareBeanBtn svg {
-    width: 56px !important;
-    height: 48px !important;
-    max-width: 56px !important;
-    max-height: 48px !important;
-    display: block;
-    margin: auto;
-    pointer-events: none;
-}
-/* Make the T in the Tare Beans button match the bean icon size */
-#tareBeanBtn .tare-t {
-    font-size: 48px !important;
+/* Beans button: an "M" like the "T", with a small bean as a subscript */
+#tareBeanBtn .key {
+    display: inline-flex;
+    align-items: baseline;
     line-height: 1;
-    display: inline-block;
-    vertical-align: middle;
-    height: 48px;
-    width: 56px;
-    text-align: center;
+    /* centre the letter itself (not letter + subscript) on the button */
+    margin-left: 0.5em;
+}
+#tareBeanBtn .key-sub {
+    width: 0.5em;
+    height: 0.4em;
+    margin-left: 0.04em;
+    margin-bottom: -0.12em;     /* drop slightly below the baseline, like a subscript */
+    flex: none;
+    pointer-events: none;
 }
 /* Memory Table Styles */
 .memory-table {
