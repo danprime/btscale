@@ -876,3 +876,17 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
         color: #b77b2b;
     }
 }
+
+/* --- Stopped view: live readings under the frozen chart --- */
+.live-strip {
+    margin: -10px 32px 14px 32px;
+    font-size: 0.85em;
+    color: #8a5a1c;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+@media (max-width: 600px) {
+    .live-strip {
+        margin: -6px 32px 8px 32px;
+    }
+}

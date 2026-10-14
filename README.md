@@ -149,5 +149,9 @@ Brew chart
 - A live line chart sits under the weight, timer and ratio (it replaced the progress ring). With the EC meter connected it plots EC on a fixed 0-5 mS/cm axis (stretched if a reading goes higher), plus weight as a thinner second line with its own gram axis on the right, so pours can be read against extraction. With only the scale it plots weight alone. The target weight shows as a dashed line.
 - The time axis covers the whole brew from Start to now. The finished curve stays after Stop and clears on Reset. Code: `brew-chart.js`.
 
+After Stop
+- Until Reset, the weight, timer and ratio show the brew's final values ("Final · grams"), and the chart stays frozen. The cards show average flow (final weight ÷ time), temperature at stop and peak EC.
+- Live readings (weight, temperature, EC) appear in a slim line under the chart, so you can still weigh the cup or check temperature. Reset returns everything to live.
+
 Recording
 - Samples are recorded from Start to Stop. After Stop, a download button exports a CSV with one row per packet from either device (`t_s,weight_g,flow_gps,temp_c,ec_mScm,source`), with the latest value from the other device filled in.
