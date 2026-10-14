@@ -43,7 +43,7 @@ function withTimeout(promise, ms) {
 }
 
 export class DeviceManager extends SimpleEmitter {
-  /** @param {{bluetooth?: any, storage?: Storage}} options */
+  /** @param {{bluetooth?: any, storage?: Storage, reconnectTimeoutMs?: number}} options */
   constructor(options = {}) {
     super();
     this.bluetooth = options.bluetooth || null;
@@ -51,6 +51,7 @@ export class DeviceManager extends SimpleEmitter {
     this.scale = new ScaleController({ bluetooth: options.bluetooth });
     this.portal = new BelkaPortal({ bluetooth: options.bluetooth });
     this.names = { scale: null, portal: null };
+    this.reconnectTimeoutMs = options.reconnectTimeoutMs ?? RECONNECT_TIMEOUT_MS;
     for (const type of DEVICE_TYPES) {
       this.controller(type).addEventListener('disconnected', () => this.emit('change', { type, connected: false }));
     }
@@ -143,7 +144,7 @@ export class DeviceManager extends SimpleEmitter {
 
   async _reconnect(type, device) {
     try {
-      return await withTimeout(this._connectType(type, device), RECONNECT_TIMEOUT_MS);
+      return await withTimeout(this._connectType(type, device), this.reconnectTimeoutMs);
     } catch (err) {
       // Out of range or no longer available: forget it so the next press shows the picker.
       try { device.gatt?.disconnect?.(); } catch {}

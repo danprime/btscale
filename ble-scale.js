@@ -30,6 +30,7 @@ export class BleScale extends SimpleEmitter {
     this.weightChar = null;
     this._connected = false;
     this._onGattDisconnected = this._onGattDisconnected.bind(this);
+    this._onValue = (e) => this.emit('value', e);
   }
 
   /**
@@ -58,11 +59,11 @@ export class BleScale extends SimpleEmitter {
     this.commandChar = await svc.getCharacteristic(COMMAND_CHAR_UUID);
     this.weightChar = await svc.getCharacteristic(WEIGHT_CHAR_UUID);
     if (this.weightChar.startNotifications) await this.weightChar.startNotifications();
-    // forward incoming buffer events to our listeners
+    // Forward incoming buffer events to our listeners. The browser may return the same
+    // characteristic object after a reconnect, so remove first to avoid duplicate events.
     if (this.weightChar.addEventListener) {
-      this.weightChar.addEventListener('characteristicvaluechanged', (e) => {
-        this.emit('value', e);
-      });
+      this.weightChar.removeEventListener?.('characteristicvaluechanged', this._onValue);
+      this.weightChar.addEventListener('characteristicvaluechanged', this._onValue);
     }
     this._connected = true;
     return { name: this.device && this.device.name };
