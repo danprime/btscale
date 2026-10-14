@@ -18,21 +18,20 @@
 #timerToggleBtn svg {
     stroke-width: 2.5 !important;
 }
-/* Beans button: an "M" like the "T", with a small bean as a subscript */
+/* Beans button: an "M" like the "T", with a subscript "B" (beans) */
 #tareBeanBtn .key {
     display: inline-flex;
     align-items: baseline;
     line-height: 1;
-    /* centre the letter itself (not letter + subscript) on the button */
-    margin-left: 0.5em;
+    /* centre the letter itself (not letter + subscript) on the button:
+       offset by the subscript's width */
+    margin-left: 0.32em;
 }
 #tareBeanBtn .key-sub {
-    width: 0.5em;
-    height: 0.4em;
-    margin-left: 0.04em;
-    margin-bottom: -0.12em;     /* drop slightly below the baseline, like a subscript */
-    flex: none;
-    pointer-events: none;
+    font-size: 0.45em;          /* subscript "B" (beans) */
+    margin-left: 0.06em;
+    position: relative;
+    top: 0.3em;
 }
 /* Memory Table Styles */
 .memory-table {
