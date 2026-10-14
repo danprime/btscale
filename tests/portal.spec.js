@@ -348,10 +348,16 @@ test('chart hint asks to connect until a device is connected', async ({ page }) 
 });
 
 for (const size of [{ width: 375, height: 812 }, { width: 375, height: 667 }]) {
-  test(`page does not scroll on a ${size.width}x${size.height} phone`, async ({ page }) => {
+  test(`page does not scroll and buttons sit at the bottom on a ${size.width}x${size.height} phone`, async ({ page }) => {
     await page.setViewportSize(size);
     await page.reload();
-    const dims = await page.evaluate(() => ({ doc: document.documentElement.scrollHeight, view: innerHeight }));
+    const dims = await page.evaluate(() => ({
+      doc: document.documentElement.scrollHeight,
+      view: innerHeight,
+      buttonsBottom: document.querySelector('.ritual-main-actions').getBoundingClientRect().bottom,
+    }));
     expect(dims.doc).toBe(dims.view);
+    // Main buttons sit at the bottom of the screen (thumb reach), not mid-page
+    expect(dims.view - dims.buttonsBottom).toBeLessThanOrEqual(20);
   });
 }
