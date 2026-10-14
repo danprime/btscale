@@ -409,7 +409,7 @@ test('after Stop the main readouts freeze on final values and live readings move
   await expect(text('liveStrip')).toBeHidden();
 });
 
-test('weight readout: "grams" placeholder until there is a weight, then a fixed-position number with "g"', async ({ page }) => {
+test('weight readout: "grams" placeholder until there is a weight, then the decimal point stays centred', async ({ page }) => {
   await expect(page.locator('#weightUnitLabel')).toHaveText('grams');
   await expect(page.locator('#weightUnitLabel')).toBeVisible();
   await expect(page.locator('#weightDisplay')).toHaveText('--');
@@ -421,11 +421,19 @@ test('weight readout: "grams" placeholder until there is a weight, then a fixed-
   for (const w of [1.2, 24.5, 240.6]) {
     await page.evaluate((w) => window.__emitScale(window.__mock, w, 1000), w);
     await expect(page.locator('#weightDisplay')).toHaveText(w.toFixed(1));
-    positions.push(await page.evaluate(() => Math.round(document.getElementById('weightUnit').getBoundingClientRect().left)));
+    positions.push(await page.evaluate(() => {
+      const card = document.querySelector('.ritual-container').getBoundingClientRect();
+      const frac = document.querySelector('#weightDisplay .w-frac');
+      const range = document.createRange();
+      range.setStart(frac.firstChild, 0);
+      range.setEnd(frac.firstChild, 1); // the "." glyph
+      const dot = range.getBoundingClientRect();
+      return (dot.left + dot.right) / 2 - (card.left + card.right) / 2;
+    }));
   }
   await expect(page.locator('#weightUnitLabel')).toBeHidden();
   await expect(page.locator('#weightUnit')).toHaveText('g');
-  expect(new Set(positions).size).toBe(1); // the "g" never moves
+  for (const offset of positions) expect(Math.abs(offset)).toBeLessThanOrEqual(3); // point on the centre line
 
   await page.evaluate(() => disconnect());
   await expect(page.locator('#weightDisplay')).toHaveText('--');

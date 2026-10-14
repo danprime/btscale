@@ -891,21 +891,34 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     }
 }
 
-/* --- Weight readout: fixed position as digits are added --- */
+/* --- Weight readout: the decimal point stays at the horizontal centre --- */
 .hero-weight {
     display: flex;
     align-items: baseline;
-    justify-content: center;
+    width: 100%;
     color: #b77b2b;
 }
 .hero-weight .progress-weight-value {
-    display: inline-block;
-    width: 5ch;               /* fits 888.8 / -88.8 with tabular digits */
-    text-align: right;
+    display: contents;          /* its .w-int / .w-frac children join the row */
     font-variant-numeric: tabular-nums;
 }
+.hero-weight .w-int,
+.hero-weight .w-frac {
+    font-size: 3.6rem;
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+}
+.hero-weight .w-int {
+    /* Whole grams fill the left half (right-aligned), minus half the point's
+       width, so the point itself sits on the midline with normal spacing */
+    flex: 0 0 calc(50% - 0.13em);
+    text-align: right;
+}
 .hero-weight .progress-weight-value.is-placeholder {
-    width: auto;
+    display: block;
+    width: 100%;
     text-align: center;
 }
 .hero-weight-unit {

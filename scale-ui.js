@@ -319,7 +319,7 @@ function renderElapsed(ms) {
 
 function updateDisplay(scaleData) {
     lastScaleData = scaleData;
-    document.getElementById('weightDisplay').textContent = `${scaleData.weight.toFixed(1)}`;
+    setWeightNumber(scaleData.weight);
     renderWeightReadout(true);
     document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(1)} g/s`;
     const showRemainder = document.getElementById('showRemainder');
@@ -412,6 +412,24 @@ function captureFinal() {
 function setText(id, text) {
     const el = document.getElementById(id);
     if (el && el.textContent !== text) el.textContent = text;
+}
+
+/**
+ * Write the weight as whole grams + ".tenth" in separate spans, so CSS can keep
+ * the decimal point at the horizontal centre. textContent stays e.g. "240.6".
+ */
+function setWeightNumber(weight) {
+    const el = document.getElementById('weightDisplay');
+    if (!el) return;
+    const [whole, tenth] = weight.toFixed(1).split('.');
+    const intEl = el.querySelector('.w-int');
+    const fracEl = el.querySelector('.w-frac');
+    if (intEl && fracEl) {
+        if (intEl.textContent !== whole) intEl.textContent = whole;
+        if (fracEl.textContent !== `.${tenth}`) fracEl.textContent = `.${tenth}`;
+        return;
+    }
+    el.innerHTML = `<span class="w-int">${whole}</span><span class="w-frac">.${tenth}</span>`;
 }
 
 /**
