@@ -948,7 +948,7 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     height: 0.95em;
     font-size: 1.6rem;
     flex: none;
-    opacity: 0.85;
+    opacity: 0.6;               /* lighter tint of the number colour */
 }
 .hero-meta .hero-ratio:has(.progress-ratio-value:empty) {
     display: none;
