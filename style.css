@@ -950,6 +950,12 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     flex: none;
     opacity: 0.6;               /* lighter tint of the number colour */
 }
+/* Ratio: normal letter spacing and proportional digits, so "1:15.0" isn't spread out
+   (the timer keeps tabular digits because it ticks every second) */
+.hero-meta .progress-ratio-value {
+    letter-spacing: normal;
+    font-variant-numeric: proportional-nums;
+}
 .hero-meta .hero-ratio:has(.progress-ratio-value:empty) {
     display: none;
 }
