@@ -912,8 +912,9 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
 }
 .hero-weight .w-int {
     /* Whole grams fill the left half (right-aligned), minus half the point's
-       width, so the point itself sits on the midline with normal spacing */
-    flex: 0 0 calc(50% - 0.13em);
+       width, so the point sits on the midline with normal spacing; then the
+       whole readout is shifted one digit (1ch) to the right */
+    flex: 0 0 calc(50% - 0.13em + 1ch);
     text-align: right;
 }
 .hero-weight .progress-weight-value.is-placeholder {

@@ -409,7 +409,7 @@ test('after Stop the main readouts freeze on final values and live readings move
   await expect(text('liveStrip')).toBeHidden();
 });
 
-test('weight readout: "grams" placeholder until there is a weight, then the decimal point stays centred', async ({ page }) => {
+test('weight readout: "grams" placeholder until there is a weight, then the decimal point stays one digit right of centre', async ({ page }) => {
   await expect(page.locator('#weightUnitLabel')).toHaveText('grams');
   await expect(page.locator('#weightUnitLabel')).toBeVisible();
   await expect(page.locator('#weightDisplay')).toHaveText('--');
@@ -428,12 +428,17 @@ test('weight readout: "grams" placeholder until there is a weight, then the deci
       range.setStart(frac.firstChild, 0);
       range.setEnd(frac.firstChild, 1); // the "." glyph
       const dot = range.getBoundingClientRect();
-      return (dot.left + dot.right) / 2 - (card.left + card.right) / 2;
+      const probe = document.createElement('span'); // width of one digit at the readout's size
+      probe.textContent = '0';
+      document.querySelector('#weightDisplay .w-int').appendChild(probe);
+      const digit = probe.getBoundingClientRect().width;
+      probe.remove();
+      return (dot.left + dot.right) / 2 - (card.left + card.right) / 2 - digit;
     }));
   }
   await expect(page.locator('#weightUnitLabel')).toBeHidden();
   await expect(page.locator('#weightUnit')).toHaveText('g');
-  for (const offset of positions) expect(Math.abs(offset)).toBeLessThanOrEqual(3); // point on the centre line
+  for (const offset of positions) expect(Math.abs(offset)).toBeLessThanOrEqual(3); // point one digit right of centre
 
   await page.evaluate(() => disconnect());
   await expect(page.locator('#weightDisplay')).toHaveText('--');
