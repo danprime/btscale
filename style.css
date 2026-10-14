@@ -827,3 +827,20 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     white-space: nowrap;
     border: 0;
 }
+
+/* --- Phones: card fills the screen, main buttons sit at the bottom (thumb reach) --- */
+@media (max-width: 600px) {
+    .ritual-container {
+        box-sizing: border-box;
+        margin: 6px auto 2px auto;
+        min-height: calc(100vh - 8px);
+        min-height: calc(100dvh - 8px);
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 10px;
+    }
+    .ritual-main-actions {
+        margin-top: auto;
+        margin-bottom: 0;
+    }
+}
