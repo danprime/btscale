@@ -319,7 +319,8 @@ function renderElapsed(ms) {
 
 function updateDisplay(scaleData) {
     lastScaleData = scaleData;
-    document.getElementById('weightDisplay').textContent = `${scaleData.weight.toFixed(1)}`;
+    setWeightNumber(scaleData.weight);
+    renderWeightReadout(true);
     document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(1)} g/s`;
     const showRemainder = document.getElementById('showRemainder');
     const remainderPanel = document.getElementById('remainderPanel');
@@ -413,10 +414,49 @@ function setText(id, text) {
     if (el && el.textContent !== text) el.textContent = text;
 }
 
+/**
+ * Write the weight as whole grams + ".tenth" in separate spans, so CSS can keep
+ * the decimal point at the horizontal centre. textContent stays e.g. "240.6".
+ */
+function setWeightNumber(weight) {
+    const el = document.getElementById('weightDisplay');
+    if (!el) return;
+    const [whole, tenth] = weight.toFixed(1).split('.');
+    const intEl = el.querySelector('.w-int');
+    const fracEl = el.querySelector('.w-frac');
+    if (intEl && fracEl) {
+        if (intEl.textContent !== whole) intEl.textContent = whole;
+        if (fracEl.textContent !== `.${tenth}`) fracEl.textContent = `.${tenth}`;
+        return;
+    }
+    el.innerHTML = `<span class="w-int">${whole}</span><span class="w-frac">.${tenth}</span>`;
+}
+
+/**
+ * Label and unit around the big weight number:
+ * - no weight yet / scale gone: "grams" placeholder label, "--", no unit
+ * - live weight: no label, number + "g"
+ * - after Stop: "Final" label, final number + "g"
+ * `shown` is true when the caller just put a weight in the number.
+ */
+function renderWeightReadout(shown = false) {
+    const label = document.getElementById('weightUnitLabel');
+    const unit = document.getElementById('weightUnit');
+    const value = document.getElementById('weightDisplay');
+    if (!label || !unit || !value) return;
+    const final = finalSnapshot && finalSnapshot.weight != null;
+    const hasWeight = final || shown || lastScaleData != null;
+    if (!hasWeight && value.textContent !== '--') value.textContent = '--';
+    label.textContent = final ? 'Final' : 'grams';
+    // Live weight: keep the label's space so the number doesn't move vertically
+    label.style.visibility = hasWeight && !final ? 'hidden' : '';
+    unit.hidden = !hasWeight;
+    value.classList.toggle('is-placeholder', !hasWeight);
+}
+
 function renderFinal() {
     const f = finalSnapshot;
     if (!f) return;
-    setText('weightUnitLabel', 'Final · grams');
     if (f.weight != null) {
         // updateDisplay remembers what it shows as the latest reading; keep the live one
         const live = lastScaleData;
@@ -424,6 +464,7 @@ function renderFinal() {
         lastScaleData = live;
     }
     renderElapsed(f.ms);
+    renderWeightReadout();
     setText('flowRateLabel', 'Avg flow');
     setText('flowRate', f.avgFlow != null ? `${f.avgFlow.toFixed(1)} g/s` : '-- g/s');
     setText('tempLabel', 'Temp at stop');
@@ -435,15 +476,14 @@ function renderFinal() {
 
 function clearFinal() {
     finalSnapshot = null;
-    setText('weightUnitLabel', 'grams');
     setText('flowRateLabel', 'Flow Rate');
     setText('tempLabel', 'Temperature');
     setText('ecLabel', 'EC');
     if (lastScaleData && deviceConnected('scale')) updateDisplay(lastScaleData);
     else {
-        setText('weightDisplay', '--');
         setText('flowRate', '0.0 g/s');
     }
+    renderWeightReadout();
     if (lastPortalData && deviceConnected('portal')) updatePortalDisplay(lastPortalData);
     else resetPortalDisplay();
     renderLiveStrip();
@@ -684,6 +724,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
     renderConnectionState();
+    renderWeightReadout();
 });
 
 async function sendStartTimerCommand() {
@@ -1061,6 +1102,7 @@ window.addEventListener('DOMContentLoaded', () => {
 function onScaleDisconnected() {
     log('Scale disconnected');
     lastScaleData = null;
+    renderWeightReadout();
     targetWeight = null;
     document.getElementById('targetWeight').textContent = '-- g';
     document.getElementById('remainder').textContent = '-- g';

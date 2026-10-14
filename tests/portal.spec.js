@@ -383,7 +383,8 @@ test('after Stop the main readouts freeze on final values and live readings move
     window.__mock.emitPortal({ ec: 0.92, temp: 88 });
   });
 
-  await expect(text('weightUnitLabel')).toHaveText('Final · grams');
+  await expect(text('weightUnitLabel')).toHaveText('Final');
+  await expect(text('weightUnit')).toBeVisible();
   await expect(text('weightDisplay')).toHaveText('240.6');
   await expect(text('timer')).toHaveText('2:01');
   await expect(text('calculatedRatioDisplay')).toHaveText('1:15.0');
@@ -398,11 +399,48 @@ test('after Stop the main readouts freeze on final values and live readings move
 
   // Reset: back to live readings
   await page.evaluate(() => triStateTimer());
-  await expect(text('weightUnitLabel')).toHaveText('grams');
+  await expect(text('weightUnitLabel')).toBeHidden(); // live weight: no "grams" label
   await expect(text('weightDisplay')).toHaveText('80.3');
+  await expect(text('weightUnit')).toHaveText('g');
   await expect(text('flowRateLabel')).toHaveText('Flow Rate');
   await expect(text('tempValue')).toHaveText('88.0 °C');
   await expect(text('ecLabel')).toHaveText('EC');
   await expect(text('ecValue')).toHaveText('0.92 mS/cm');
   await expect(text('liveStrip')).toBeHidden();
+});
+
+test('weight readout: "grams" placeholder until there is a weight, then the decimal point stays one digit right of centre', async ({ page }) => {
+  await expect(page.locator('#weightUnitLabel')).toHaveText('grams');
+  await expect(page.locator('#weightUnitLabel')).toBeVisible();
+  await expect(page.locator('#weightDisplay')).toHaveText('--');
+  await expect(page.locator('#weightUnit')).toBeHidden();
+
+  await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['scale'] }); });
+  await page.evaluate(() => toggleConnect());
+  const positions = [];
+  for (const w of [1.2, 24.5, 240.6]) {
+    await page.evaluate((w) => window.__emitScale(window.__mock, w, 1000), w);
+    await expect(page.locator('#weightDisplay')).toHaveText(w.toFixed(1));
+    positions.push(await page.evaluate(() => {
+      const card = document.querySelector('.ritual-container').getBoundingClientRect();
+      const frac = document.querySelector('#weightDisplay .w-frac');
+      const range = document.createRange();
+      range.setStart(frac.firstChild, 0);
+      range.setEnd(frac.firstChild, 1); // the "." glyph
+      const dot = range.getBoundingClientRect();
+      const probe = document.createElement('span'); // width of one digit at the readout's size
+      probe.textContent = '0';
+      document.querySelector('#weightDisplay .w-int').appendChild(probe);
+      const digit = probe.getBoundingClientRect().width;
+      probe.remove();
+      return (dot.left + dot.right) / 2 - (card.left + card.right) / 2 - digit;
+    }));
+  }
+  await expect(page.locator('#weightUnitLabel')).toBeHidden();
+  await expect(page.locator('#weightUnit')).toHaveText('g');
+  for (const offset of positions) expect(Math.abs(offset)).toBeLessThanOrEqual(3); // point one digit right of centre
+
+  await page.evaluate(() => disconnect());
+  await expect(page.locator('#weightDisplay')).toHaveText('--');
+  await expect(page.locator('#weightUnitLabel')).toBeVisible();
 });

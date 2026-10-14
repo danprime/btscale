@@ -890,3 +890,89 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
         margin: -6px 32px 8px 32px;
     }
 }
+
+/* --- Weight readout: the decimal point stays at the horizontal centre --- */
+.hero-weight {
+    display: flex;
+    align-items: baseline;
+    width: 100%;
+    color: #b77b2b;
+}
+.hero-weight .progress-weight-value {
+    display: contents;          /* its .w-int / .w-frac children join the row */
+    font-variant-numeric: tabular-nums;
+}
+.hero-weight .w-int,
+.hero-weight .w-frac {
+    font-size: 3.6rem;
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+}
+.hero-weight .w-int {
+    /* Whole grams fill the left half (right-aligned), minus half the point's
+       width, so the point sits on the midline with normal spacing; then the
+       whole readout is shifted one digit (1ch) to the right */
+    flex: 0 0 calc(50% - 0.13em + 1ch);
+    text-align: right;
+}
+.hero-weight .progress-weight-value.is-placeholder {
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+.hero-weight-unit {
+    font-size: 1.5rem;
+    font-weight: 400;
+    margin-left: 0.3rem;
+    opacity: 0.8;
+}
+
+/* --- Timer and ratio: same size, each with an icon --- */
+.hero-meta .hero-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    color: #b77b2b;
+}
+.hero-meta .progress-timer,
+.hero-meta .progress-ratio-value {
+    font-size: 2rem;
+    font-weight: 400;
+    color: #b77b2b;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.hero-icon {
+    width: 0.95em;
+    height: 0.95em;
+    font-size: 1.6rem;
+    flex: none;
+    opacity: 0.6;               /* lighter tint of the number colour */
+}
+/* Balance icon: a line drawing, so it needs a little more size, thinner
+   strokes and a lighter tint to look as open as the solid stopwatch */
+.hero-icon.hero-icon-ratio {
+    width: 1.03em;              /* 23px on phones */
+    height: 1.03em;
+    opacity: 0.5;
+}
+/* Ratio: normal letter spacing and proportional digits, so "1:15.0" isn't spread out
+   (the timer keeps tabular digits because it ticks every second) */
+.hero-meta .progress-ratio-value {
+    letter-spacing: normal;
+    font-variant-numeric: proportional-nums;
+}
+.hero-meta .hero-ratio:has(.progress-ratio-value:empty) {
+    display: none;
+}
+@media (max-width: 600px) {
+    .hero-meta .progress-timer,
+    .hero-meta .progress-ratio-value {
+        font-size: 1.8rem;
+    }
+    .hero-icon {
+        font-size: 1.4rem;
+    }
+}

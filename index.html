@@ -28,11 +28,21 @@
         <div id="status" class="status disconnected ritual-status" style="display:none;" aria-live="polite">Disconnected</div>
         <!-- Weight (hero), then elapsed time and ratio -->
         <section class="ritual-hero" aria-label="Brew progress">
+            <!-- "grams" is only a placeholder label while there's no weight; "Final" after Stop -->
             <div class="progress-weight-unit" id="weightUnitLabel">grams</div>
-            <div id="weightDisplay" class="progress-weight-value">--</div>
+            <!-- Fixed-width, right-aligned number so the readout doesn't shift as digits are added -->
+            <div class="hero-weight">
+                <span id="weightDisplay" class="progress-weight-value">--</span><span class="hero-weight-unit" id="weightUnit" hidden>g</span>
+            </div>
             <div class="hero-meta">
-                <div class="progress-timer" id="timer" aria-live="polite" aria-atomic="true">0:00</div>
-                <div id="calculatedRatioDisplay" class="progress-ratio-value" aria-live="polite"></div>
+                <div class="hero-stat" title="Elapsed time">
+                    <svg class="hero-icon" viewBox="0 0 26 26" fill="currentColor" aria-hidden="true" focusable="false"><path d="M11 13a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"/><path d="M13.57 13.54c.39-.39 1.1-1.72.72-2.06 0 0-10.61-8.47-10.93-8.15s8.12 10.96 8.12 10.96c.35.38 1.7-.36 2.09-.75z"/><circle cx="13" cy="2" r="2"/><path d="M17.29 1.8c-.69 1.15.4 1.86.72 2.04a10.46 10.46 0 1 1-14.77 5.4c.06-.15.63-1.16-.48-1.86-.77-.48-1.51.06-1.66.4A13 13 0 1 0 18.75 1.36c-.09-.05-.98-.37-1.46.44z"/></svg>
+                    <div class="progress-timer" id="timer" aria-live="polite" aria-atomic="true">0:00</div>
+                </div>
+                <div class="hero-stat hero-ratio" title="Brew ratio (beans : water)">
+                    <svg class="hero-icon hero-icon-ratio" viewBox="2 2.2 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 21h-8V8m0 0a2 2 0 0 0 1.88-2.68M12 8a2 2 0 1 1 1.88-2.68M10.12 6.68 4.48 8.74M19.52 3.26l-5.64 2.06M6 21c1.51 0 2.76-.84 2.97-2.25.01-.09.02-.13.01-.23-.01-.07-.03-.19-.05-.26-.03-.09-.07-.16-.14-.29L6 13l-2.8 4.97c-.07.12-.1.18-.13.29a1.2 1.2 0 0 0-.04.58C3.3 19.86 4.53 21 6 21zm12-4c1.51 0 2.76-.84 2.97-2.25.01-.09.02-.13.01-.23-.01-.07-.03-.19-.05-.26-.03-.09-.07-.16-.14-.29L18 9l-2.8 4.97c-.07.12-.1.18-.13.29a1.2 1.2 0 0 0-.04.58C15.3 15.86 16.53 17 18 17z"/></svg>
+                    <div id="calculatedRatioDisplay" class="progress-ratio-value" aria-live="polite"></div>
+                </div>
             </div>
         </section>
         <!-- Live brew chart: EC when the EC meter is connected, otherwise weight -->
