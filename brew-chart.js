@@ -8,7 +8,8 @@
  * (at least 30 s).
  *
  * The chart pulls its data from a callback on every draw:
- *   () => ({ mode: 'ec'|'weight', points: [{t, v}], weightPoints?: [{t, v}], elapsed, target, running })
+ *   () => ({ mode: 'ec'|'weight', points: [{t, v}], weightPoints?: [{t, v}], elapsed, target, running, hint? })
+ * `hint` overrides the text shown while there's no data.
  */
 
 const EC_AXIS_MAX = 5;
@@ -77,7 +78,7 @@ export class BrewChart {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    const { mode = 'ec', points = [], elapsed = 0, target = null, weightPoints = null } = this.getData() || {};
+    const { mode = 'ec', points = [], elapsed = 0, target = null, weightPoints = null, hint = null } = this.getData() || {};
     // Second line: weight on its own right-hand axis (EC mode only)
     const dual = mode === 'ec' && Array.isArray(weightPoints);
     const pad = { left: 34, right: dual ? 40 : 12, top: 10, bottom: 22 };
@@ -162,11 +163,18 @@ export class BrewChart {
     }
 
     if (!points.length) {
+      const text = hint || (MODES[mode] || MODES.ec).hint;
+      // Shrink the hint (down to 11px) so long messages fit narrow phones
+      let size = 13;
+      ctx.font = `${size}px ui-sans-serif, system-ui, sans-serif`;
+      while (size > 11 && ctx.measureText(text).width > plotW - 12) {
+        size -= 0.5;
+        ctx.font = `${size}px ui-sans-serif, system-ui, sans-serif`;
+      }
       ctx.fillStyle = COLORS.hint;
-      ctx.font = '13px ui-sans-serif, system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText((MODES[mode] || MODES.ec).hint, pad.left + plotW / 2, pad.top + plotH / 2);
+      ctx.fillText(text, pad.left + plotW / 2, pad.top + plotH / 2, plotW - 12);
       this._label(mode, null, dual ? weightPoints[weightPoints.length - 1] : null);
       return;
     }
