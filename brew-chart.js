@@ -175,7 +175,7 @@ export class BrewChart {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(text, pad.left + plotW / 2, pad.top + plotH / 2, plotW - 12);
-      this._label(mode, null, dual ? weightPoints[weightPoints.length - 1] : null);
+      this._label(mode, null, dual ? weightPoints[weightPoints.length - 1] : null, text);
       return;
     }
 
@@ -204,12 +204,12 @@ export class BrewChart {
     this._label(mode, last, dual ? weightPoints[weightPoints.length - 1] : null);
   }
 
-  _label(mode, last, lastWeight) {
+  _label(mode, last, lastWeight, hint) {
     const unit = (MODES[mode] || MODES.ec).unit;
     const name = mode === 'ec' ? 'EC' : 'Weight';
     const text = last
       ? `${name} chart, latest ${last.v.toFixed(mode === 'ec' ? 2 : 1)} ${unit} at ${formatSeconds(last.t)}`
-      : `${name} chart, no data yet`;
+      : `${name} chart, no data yet${hint ? `. ${hint.replace(/\.$/, '')}` : ''}`;
     const full = lastWeight ? `${text}; weight ${lastWeight.v.toFixed(1)} g` : text;
     if (this.canvas.getAttribute('aria-label') !== full) this.canvas.setAttribute('aria-label', full);
   }

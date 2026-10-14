@@ -234,7 +234,7 @@ test('brew chart plots EC with the EC meter, weight without it, and clears on re
   await page.evaluate(() => triStateTimer()); // stop: curve stays
   await expect(chart).toHaveAttribute('aria-label', /latest 25\.5 g/);
   await page.evaluate(() => triStateTimer()); // reset: cleared
-  await expect(chart).toHaveAttribute('aria-label', 'Weight chart, no data yet');
+  await expect(chart).toHaveAttribute('aria-label', 'Weight chart, no data yet. Press Start');
 
   // EC meter connected: EC chart
   await page.evaluate(() => toggleConnect());
@@ -246,3 +246,112 @@ test('brew chart plots EC with the EC meter, weight without it, and clears on re
   await page.evaluate(() => window.__emitScale(window.__mock, 48.2, 2000));
   await expect(chart).toHaveAttribute('aria-label', /^EC chart, latest 3\.14 mS\/cm at 0:\d\d; weight 48\.2 g$/);
 });
+
+test('remembered device out of range: reconnect times out, is forgotten, next press shows the picker', async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem('bleDeviceIdsV1', JSON.stringify({ scale: 'mock-scale-id', portal: 'mock-portal-id' }));
+    window.__mock = window.__test_installMultiBLEMock({ devices: ['scale', 'portal'], permitted: ['scale', 'portal'] });
+    window.__mock.device('scale').gatt.hang = true; // scale switched off / out of range
+    window.__devices.reconnectTimeoutMs = 300;
+  });
+  await page.evaluate(() => toggleConnect());
+  await expect(page.locator('#portalIcon')).toBeVisible();
+  await expect(page.locator('#scaleIcon')).toBeHidden();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('bleDeviceIdsV1')))).toEqual({ portal: 'mock-portal-id' });
+  expect(await page.evaluate(() => window.__mock.mock.requests.length)).toBe(0);
+
+  // Scale back in range: the next press opens the picker for the scale only.
+  await page.evaluate(() => { window.__mock.device('scale').gatt.hang = false; });
+  await page.evaluate(() => toggleConnect());
+  await expect(page.locator('#scaleIcon')).toBeVisible();
+  const requests = await page.evaluate(() => window.__mock.mock.requests.map((r) => r.filters));
+  expect(requests).toEqual([[{ services: [0x0ffe] }]]);
+});
+
+test('scale timer not driven: elapsed time comes from the app clock, not the scale', async ({ page }) => {
+  await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['scale'] }); });
+  await page.evaluate(() => toggleConnect());
+  await page.click('#settingsBtn');
+  await page.uncheck('#driveScaleTimer');
+  await page.evaluate(() => closeSettingsModal());
+  await page.evaluate(() => triStateTimer());
+  // The scale's own timer says 1:30, but it isn't the time source.
+  await page.evaluate(() => window.__emitScale(window.__mock, 10, 90000));
+  await expect(page.locator('#timer')).toHaveText('0:00');
+  await expect(page.locator('#timer')).toHaveText('0:01', { timeout: 3000 });
+  expect(await page.evaluate(() => window.__mock.scaleCommandWrites().length)).toBe(0);
+  await page.evaluate(() => triStateTimer());
+});
+
+test('reconnecting does not duplicate data events', async ({ page }) => {
+  await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['scale', 'portal'] }); });
+  // First time: one press per device. Afterwards both are remembered, so one press reconnects both.
+  await page.evaluate(async () => { await toggleConnect(); await toggleConnect(); });
+  for (let i = 0; i < 2; i++) {
+    await expect(page.locator('#connectToggleBtn')).toHaveText('Disconnect');
+    await page.evaluate(() => disconnect());
+    await page.evaluate(() => toggleConnect());
+  }
+  await expect(page.locator('#connectToggleBtn')).toHaveText('Disconnect');
+  await page.evaluate(() => triStateTimer());
+  await page.evaluate(async () => {
+    await window.__emitScale(window.__mock, 12.3, 100);
+    window.__mock.emitPortal({ ec: 1.5, temp: 90 });
+  });
+  await page.evaluate(() => triStateTimer());
+  expect(await page.evaluate(() => window.__test_recorder.rows.map((r) => r.source))).toEqual(['scale', 'portal']);
+});
+
+test('both devices dropping mid-brew stops the brew and keeps the data for export', async ({ page }) => {
+  await page.evaluate(async () => {
+    window.__mock = window.__test_installMultiBLEMock({ devices: ['scale', 'portal'] });
+    await toggleConnect();
+    await toggleConnect();
+  });
+  await page.evaluate(() => triStateTimer());
+  await page.evaluate(async () => {
+    await window.__emitScale(window.__mock, 50, 1000);
+    window.__mock.emitPortal({ ec: 2, temp: 90 });
+    window.__mock.device('scale').gatt.disconnect();
+    window.__mock.device('portal').gatt.disconnect();
+  });
+  await expect(page.locator('#timerBtnIcon .lucide-rotate-ccw')).toBeVisible();
+  await expect(page.locator('#timerToggleBtn')).toBeDisabled();
+  await expect(page.locator('#exportCsvBtn')).toBeVisible();
+  expect(await page.evaluate(() => window.__test_recorder.running)).toBe(false);
+  expect(await page.evaluate(() => window.__test_recorder.rows.length)).toBe(2);
+});
+
+test('parsePortalPacket reads a DataView that starts at an offset', async ({ page }) => {
+  const parsed = await page.evaluate(async () => {
+    const { parsePortalPacket } = await import('./belka-portal.js');
+    const buf = new ArrayBuffer(20);
+    const dv = new DataView(buf, 3, 13);
+    dv.setFloat32(0, 2.5, true);
+    dv.setFloat32(4, 30.5, true);
+    dv.setFloat32(8, 91.25, true);
+    dv.setUint8(12, 55);
+    new Uint8Array(buf, 0, 3).fill(0xff); // junk before the packet
+    return parsePortalPacket(dv);
+  });
+  expect(parsed).toEqual({ ec: 2.5, internalTemp: 30.5, temp: 91.25, battery: 55 });
+});
+
+test('chart hint asks to connect until a device is connected', async ({ page }) => {
+  const chart = page.locator('#brewChartCanvas');
+  await expect(chart).toHaveAttribute('aria-label', 'Weight chart, no data yet. Please connect device and press start');
+  await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['scale'] }); });
+  await page.evaluate(() => toggleConnect());
+  await expect(chart).toHaveAttribute('aria-label', 'Weight chart, no data yet. Press Start');
+  await page.evaluate(() => disconnect());
+  await expect(chart).toHaveAttribute('aria-label', 'Weight chart, no data yet. Please connect device and press start');
+});
+
+for (const size of [{ width: 375, height: 812 }, { width: 375, height: 667 }]) {
+  test(`page does not scroll on a ${size.width}x${size.height} phone`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await page.reload();
+    const dims = await page.evaluate(() => ({ doc: document.documentElement.scrollHeight, view: innerHeight }));
+    expect(dims.doc).toBe(dims.view);
+  });
+}
