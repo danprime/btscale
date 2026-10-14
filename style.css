@@ -890,3 +890,62 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
         margin: -6px 32px 8px 32px;
     }
 }
+
+/* --- Weight readout: fixed position as digits are added --- */
+.hero-weight {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    color: #b77b2b;
+}
+.hero-weight .progress-weight-value {
+    display: inline-block;
+    width: 5ch;               /* fits 888.8 / -88.8 with tabular digits */
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.hero-weight .progress-weight-value.is-placeholder {
+    width: auto;
+    text-align: center;
+}
+.hero-weight-unit {
+    font-size: 1.5rem;
+    font-weight: 400;
+    margin-left: 0.3rem;
+    opacity: 0.8;
+}
+
+/* --- Timer and ratio: same size, each with an icon --- */
+.hero-meta .hero-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #b77b2b;
+}
+.hero-meta .progress-timer,
+.hero-meta .progress-ratio-value {
+    font-size: 2rem;
+    font-weight: 400;
+    color: #b77b2b;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.hero-icon {
+    width: 0.95em;
+    height: 0.95em;
+    font-size: 1.6rem;
+    flex: none;
+    opacity: 0.85;
+}
+.hero-meta .hero-ratio:has(.progress-ratio-value:empty) {
+    display: none;
+}
+@media (max-width: 600px) {
+    .hero-meta .progress-timer,
+    .hero-meta .progress-ratio-value {
+        font-size: 1.8rem;
+    }
+    .hero-icon {
+        font-size: 1.4rem;
+    }
+}

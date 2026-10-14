@@ -383,7 +383,8 @@ test('after Stop the main readouts freeze on final values and live readings move
     window.__mock.emitPortal({ ec: 0.92, temp: 88 });
   });
 
-  await expect(text('weightUnitLabel')).toHaveText('Final · grams');
+  await expect(text('weightUnitLabel')).toHaveText('Final');
+  await expect(text('weightUnit')).toBeVisible();
   await expect(text('weightDisplay')).toHaveText('240.6');
   await expect(text('timer')).toHaveText('2:01');
   await expect(text('calculatedRatioDisplay')).toHaveText('1:15.0');
@@ -398,11 +399,35 @@ test('after Stop the main readouts freeze on final values and live readings move
 
   // Reset: back to live readings
   await page.evaluate(() => triStateTimer());
-  await expect(text('weightUnitLabel')).toHaveText('grams');
+  await expect(text('weightUnitLabel')).toBeHidden(); // live weight: no "grams" label
   await expect(text('weightDisplay')).toHaveText('80.3');
+  await expect(text('weightUnit')).toHaveText('g');
   await expect(text('flowRateLabel')).toHaveText('Flow Rate');
   await expect(text('tempValue')).toHaveText('88.0 °C');
   await expect(text('ecLabel')).toHaveText('EC');
   await expect(text('ecValue')).toHaveText('0.92 mS/cm');
   await expect(text('liveStrip')).toBeHidden();
+});
+
+test('weight readout: "grams" placeholder until there is a weight, then a fixed-position number with "g"', async ({ page }) => {
+  await expect(page.locator('#weightUnitLabel')).toHaveText('grams');
+  await expect(page.locator('#weightUnitLabel')).toBeVisible();
+  await expect(page.locator('#weightDisplay')).toHaveText('--');
+  await expect(page.locator('#weightUnit')).toBeHidden();
+
+  await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['scale'] }); });
+  await page.evaluate(() => toggleConnect());
+  const positions = [];
+  for (const w of [1.2, 24.5, 240.6]) {
+    await page.evaluate((w) => window.__emitScale(window.__mock, w, 1000), w);
+    await expect(page.locator('#weightDisplay')).toHaveText(w.toFixed(1));
+    positions.push(await page.evaluate(() => Math.round(document.getElementById('weightUnit').getBoundingClientRect().left)));
+  }
+  await expect(page.locator('#weightUnitLabel')).toBeHidden();
+  await expect(page.locator('#weightUnit')).toHaveText('g');
+  expect(new Set(positions).size).toBe(1); // the "g" never moves
+
+  await page.evaluate(() => disconnect());
+  await expect(page.locator('#weightDisplay')).toHaveText('--');
+  await expect(page.locator('#weightUnitLabel')).toBeVisible();
 });
