@@ -23,8 +23,8 @@
     display: inline-flex;
     align-items: baseline;
     line-height: 1;
-    /* sit between centring the "M" alone (0.32em) and centring "M"+"B" (0) */
-    margin-left: 0.16em;
+    /* between centring the "M" alone (0.32em) and centring "M"+"B" (0) */
+    margin-left: 0.24em;
 }
 #tareBeanBtn .key-sub {
     font-size: 0.45em;          /* subscript "B" (beans) */
