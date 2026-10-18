@@ -150,7 +150,7 @@ Ratio and target weight
 - The target weight is always the stored bean dose × that ratio. It updates whenever either changes, including on page load, and is not cleared when the scale disconnects.
 
 Brew chart
-- A live line chart sits under the weight, timer and ratio (it replaced the progress ring). With the EC meter connected it plots EC on a fixed 0-5 mS/cm axis (stretched if a reading goes higher), plus weight as a thinner second line with its own gram axis on the right, so pours can be read against extraction. With only the scale it plots weight alone. The target weight shows as a dashed line.
+- A live line chart sits under the weight, timer and ratio (it replaced the progress ring). With the EC meter connected it plots EC on a fixed 0-5 mS/cm axis (stretched if a reading goes higher), plus weight as a thinner second line. The weight (grams) axis always stays on the left; with the EC meter, the EC axis is on the right. With only the scale it plots weight alone. The target weight shows as a dashed line.
 - The time axis covers the whole brew from Start to now. The finished curve stays after Stop and clears on Reset. Code: `brew-chart.js`.
 
 After Stop
