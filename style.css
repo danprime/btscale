@@ -970,3 +970,46 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
         font-size: 1.4rem;
     }
 }
+
+/* --- Chart header labels in the colour of their lines --- */
+.brew-chart-label {
+    color: #b45309;             /* EC line (or the weight line in weight-only mode) */
+}
+.brew-chart-label .brew-chart-label-weight {
+    color: #8d6e63;             /* weight line on the EC chart */
+}
+
+/* --- Phones: chart, cards and live strip use most of the width (12px sides) --- */
+@media (max-width: 600px) {
+    .brew-chart,
+    .ritual-info {
+        margin-left: 12px;
+        margin-right: 12px;
+    }
+    .live-strip {
+        margin-left: 12px;
+        margin-right: 12px;
+    }
+}
+
+/* --- Settings: ratio row --- */
+#ratioSettingCell input[type="number"] {
+    width: 4.5em;
+    margin: 0 0 0 2px;
+    padding: 4px 6px;
+    text-align: right;
+}
+.field-error {
+    color: #b3261e;
+    font-size: 0.9em;
+    margin: 0 0 0.5em;
+    text-align: right;
+}
+.setting-hint {
+    color: #8a5a1c;
+    font-size: 0.85em;
+    margin: 0 0 1em;
+}
+.memory-table tbody.ratio-group td {
+    border-top: 2px solid #ffe0b2;   /* separate the ratio from the stored weights */
+}

@@ -111,7 +111,7 @@
             <div class="modal-content">
                 <!-- Memory Table -->
                 <h3 style="margin-top:1.5em;">Memory</h3>
-                <table id="memoryTable" class="memory-table" style="width:100%;margin-bottom:1em;">
+                <table id="memoryTable" class="memory-table" style="width:100%;margin-bottom:0.25em;">
                   <thead>
                     <tr><th style="text-align:left;">Label</th><th style="text-align:right;">Stored Weight (g)</th><th></th></tr>
                   </thead>
@@ -132,7 +132,17 @@
                       <td><button class="ritual-btn memory-overwrite" onclick="openMemoryConfirm('portafilter')">Overwrite</button></td>
                     </tr>
                   </tbody>
+                  <!-- Brew ratio: target weight = bean dose x ratio -->
+                  <tbody class="ratio-group">
+                    <tr>
+                      <td>Ratio</td>
+                      <td id="ratioSettingCell" style="text-align:right;">1:<span id="ratioSettingValue">15</span></td>
+                      <td><button id="ratioEditBtn" class="ritual-btn memory-overwrite" onclick="startRatioEdit()">Overwrite</button></td>
+                    </tr>
+                  </tbody>
                 </table>
+                <div id="ratioError" class="field-error" role="alert" hidden></div>
+                <p class="setting-hint">Target weight = bean dose × ratio.</p>
 
                 <!-- Memory Overwrite Confirmation Modal -->
                 <div id="memoryConfirmModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="memoryConfirmTitle">
