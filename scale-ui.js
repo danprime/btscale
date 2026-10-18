@@ -21,6 +21,7 @@ function saveMemory() {
 }
 
 function updateMemoryTable() {
+  recomputeTarget();
   document.getElementById('memoryBeansWeight').textContent = memory.beans?.weight != null ? memory.beans.weight.toFixed(2) : '--';
   document.getElementById('memoryCarafeWeight').textContent = memory.carafe?.weight != null ? memory.carafe.weight.toFixed(2) : '--';
   document.getElementById('memoryPortafilterWeight').textContent = memory.portafilter?.weight != null ? memory.portafilter.weight.toFixed(2) : '--';
@@ -820,7 +821,100 @@ const espressoRatios = [
     { ratio: 2.5, label: 'Long' }
 ];
 let currentBrewMode = 'brew'; // or 'espresso'
-let currentRatio = 16; // default
+// Brew ratio (1:N) from Settings; target weight = stored bean dose x N
+const RATIO_KEY = 'brewRatioV1';
+const DEFAULT_RATIO = 15;
+const MAX_RATIO = 30;
+let currentRatio = loadRatio();
+
+function loadRatio() {
+    try {
+        const r = parseFloat(localStorage.getItem(RATIO_KEY));
+        if (r > 0 && r <= MAX_RATIO) return r;
+    } catch {}
+    return DEFAULT_RATIO;
+}
+
+/** "15" or "15.5" (no trailing zeros) */
+function formatRatioNumber(r) {
+    return String(Math.round(r * 100) / 100);
+}
+
+/** Target weight always = stored bean dose x ratio from Settings. */
+function recomputeTarget() {
+    const dose = memory.beans?.weight;
+    targetWeight = dose > 0 ? dose * currentRatio : null;
+    const twEl = document.getElementById('targetWeight');
+    if (twEl) twEl.textContent = targetWeight != null ? `${targetWeight.toFixed(1)} g` : '-- g';
+    // Refresh remainder / current-ratio panels and the chart's target line
+    if (lastScaleData && !finalSnapshot) updateDisplay(lastScaleData);
+    refreshChart();
+}
+
+function setRatio(r) {
+    currentRatio = r;
+    try { localStorage.setItem(RATIO_KEY, String(r)); } catch {}
+    renderRatioSetting();
+    recomputeTarget();
+}
+
+// --- Settings: ratio row (Overwrite turns the number into an input) ---
+function renderRatioSetting() {
+    const display = document.getElementById('ratioSettingValue');
+    if (display) display.textContent = formatRatioNumber(currentRatio);
+}
+
+function startRatioEdit() {
+    const cell = document.getElementById('ratioSettingCell');
+    const btn = document.getElementById('ratioEditBtn');
+    if (!cell || !btn || document.getElementById('ratioInput')) return;
+    cell.innerHTML = `1:<input type="number" id="ratioInput" min="0" max="${MAX_RATIO}" step="any" inputmode="decimal" aria-label="Ratio, water per gram of beans" value="${formatRatioNumber(currentRatio)}">`;
+    btn.textContent = 'Save';
+    btn.onclick = saveRatioEdit;
+    const input = document.getElementById('ratioInput');
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); saveRatioEdit(); }
+        if (e.key === 'Escape') { e.stopPropagation(); endRatioEdit(); }
+    });
+    input.addEventListener('input', () => showRatioError(''));
+    input.focus();
+    input.select();
+}
+
+function saveRatioEdit() {
+    const input = document.getElementById('ratioInput');
+    if (!input) return;
+    const r = parseFloat(input.value);
+    if (!(r > 0 && r <= MAX_RATIO)) {
+        showRatioError(`Enter a number above 0 and up to ${MAX_RATIO}.`);
+        input.focus();
+        return;
+    }
+    setRatio(r);
+    endRatioEdit();
+    log(`Ratio set to 1:${formatRatioNumber(r)}`);
+}
+
+function endRatioEdit() {
+    const cell = document.getElementById('ratioSettingCell');
+    const btn = document.getElementById('ratioEditBtn');
+    if (cell) cell.innerHTML = '1:<span id="ratioSettingValue"></span>';
+    if (btn) { btn.textContent = 'Overwrite'; btn.onclick = startRatioEdit; }
+    showRatioError('');
+    renderRatioSetting();
+}
+
+function showRatioError(msg) {
+    const el = document.getElementById('ratioError');
+    if (!el) return;
+    el.textContent = msg;
+    el.hidden = !msg;
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    endRatioEdit();
+    recomputeTarget();
+});
 
 // --- Ratio Slider Overlay Logic ---
 // --- Ritual2-style Ratio Slider Overlay Logic ---
@@ -957,17 +1051,13 @@ async function tareBean() {
         // Use the displayed weight as the current weight
         const weightDisplay = document.getElementById('weightDisplay');
         const currentWeight = weightDisplay ? parseFloat(weightDisplay.textContent) : 0;
-        targetWeight = currentWeight * currentRatio;
-        const twEl = document.getElementById('targetWeight');
-        if (twEl) twEl.textContent = `${targetWeight.toFixed(2)} g`;
-        refreshChart(); // target line on the weight chart
-        // Store bean weight in memory
+        // Store the bean dose; the target weight (dose x ratio) is recomputed from it
         if (!isNaN(currentWeight)) {
             memory.beans = { weight: currentWeight };
             saveMemory();
         }
         await sc.tare();
-        log(`Set Beans: ${currentWeight.toFixed(2)}g × ${currentRatio} = ${targetWeight.toFixed(2)}g (scale tared)`);
+        log(`Set Beans: ${currentWeight.toFixed(2)}g × ${currentRatio} = ${targetWeight != null ? targetWeight.toFixed(1) : '--'}g (scale tared)`);
     } catch (error) {
         log(`Error in Tare Bean: ${error.message}`);
     }
@@ -1018,6 +1108,7 @@ window.disconnect = disconnect;
 window.triStateTimer = triStateTimer;
 window.toggleConnect = toggleConnect;
 window.exportBrewCsv = exportBrewCsv;
+window.startRatioEdit = startRatioEdit;
 
 // Test helpers (test-only): allow E2E tests to inject memory and update UI deterministically.
 window.__test_setMemory = (m) => {
@@ -1103,8 +1194,6 @@ function onScaleDisconnected() {
     log('Scale disconnected');
     lastScaleData = null;
     renderWeightReadout();
-    targetWeight = null;
-    document.getElementById('targetWeight').textContent = '-- g';
     document.getElementById('remainder').textContent = '-- g';
 }
 

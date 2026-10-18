@@ -145,6 +145,10 @@ Timer
 - Settings > "Start/Stop also controls" chooses which connected devices the Start/Stop button drives (scale timer, EC meter timer + beep). Only connected devices are sent commands.
 - Elapsed time comes from the scale's timer when the scale is connected and driven; otherwise the app's own clock is used.
 
+Ratio and target weight
+- Settings > Memory has a Ratio row (default 1:15). Overwrite turns the number into an input (above 0, up to 30, decimals allowed); Enter or Save stores it, Escape cancels.
+- The target weight is always the stored bean dose × that ratio. It updates whenever either changes, including on page load, and is not cleared when the scale disconnects.
+
 Brew chart
 - A live line chart sits under the weight, timer and ratio (it replaced the progress ring). With the EC meter connected it plots EC on a fixed 0-5 mS/cm axis (stretched if a reading goes higher), plus weight as a thinner second line with its own gram axis on the right, so pours can be read against extraction. With only the scale it plots weight alone. The target weight shows as a dashed line.
 - The time axis covers the whole brew from Start to now. The finished curve stays after Stop and clears on Reset. Code: `brew-chart.js`.
