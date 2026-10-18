@@ -113,7 +113,11 @@ function chartData() {
         else if (mode === 'weight' && r.source === 'scale' && r.weight != null) points.push({ t: r.t, v: r.weight });
     }
     // In EC mode, weight is drawn as a second line on its own axis
-    const weightPoints = mode === 'ec' ? rows.filter((r) => r.source === 'scale' && r.weight != null).map((r) => ({ t: r.t, v: r.weight })) : null;
+    // ...only when there's a scale (connected, or weights in this brew)
+    const scaleRows = rows.filter((r) => r.source === 'scale' && r.weight != null);
+    const weightPoints = mode === 'ec' && (deviceConnected('scale') || scaleRows.length)
+        ? scaleRows.map((r) => ({ t: r.t, v: r.weight }))
+        : null;
     const hint = deviceConnected('scale') || deviceConnected('portal') ? 'Press Start' : 'Please connect device and press start.';
     return { mode, points, weightPoints, elapsed: chartCleared ? 0 : recorder.elapsed(), target: targetWeight, running: recorder.running, hint };
 }
@@ -121,8 +125,13 @@ function chartData() {
 function refreshChart() {
     if (!brewChart) return;
     const label = document.getElementById('brewChartLabel');
-    const ec = chartData().mode === 'ec';
-    const html = ec ? 'EC · mS/cm<span class="brew-chart-label-weight">Weight · g</span>' : 'Weight · g';
+    const { mode, weightPoints } = chartData();
+    // Weight's label stays on the left; with the EC meter, EC's is on the right
+    const html = mode !== 'ec'
+        ? 'Weight · g'
+        : weightPoints
+            ? '<span class="brew-chart-label-weight">Weight · g</span><span class="brew-chart-label-ec">EC · mS/cm</span>'
+            : 'EC · mS/cm'; // EC only: its axis is the left one
     if (label && label.innerHTML !== html) label.innerHTML = html;
     brewChart.requestDraw();
 }

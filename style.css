@@ -801,8 +801,11 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     }
 }
 .brew-chart-label-weight {
-    float: right;
     color: #8d6e63;
+}
+.brew-chart-label-ec {
+    float: right;
+    color: #b45309;
     padding-right: 4px;
 }
 

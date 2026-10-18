@@ -3,8 +3,8 @@
  *
  * Plots either EC (mS/cm, fixed 0-5 axis that stretches if a reading goes
  * higher) or weight (g, with an optional dashed target line). In EC mode,
- * `weightPoints` adds weight as a second, thinner line with its own axis on
- * the right. The time axis always spans the whole brew, from Start to now
+ * `weightPoints` adds weight as a second, thinner line; weight's axis stays on
+ * the left (as in weight-only mode) and EC's axis moves to the right. The time axis always spans the whole brew, from Start to now
  * (at least 30 s).
  *
  * The chart pulls its data from a callback on every draw:
@@ -79,9 +79,10 @@ export class BrewChart {
     ctx.clearRect(0, 0, w, h);
 
     const { mode = 'ec', points = [], elapsed = 0, target = null, weightPoints = null, hint = null } = this.getData() || {};
-    // Second line: weight on its own right-hand axis (EC mode only)
+    // EC mode with a scale: weight is a second line. Weight's axis stays on the
+    // left (as in weight-only mode) and EC's axis goes on the right.
     const dual = mode === 'ec' && Array.isArray(weightPoints);
-    const pad = { left: 34, right: dual ? 40 : 12, top: 10, bottom: 22 };
+    const pad = { left: 34, right: dual ? 28 : 12, top: 10, bottom: 22 };
     const plotW = w - pad.left - pad.right;
     const plotH = h - pad.top - pad.bottom;
 
@@ -95,19 +96,33 @@ export class BrewChart {
     const x = (t) => pad.left + (t / span) * plotW;
     const y = (v) => pad.top + (1 - Math.min(Math.max(v, 0), yMax) / yMax) * plotH;
 
-    // Grid + labels
+    // Weight scale for the second line (dual mode)
+    const wMax = dual ? niceMax(Math.max(weightPoints.reduce((m, p) => Math.max(m, p.v), 0) * 1.1, target ? target * 1.05 : 0, 50)) : null;
+    const wy = (v) => pad.top + (1 - Math.min(Math.max(v, 0), wMax) / wMax) * plotH;
+
+    // Grid + labels. Left axis: weight in dual mode, otherwise the main series.
     ctx.font = '11px ui-sans-serif, system-ui, sans-serif';
     ctx.lineWidth = 1;
     ctx.strokeStyle = COLORS.grid;
-    ctx.fillStyle = COLORS.axisText;
     const yStep = mode === 'ec' ? (yMax <= 6 ? 1 : 2) : niceMax(yMax / 5);
+    const left = dual
+      ? { max: wMax, step: niceMax(wMax / 5), at: wy, color: COLORS.weight }
+      : { max: yMax, step: yStep, at: y, color: COLORS.axisText };
+    ctx.fillStyle = left.color;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    for (let v = 0; v <= yMax + 1e-9; v += yStep) {
-      const yy = Math.round(y(v)) + 0.5;
+    for (let v = 0; v <= left.max + 1e-9; v += left.step) {
+      const yy = Math.round(left.at(v)) + 0.5;
       ctx.beginPath(); ctx.moveTo(pad.left, yy); ctx.lineTo(w - pad.right, yy); ctx.stroke();
       ctx.fillText(Number.isInteger(v) ? String(v) : v.toFixed(1), pad.left - 6, yy);
     }
+    if (dual) {
+      // EC axis on the right, in the EC line's colour
+      ctx.fillStyle = COLORS.line;
+      ctx.textAlign = 'left';
+      for (let v = 0; v <= yMax + 1e-9; v += yStep) ctx.fillText(String(v), w - pad.right + 6, y(v));
+    }
+    ctx.fillStyle = COLORS.axisText;
     const xStep = span <= 60 ? 15 : span <= 180 ? 30 : span <= 600 ? 60 : 120;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
@@ -131,16 +146,8 @@ export class BrewChart {
       ctx.fillText(`target ${Math.round(target)} g`, w - pad.right - 2, ty - 3);
     }
 
-    // Weight line (dual mode): thinner, no fill, right axis in grams
+    // Weight line (dual mode): thinner, no fill, on the left (grams) axis
     if (dual) {
-      const wMax = niceMax(Math.max(weightPoints.reduce((m, p) => Math.max(m, p.v), 0) * 1.1, target ? target * 1.05 : 0, 50));
-      const wy = (v) => pad.top + (1 - Math.min(Math.max(v, 0), wMax) / wMax) * plotH;
-      ctx.font = '11px ui-sans-serif, system-ui, sans-serif';
-      ctx.fillStyle = COLORS.weight;
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      const wStep = niceMax(wMax / 5);
-      for (let v = 0; v <= wMax + 1e-9; v += wStep) ctx.fillText(String(v), w - pad.right + 6, wy(v));
       if (target && target > 0) {
         ctx.save();
         ctx.setLineDash([3, 4]);

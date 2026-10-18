@@ -238,7 +238,7 @@ test('brew chart plots EC with the EC meter, weight without it, and clears on re
 
   // EC meter connected: EC chart
   await page.evaluate(() => toggleConnect());
-  await expect(label).toHaveText(/^EC · mS\/cm\s*Weight · g$/);
+  await expect(label).toHaveText(/^Weight · g\s*EC · mS\/cm$/); // weight left, EC right
   await page.evaluate(() => triStateTimer());
   await page.evaluate(() => window.__mock.emitPortal({ ec: 3.14, temp: 90 }));
   await expect(chart).toHaveAttribute('aria-label', /^EC chart, latest 3\.14 mS\/cm at 0:\d\d$/);
@@ -514,7 +514,7 @@ test('phone layout: chart and cards have 12px side margins; chart labels match t
       chart: margins('.brew-chart'),
       cards: margins('.ritual-info'),
       portalCards: margins('#portalInfo'),
-      ecLabel: getComputedStyle(document.getElementById('brewChartLabel')).color,
+      ecLabel: getComputedStyle(document.querySelector('.brew-chart-label-ec')).color,
       weightLabel: getComputedStyle(document.querySelector('.brew-chart-label-weight')).color,
     };
   });
@@ -523,4 +523,17 @@ test('phone layout: chart and cards have 12px side margins; chart labels match t
   }
   expect(result.ecLabel).toBe('rgb(180, 83, 9)'); // #b45309, the EC line
   expect(result.weightLabel).toBe('rgb(141, 110, 99)'); // #8d6e63, the weight line
+});
+
+test('chart axes: weight stays on the left; EC on the right with a scale, on the left without', async ({ page }) => {
+  const label = page.locator('#brewChartLabel');
+  await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['portal'] }); });
+  await page.evaluate(() => toggleConnect());
+  await expect(label).toHaveText('EC · mS/cm'); // EC only: one axis, on the left
+  await expect(page.locator('.brew-chart-label-weight')).toHaveCount(0);
+  await page.evaluate(() => disconnect());
+
+  await page.evaluate(() => { window.__mock.uninstall(); window.__mock = window.__test_installMultiBLEMock({ devices: ['scale'] }); });
+  await page.evaluate(() => toggleConnect());
+  await expect(label).toHaveText('Weight · g'); // scale only: weight on the left
 });
