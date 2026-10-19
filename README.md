@@ -148,7 +148,7 @@ Timer
 
 Ratio and target weight
 - Settings > Memory has a Ratio row (default 1:15). Overwrite turns the number into an input (above 0, up to 30, decimals allowed); Enter or Save stores it, Escape cancels.
-- The target weight is always the stored bean dose × that ratio. The Target Weight card shows both, e.g. "20g<sub>in</sub> → 300g<sub>out</sub>" (or "-- g" without a bean dose). It updates whenever either changes, including on page load, and is not cleared when the scale disconnects.
+- The target weight is always the stored bean dose × that ratio. The Target Weight card shows both, e.g. "20g<sub>in</sub> → 300g<sub>out</sub>" (or "-- g" without a bean dose). When three cards share the row (e.g. Avg flow, Target, Yield after Stop) it drops the subscripts: "20g → 300g". It updates whenever either changes, including on page load, and is not cleared when the scale disconnects.
 
 Brew chart
 - A live line chart sits under the weight, timer and ratio (it replaced the progress ring). With the EC meter connected it plots EC on a fixed 0-5 mS/cm axis (stretched if a reading goes higher), plus weight as a thinner second line. The weight (grams) axis always stays on the left; with the EC meter, the EC axis is on the right. With only the scale it plots weight alone. The target weight shows as a dashed line.

@@ -1237,3 +1237,6 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     top: 0.25em;
     margin-left: 1px;
 }
+#targetWeight.compact sub {
+    display: none;                   /* three cards in the row: "20g → 300g" */
+}

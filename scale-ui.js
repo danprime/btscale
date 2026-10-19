@@ -912,7 +912,7 @@ function recomputeTarget() {
             twEl.textContent = '-- g';
             twEl.removeAttribute('aria-label');
         }
-        fitText(twEl);
+        fitTarget(twEl);
     }
     // Refresh remainder / current-ratio panels and the chart's target line
     if (lastScaleData && !finalSnapshot) updateDisplay(lastScaleData);
@@ -930,10 +930,17 @@ function fitText(el) {
     }
 }
 
+/** Three or more cards in the row: plain "20g → 300g" (no in/out subscripts), then fit. */
+function fitTarget(el) {
+    const cards = [...el.parentElement.parentElement.children].filter((c) => getComputedStyle(c).display !== 'none').length;
+    el.classList.toggle('compact', cards >= 3);
+    fitText(el);
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     // Re-fit when the card changes width (e.g. the Yield card appears next to it)
     const twEl = document.getElementById('targetWeight');
-    if (twEl && typeof ResizeObserver !== 'undefined') new ResizeObserver(() => fitText(twEl)).observe(twEl.parentElement);
+    if (twEl && typeof ResizeObserver !== 'undefined') new ResizeObserver(() => fitTarget(twEl)).observe(twEl.parentElement);
 });
 
 function setRatio(r) {
