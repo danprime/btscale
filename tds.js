@@ -33,6 +33,26 @@ export function tdsPercent(kv, ciy, yieldG) {
   return (100 * kv * ciy) / yieldG;
 }
 
+/** Extraction yield % = yield in the cup (g) x TDS % / dry coffee dose (g). */
+export function extractionYield(yieldG, tdsPct, dose) {
+  if (!(yieldG > 0) || !(tdsPct > 0) || !(dose > 0)) return null;
+  return (yieldG * tdsPct) / dose;
+}
+
+/**
+ * Brew control chart regions (gold cup: 1.15–1.35 % TDS, 18–22 % extraction).
+ * Returns e.g. "Ideal (gold cup)", "Strong / under-extracted".
+ */
+export function extractionRegion(tdsPct, ey) {
+  if (!(tdsPct > 0) || !(ey > 0)) return null;
+  const strength = tdsPct > 1.35 ? 'Strong' : tdsPct < 1.15 ? 'Weak' : null;
+  const extraction = ey > 22 ? 'over-extracted' : ey < 18 ? 'under-extracted' : null;
+  if (!strength && !extraction) return 'Ideal (gold cup)';
+  if (!strength) return `Balanced strength, ${extraction}`;
+  if (!extraction) return `${strength}, balanced extraction`;
+  return `${strength} / ${extraction}`;
+}
+
 /** Calibration constant from a refractometer TDS %, the yield and the CIY. */
 export function calcKv(tdsPct, yieldG, ciy) {
   if (!(tdsPct > 0) || !(yieldG > 0) || !(ciy > 0)) return null;

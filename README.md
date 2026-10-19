@@ -167,5 +167,10 @@ TDS (scale and EC meter both connected)
 - Calibration (Settings > Memory > k_v > Calibrate) uses the last finished TDS brew (saved across reloads): enter the refractometer TDS % (and the yield if needed) and k_v = TDS % × yield / (100 × CIY) is shown as you type. Step 2 compares it with the current k_v and the last 3 calibrations (with their average); the new value can be edited before saving. Each calibration adds one history entry: the saved value, or the calculated one if you keep the current k_v.
 - Stored in localStorage: `tdsKvV1`, `kvHistoryV1`, `bedAbsorptionV1`, `lastBrewV1`.
 
+TDS vs extraction chart (after a TDS brew)
+- After Stop the chart area becomes a two-slide carousel: swipe, or tap the dots in its header. Slide 2 plots TDS % (left) against extraction yield % (bottom; 14-26 %, TDS 0.8-1.6 %), with the gold cup zone (18-22 %, 1.15-1.35 %) shaded.
+- Extraction yield % = yield (g) × TDS % / bean dose (g). Right after Stop the brew is a hollow dot from the estimated yield and TDS; after the calculator's Next it turns solid (measured yield and final TDS) and the carousel switches to this chart. A brew outside the axes is pinned to the edge; its label shows the real values.
+- Tap the chart to show or hide the four region labels (Strong & Sour, Strong & Bitter, Weak & Under-extracted, Weak & Over-extracted). Reset returns to the brew chart alone.
+
 Recording
 - Samples are recorded from Start to Stop. After Stop, a download button exports a CSV with one row per packet from either device (`t_s,weight_g,flow_gps,temp_c,ec_mScm,source,ec25_mScm,ciy,tds_pct`), with the latest value from the other device filled in. The last three columns are only filled during a TDS brew (`tds_pct` is the live estimate).

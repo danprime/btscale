@@ -1106,3 +1106,108 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
 .dialog-actions .ritual-btn {
     white-space: nowrap;
 }
+
+/* --- Chart carousel (after a TDS brew): brew chart, then TDS vs extraction --- */
+.brew-chart {
+    position: relative;
+}
+.chart-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+}
+.chart-track::-webkit-scrollbar {
+    display: none;
+}
+.chart-slide {
+    flex: 0 0 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+}
+.chart-label-right {
+    float: right;
+    padding-right: 4px;
+}
+/* Slide dots sit in the header line, between the two labels */
+.chart-dots {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 2px;
+}
+.chart-dot {
+    width: 22px;                     /* tap target; the visible dot is drawn inside */
+    height: 16px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+.chart-dot::after {
+    content: "";
+    display: block;
+    width: 7px;
+    height: 7px;
+    margin: auto;
+    border-radius: 50%;
+    background: #e0c9a6;
+}
+.chart-dot[aria-current="true"]::after {
+    background: #b45309;
+}
+.extraction-chart {
+    display: block;
+    width: 100%;
+    height: 170px;
+    cursor: pointer;
+    font-family: inherit;
+}
+@media (max-width: 600px) {
+    .extraction-chart {
+        height: 150px;
+    }
+}
+.extraction-chart:focus:not(:focus-visible) {
+    outline: none;
+}
+.ey-grid {
+    stroke: #f3e2c4;
+    stroke-width: 1;
+}
+.ey-tick {
+    fill: #b77b2b;
+    font-size: 10px;
+}
+.ey-gold {
+    fill: rgba(183, 123, 43, 0.18);
+}
+.ey-ref {
+    fill: #c9a46c;
+}
+.ey-label {
+    fill: #8a5a1c;
+    font-size: 9px;
+}
+.ey-brew {
+    fill: #b45309;
+    stroke: #fffbe8;
+    stroke-width: 1.5;
+}
+.ey-brew.ey-brew-estimate {
+    fill: #fffbe8;
+    stroke: #b45309;
+    stroke-width: 2;
+}
+.ey-brew-label {
+    fill: #b45309;
+    font-size: 10.5px;
+    font-weight: 600;
+}
+.ey-hint {
+    fill: #c9a46c;
+    font-size: 12px;
+}
