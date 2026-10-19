@@ -19,45 +19,80 @@ function saveMemory() {
   updateMemoryTable();
 }
 
+// Settings rows for the stored weights (typed in; the scale is not used here)
+const MEMORY_ROWS = {
+  beans: { cell: 'memoryBeansWeight', btn: 'memoryBeansEditBtn', label: 'Bean dose, grams' },
+  carafe: { cell: 'memoryCarafeWeight', btn: 'memoryCarafeEditBtn', label: 'Carafe or server weight, grams' },
+};
+const MAX_MEMORY_WEIGHT = 5000;
+
 function updateMemoryTable() {
   recomputeTarget();
-  document.getElementById('memoryBeansWeight').textContent = memory.beans?.weight != null ? memory.beans.weight.toFixed(2) : '--';
-  document.getElementById('memoryCarafeWeight').textContent = memory.carafe?.weight != null ? memory.carafe.weight.toFixed(2) : '--';
+  for (const [key, row] of Object.entries(MEMORY_ROWS)) {
+    const cell = document.getElementById(row.cell);
+    if (!cell || cell.querySelector('input')) continue; // being edited
+    cell.textContent = memory[key]?.weight != null ? memory[key].weight.toFixed(2) : '--';
+  }
 }
 
-// Confirmation modal logic
-let memoryOverwriteTarget = null;
-function openMemoryConfirm(target) {
-  memoryOverwriteTarget = target;
-  let currentWeight = '--';
-  const weightDisplay = document.getElementById('weightDisplay');
-  if (weightDisplay) {
-    const w = parseFloat(weightDisplay.textContent);
-    if (!isNaN(w)) currentWeight = w.toFixed(2) + ' g';
-  }
-  document.getElementById('memoryConfirmText').textContent = `This will replace the stored weight with ${currentWeight}. Continue?`;
-  document.getElementById('memoryConfirmModal').style.display = 'flex';
-}
-function closeMemoryConfirm() {
-  document.getElementById('memoryConfirmModal').style.display = 'none';
-  memoryOverwriteTarget = null;
-}
-function confirmMemoryOverwrite() {
-  if (!memoryOverwriteTarget) return;
-  const weightDisplay = document.getElementById('weightDisplay');
-  let w = weightDisplay ? parseFloat(weightDisplay.textContent) : null;
-  if (w != null && !isNaN(w)) {
-    memory[memoryOverwriteTarget] = { weight: w };
-    saveMemory();
-  }
-  closeMemoryConfirm();
+// Overwrite turns the stored weight into an input; Enter or Save stores it, Escape cancels
+function startMemoryEdit(key) {
+  const row = MEMORY_ROWS[key];
+  const cell = document.getElementById(row.cell);
+  const btn = document.getElementById(row.btn);
+  if (!cell || !btn || cell.querySelector('input')) return;
+  const current = memory[key]?.weight;
+  const input = document.createElement('input');
+  Object.assign(input, { type: 'number', min: '0', max: String(MAX_MEMORY_WEIGHT), step: 'any', inputMode: 'decimal', className: 'memory-input' });
+  input.id = `${key}MemoryInput`;
+  input.setAttribute('aria-label', row.label);
+  input.value = current != null ? String(Number(current.toFixed(2))) : '';
+  cell.replaceChildren(input);
+  btn.textContent = 'Save';
+  btn.onclick = () => saveMemoryEdit(key);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); saveMemoryEdit(key); }
+    if (e.key === 'Escape') { e.stopPropagation(); endMemoryEdit(key); }
+  });
+  input.addEventListener('input', () => showMemoryError(''));
+  input.focus();
+  input.select();
 }
 
-window.openMemoryConfirm = openMemoryConfirm;
-window.closeMemoryConfirm = closeMemoryConfirm;
+function saveMemoryEdit(key) {
+  const input = document.getElementById(`${key}MemoryInput`);
+  if (!input) return;
+  const w = input.value.trim() === '' ? NaN : Number(input.value);
+  if (!(w > 0 && w <= MAX_MEMORY_WEIGHT)) {
+    showMemoryError(`Enter a weight above 0 and up to ${MAX_MEMORY_WEIGHT} g.`);
+    input.focus();
+    return;
+  }
+  memory[key] = { weight: w };
+  endMemoryEdit(key);
+  saveMemory();
+}
+
+function endMemoryEdit(key) {
+  const row = MEMORY_ROWS[key];
+  const cell = document.getElementById(row.cell);
+  const btn = document.getElementById(row.btn);
+  if (cell) cell.replaceChildren();
+  if (btn) { btn.textContent = 'Overwrite'; btn.onclick = () => startMemoryEdit(key); }
+  showMemoryError('');
+  updateMemoryTable();
+}
+
+function showMemoryError(msg) {
+  const el = document.getElementById('memoryError');
+  if (!el) return;
+  el.textContent = msg;
+  el.hidden = !msg;
+}
+
+window.startMemoryEdit = startMemoryEdit;
 
 window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('memoryConfirmBtn').onclick = confirmMemoryOverwrite;
   loadMemory();
 });
 // Import utility functions for testability

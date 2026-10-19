@@ -64,28 +64,12 @@
 .memory-overwrite:hover, .memory-overwrite:focus {
   background: #ffcc80;
 }
-/* Memory Confirm Modal */
-#memoryConfirmModal {
-  display: none;
-  position: fixed;
-  z-index: 1002;
-  left: 0; top: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.18);
-  align-items: center;
-  justify-content: center;
-}
-#memoryConfirmModal .modal-content {
-  max-width: 340px;
-  margin: 10vh auto;
-  background: #fff8ed;
-  border-radius: 12px;
-  box-shadow: 0 2px 16px 0 #b77b2b22;
-  padding: 2em 1.5em 1.5em 1.5em;
-  text-align: left;
-}
-#memoryConfirmText {
-  color: #5e361c;
-  font-size: 1.08em;
+/* Stored weights: Overwrite turns the value into an input */
+#memoryTable input.memory-input {
+  width: 5em;
+  margin: 0;
+  padding: 4px 6px;
+  text-align: right;
 }
 .memory-confirm-btn {
   background: #b77b2b;
