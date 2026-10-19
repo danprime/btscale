@@ -121,11 +121,11 @@ test('live TDS needs the scale and the EC meter, waits 30 s, then uses the live 
 
   await page.evaluate(() => { window.__mock.uninstall(); return window.__connect(['scale', 'portal']); });
   await expect(panel).toBeVisible();
-  await expect(page.locator('#tdsLabel')).toHaveText('TDS ≈');
-  await expect(page.locator('#tdsValue')).toHaveText('Calibrate'); // no k_v yet
+  await expect(page.locator('#tdsLabel')).toHaveText('TDS ≈ (uncal.)'); // default k_v until calibrated
+  await expect(page.locator('#tdsValue')).toHaveText('-- %');
   // Temperature, TDS, EC in one row
   const labels = await page.locator('#portalInfo .ritual-info-item:visible .ritual-info-label').allTextContents();
-  expect(labels).toEqual(['Temperature', 'TDS ≈', 'EC']);
+  expect(labels).toEqual(['Temperature', 'TDS ≈ (uncal.)', 'EC']);
 
   await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 20 } } });
   await page.evaluate(() => window.__connect(['scale', 'portal']));
@@ -228,7 +228,8 @@ test('settings: bed absorption and k_v under Ratio (default 2.0), Calibrate, no 
   expect(rows).toEqual(['Bean Dose', 'Carafe/Server', 'Portafilter', 'Ratio', 'Bed absorption', 'kv']);
   await expect(page.locator('#settingsModal h3', { hasText: 'TDS' })).toHaveCount(0);
   await expect(page.locator('#absorptionSettingCell')).toHaveText('2.0 g/g');
-  await expect(page.locator('#kvSettingValue')).toHaveText('--');
+  await expect(page.locator('#kvSettingValue')).toHaveText('0.005uncalibrated'); // default until calibrated
+  await expect(page.locator('#kvSettingValue .kv-uncalibrated')).toBeVisible();
   await expect(page.locator('#kvCalibrateBtn')).toHaveText('Calibrate');
   await expect(page.locator('.setting-hint')).toHaveCount(0);
 
@@ -353,3 +354,118 @@ for (const size of [{ width: 384, height: 720 }, { width: 375, height: 667 }]) {
     expect(box.y + box.height).toBeLessThanOrEqual(size.height);
   });
 }
+
+test('extraction yield and region maths', async ({ page }) => {
+  const r = await page.evaluate(async () => {
+    const m = await import('./tds.js');
+    return {
+      ey: m.extractionYield(258, 1.33, 20), eyNoDose: m.extractionYield(258, 1.33, null),
+      gold: m.extractionRegion(1.25, 20), strongUnder: m.extractionRegion(1.5, 16), strongOver: m.extractionRegion(1.5, 24),
+      weakUnder: m.extractionRegion(0.9, 16), weakOver: m.extractionRegion(0.9, 24), edge: m.extractionRegion(1.35, 22),
+    };
+  });
+  expect(r.ey).toBeCloseTo(17.157, 3);
+  expect(r.eyNoDose).toBeNull();
+  expect(r.gold).toBe('Ideal (gold cup)');
+  expect(r.strongUnder).toBe('Strong / under-extracted');
+  expect(r.strongOver).toBe('Strong / over-extracted');
+  expect(r.weakUnder).toBe('Weak / under-extracted');
+  expect(r.weakOver).toBe('Weak / over-extracted');
+  expect(r.edge).toBe('Ideal (gold cup)'); // the zone includes its edges
+});
+
+test('after Stop the chart becomes a carousel: estimate (hollow), tap for labels, Next switches to a solid point', async ({ page }) => {
+  await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 20 }, carafe: { weight: 186 } } });
+  await page.evaluate(async () => {
+    await window.__connect(['scale', 'portal']);
+    await window.__brew();
+  });
+  const slide = page.locator('#extractionSlide');
+  const dots = page.locator('#chartDots');
+  const track = page.locator('#chartTrack');
+  await expect(slide).toBeHidden(); // while brewing: brew chart only
+  await expect(dots).toBeHidden();
+
+  await page.evaluate(() => triStateTimer()); // stop
+  await expect(slide).toBeAttached();
+  await expect(dots).toBeVisible();
+  expect(await track.evaluate((t) => t.scrollLeft)).toBe(0); // stays on the brew chart at Stop
+  // Estimate: 160 g x 0.85 % / 20 g = 6.8 % extraction, pinned to the left edge, hollow
+  await expect(page.locator('.ey-brew.ey-brew-estimate')).toHaveCount(1);
+  await expect(page.locator('#extractionChart')).toHaveAttribute('aria-label', /estimated extraction 6\.8 %, TDS 0\.85 %: Weak \/ under-extracted/);
+  await expect(page.locator('.ey-brew-label')).toHaveText('≈ 6.8 %, 0.85 %');
+  // No gold cup label or ideal dot; region labels hidden until a tap
+  expect(await page.locator('#extractionChart').textContent()).not.toMatch(/Gold|Ideal/);
+  await expect(page.locator('.ey-ref')).toHaveCount(4);
+  await expect(page.locator('.ey-label')).toHaveCount(0);
+
+  await page.click('#chartDots .chart-dot >> nth=1');
+  await expect.poll(() => track.evaluate((t) => Math.round(t.scrollLeft / t.clientWidth))).toBe(1);
+  await page.click('#extractionChart');
+  await expect(page.locator('.ey-label')).toHaveCount(4);
+  await expect(page.locator('.ey-label >> nth=0').locator('tspan')).toHaveText(['Strong & Sour', '(Thick/Muddy)']);
+  await expect(page.locator('.ey-brew-label')).toHaveCount(0); // region labels take over; the dot stays
+  await expect(page.locator('.ey-brew')).toHaveCount(1);
+  await page.click('#extractionChart');
+  await expect(page.locator('.ey-label')).toHaveCount(0);
+
+  // Calculator Next: measured point (solid) and the carousel shows the extraction chart
+  await page.click('#chartDots .chart-dot >> nth=0');
+  await expect.poll(() => track.evaluate((t) => Math.round(t.scrollLeft / t.clientWidth))).toBe(0);
+  await page.evaluate(() => window.__emitScale(window.__mock, 336, 2000));
+  await page.click('#tareBeanBtn');
+  await page.click('#ftNextBtn');
+  await expect.poll(() => track.evaluate((t) => Math.round(t.scrollLeft / t.clientWidth))).toBe(1);
+  await expect(page.locator('#chartDots .chart-dot >> nth=1')).toHaveAttribute('aria-current', 'true');
+  await expect(page.locator('.ey-brew-estimate')).toHaveCount(0);
+  // 150 g x 0.908 % / 20 g = 6.8 %
+  await expect(page.locator('.ey-brew-label')).toHaveText('6.8 %, 0.91 %');
+
+  // Reset: back to the brew chart alone
+  await page.evaluate(() => triStateTimer());
+  await expect(slide).toBeHidden();
+  await expect(dots).toBeHidden();
+  expect(await track.evaluate((t) => t.scrollLeft)).toBe(0);
+});
+
+test('no carousel after an EC-only brew', async ({ page }) => {
+  await page.evaluate(async () => {
+    await window.__connect(['portal']);
+    await triStateTimer();
+    window.__mock.emitPortal({ ec: 2.5, temp: 90 });
+    await triStateTimer();
+  });
+  await expect(page.locator('#extractionSlide')).toBeHidden();
+  await expect(page.locator('#chartDots')).toBeHidden();
+});
+
+test('default k_v 0.005 is used and marked uncalibrated until a k_v is saved', async ({ page }) => {
+  await withStorage(page, { scaleMemoryV1: { beans: { weight: 20 }, carafe: { weight: 186 } } });
+  await page.evaluate(async () => {
+    await window.__connect(['scale', 'portal']);
+    await window.__brew();
+    window.__test_setTdsDelay(0);
+  });
+  // Same numbers as with a stored 0.005, but marked
+  await expect(page.locator('#tdsLabel')).toHaveText('TDS ≈ (uncal.)');
+  await expect(page.locator('#tdsValue')).toHaveText('0.85 %');
+  await page.evaluate(() => triStateTimer()); // stop
+  await expect(page.locator('#tdsLabel')).toHaveText('TDS ≈ (uncal.)');
+  await expect(page.locator('.ey-brew')).toHaveCount(1); // plotted with the default
+  await page.evaluate(() => window.__emitScale(window.__mock, 336, 2000));
+  await page.click('#tareBeanBtn');
+  await expect(page.locator('#ftTds')).toHaveText('0.91 % · uncalibrated');
+  await page.click('#ftNextBtn');
+  await expect(page.locator('#tdsLabel')).toHaveText('TDS (uncal.)');
+  await expect(page.locator('#tdsValue')).toHaveText('0.91 %');
+
+  // Calibrating clears the marks
+  await page.click('#settingsBtn');
+  await page.click('#kvCalibrateBtn');
+  await page.locator('#calTds').fill('1.38');
+  await page.click('#calNextBtn');
+  await expect(page.locator('#calCurrentKv')).toHaveText('0.005 (uncalibrated)');
+  await page.click('#calSaveBtn');
+  await expect(page.locator('#kvSettingValue')).toHaveText('0.0076');
+  await expect(page.locator('#tdsLabel')).toHaveText('TDS');
+});

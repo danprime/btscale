@@ -10,6 +10,7 @@
  *   k_v   = TDS % × yield / (100 × CIY)
  */
 export const ALPHA = 0.02; // conductivity rises ~2% per °C
+export const DEFAULT_KV = 0.005; // rough k_v until the first refractometer calibration
 export const DEFAULT_ABSORPTION = 2.0; // g of water held per g of coffee
 export const MAX_ABSORPTION = 5;
 
@@ -31,6 +32,26 @@ export function liveYield(poured, dose, absorption) {
 export function tdsPercent(kv, ciy, yieldG) {
   if (!(kv > 0) || !(ciy > 0) || !(yieldG > 0)) return null;
   return (100 * kv * ciy) / yieldG;
+}
+
+/** Extraction yield % = yield in the cup (g) x TDS % / dry coffee dose (g). */
+export function extractionYield(yieldG, tdsPct, dose) {
+  if (!(yieldG > 0) || !(tdsPct > 0) || !(dose > 0)) return null;
+  return (yieldG * tdsPct) / dose;
+}
+
+/**
+ * Brew control chart regions (gold cup: 1.15–1.35 % TDS, 18–22 % extraction).
+ * Returns e.g. "Ideal (gold cup)", "Strong / under-extracted".
+ */
+export function extractionRegion(tdsPct, ey) {
+  if (!(tdsPct > 0) || !(ey > 0)) return null;
+  const strength = tdsPct > 1.35 ? 'Strong' : tdsPct < 1.15 ? 'Weak' : null;
+  const extraction = ey > 22 ? 'over-extracted' : ey < 18 ? 'under-extracted' : null;
+  if (!strength && !extraction) return 'Ideal (gold cup)';
+  if (!strength) return `Balanced strength, ${extraction}`;
+  if (!extraction) return `${strength}, balanced extraction`;
+  return `${strength} / ${extraction}`;
 }
 
 /** Calibration constant from a refractometer TDS %, the yield and the CIY. */

@@ -69,7 +69,7 @@ import { installMockBluetooth } from './ble-mock.js';
 import { DeviceManager } from './device-manager.js';
 import { BrewRecorder } from './brew-recorder.js';
 import { BrewChart } from './brew-chart.js';
-import { CiyIntegrator, ec25, liveYield, tdsPercent, calcKv, DEFAULT_ABSORPTION, MAX_ABSORPTION } from './tds.js';
+import { CiyIntegrator, ec25, liveYield, tdsPercent, calcKv, extractionYield, extractionRegion, DEFAULT_KV, DEFAULT_ABSORPTION, MAX_ABSORPTION } from './tds.js';
 
 // --- Settings modal logic (moved to top for global availability) ---
 function openSettingsModal() {
@@ -517,6 +517,7 @@ function renderFinal() {
     renderTdsPanel();
     renderYieldPanel();
     renderBeanButton();
+    renderExtractionChart();
     renderLiveStrip();
 }
 
@@ -537,6 +538,9 @@ function clearFinal() {
     renderTdsPanel();
     renderYieldPanel();
     renderBeanButton();
+    extractionLabelsShown = false;
+    showChartSlide(0, false);
+    renderExtractionChart();
     renderLiveStrip();
 }
 
@@ -1154,7 +1158,9 @@ function saveJson(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
 
+// Calibrated k_v (null until the first calibration; DEFAULT_KV is used meanwhile)
 let kv = (() => { const v = loadJson(KV_KEY); return typeof v === 'number' && v > 0 ? v : null; })();
+function activeKv() { return kv ?? DEFAULT_KV; }
 let absorption = (() => { const v = loadJson(ABSORPTION_KEY); return typeof v === 'number' && v >= 0 && v <= MAX_ABSORPTION ? v : DEFAULT_ABSORPTION; })();
 
 /** 4 significant digits, no trailing zeros ("0.005", "0.005086") */
@@ -1175,7 +1181,7 @@ function estimatedYield() {
 
 /** TDS % estimated from the live yield; null until it can be computed. */
 function liveTds() {
-    return tdsBrew ? tdsPercent(kv, ciy.ciy, estimatedYield()) : null;
+    return tdsBrew ? tdsPercent(activeKv(), ciy.ciy, estimatedYield()) : null;
 }
 
 /** EC25, CIY and TDS go into the CSV rows next to the raw readings. */
@@ -1196,10 +1202,10 @@ function renderTdsPanel() {
     const show = finalSnapshot ? finalSnapshot.ciy != null : both;
     panel.hidden = !show;
     if (!show) return;
-    setText('tdsLabel', finalTds ? 'TDS' : 'TDS ≈');
+    // Marked until k_v has been calibrated (the default is used meanwhile)
+    setText('tdsLabel', `${finalTds ? 'TDS' : 'TDS ≈'}${kv ? '' : ' (uncal.)'}`);
     let text;
-    if (!(kv > 0)) text = 'Calibrate';
-    else if (finalTds) text = formatTds(finalTds.tds);
+    if (finalTds) text = formatTds(finalTds.tds);
     else if (finalSnapshot) text = formatTds(finalSnapshot.estTds);
     else if (!recorder.running || recorder.elapsed() < tdsMinSeconds) text = '-- %';
     else text = formatTds(liveTds());
@@ -1278,7 +1284,7 @@ function renderFinalTdsDialog() {
         if (input.value !== auto) input.value = auto;
     }
     setText('ftCiy', formatCiy(finalSnapshot.ciy));
-    setText('ftTds', kv > 0 ? formatTds(tdsPercent(kv, finalSnapshot.ciy, parseFloat(input.value))) : 'Calibrate kᵥ in Settings');
+    setText('ftTds', `${formatTds(tdsPercent(activeKv(), finalSnapshot.ciy, parseFloat(input.value)))}${kv ? '' : ' · uncalibrated'}`);
     byId('ftTareBtn').disabled = !deviceConnected('scale');
 }
 
@@ -1289,13 +1295,15 @@ function applyFinalTds() {
         byId('ftYield').focus();
         return;
     }
-    finalTds = { yieldG, tds: tdsPercent(kv, finalSnapshot.ciy, yieldG) };
+    finalTds = { yieldG, tds: tdsPercent(activeKv(), finalSnapshot.ciy, yieldG) };
     // Calibration uses this measured yield for the same brew
     const brew = loadJson(LAST_BREW_KEY);
     if (brew) saveLastBrew({ ...brew, yield: yieldG });
     closeFinalTds();
     renderTdsPanel();
     renderYieldPanel();
+    renderExtractionChart();
+    showChartSlide(1);
     log(`Final TDS: ${formatTds(finalTds.tds)} from ${yieldG.toFixed(1)} g`);
 }
 
@@ -1361,7 +1369,8 @@ let calBrew = null; // last brew being calibrated against
 let calKv = null; // k_v calculated in step 1
 
 function renderKvSetting() {
-    setText('kvSettingValue', formatKv(kv));
+    const cell = byId('kvSettingValue');
+    if (cell) cell.innerHTML = kv ? formatKv(kv) : `${formatKv(DEFAULT_KV)}<span class="kv-uncalibrated">uncalibrated</span>`;
 }
 
 function setKv(v) {
@@ -1432,7 +1441,7 @@ function calibrationNext() {
     renderCalibrationKv();
     calBrew = { ...calBrew, yield: y };
     saveLastBrew(calBrew);
-    setText('calCurrentKv', formatKv(kv));
+    setText('calCurrentKv', kv ? formatKv(kv) : `${formatKv(DEFAULT_KV)} (uncalibrated)`);
     byId('calNewKv').value = formatKv(calKv);
     showFieldError('calNewKvError', '');
     renderKvHistory();
@@ -1509,6 +1518,126 @@ window.addEventListener('DOMContentLoaded', () => {
     renderBeanButton();
 });
 
+// --- After Stop: TDS vs extraction yield chart, as a second slide next to the brew chart ---
+const EY_AXIS = { min: 14, max: 26, step: 2 }; // extraction yield %
+const TDS_AXIS = { min: 0.8, max: 1.6, step: 0.2 }; // TDS %
+const GOLD_CUP = { ey: [18, 22], tds: [1.15, 1.35] };
+// Reference points; labels show after a tap on the chart
+const EY_REFERENCE = [
+    { ey: 16, tds: 1.5, label: ['Strong & Sour', '(Thick/Muddy)'] },
+    { ey: 24, tds: 1.5, label: ['Strong & Bitter', '(Harsh/Heavy)'] },
+    { ey: 16, tds: 0.9, label: ['Weak & Under-extracted', '(Thin/Watery)'] },
+    { ey: 24, tds: 0.9, label: ['Weak & Over-extracted', '(Astringent/Dry)'] },
+];
+let extractionLabelsShown = false;
+
+/** This brew on the chart: estimated (hollow) after Stop, measured (solid) after the calculator. */
+function extractionPoint() {
+    if (!finalSnapshot || finalSnapshot.ciy == null) return null;
+    const dose = memory.beans?.weight;
+    const final = !!finalTds;
+    const tds = final ? finalTds.tds : finalSnapshot.estTds;
+    const ey = extractionYield(final ? finalTds.yieldG : finalSnapshot.estYield, tds, dose);
+    return ey != null ? { ey, tds, final } : null;
+}
+
+function svgEl(tag, attrs, text) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    if (text != null) el.textContent = text;
+    return el;
+}
+
+function renderExtractionChart() {
+    const svg = byId('extractionChart');
+    const slide = byId('extractionSlide');
+    if (!svg || !slide) return;
+    const show = !!finalSnapshot && finalSnapshot.ciy != null;
+    slide.hidden = !show;
+    byId('chartDots').hidden = !show;
+    if (!show) return;
+    const w = svg.clientWidth || 300;
+    const h = svg.clientHeight || 150;
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.replaceChildren();
+    const pad = { l: 32, r: 10, t: 8, b: 18 };
+    const x = (ey) => pad.l + ((ey - EY_AXIS.min) / (EY_AXIS.max - EY_AXIS.min)) * (w - pad.l - pad.r);
+    const y = (tds) => h - pad.b - ((tds - TDS_AXIS.min) / (TDS_AXIS.max - TDS_AXIS.min)) * (h - pad.t - pad.b);
+
+    // Grid and ticks
+    for (let v = EY_AXIS.min; v <= EY_AXIS.max + 1e-9; v += EY_AXIS.step) {
+        svg.append(svgEl('line', { x1: x(v), x2: x(v), y1: y(TDS_AXIS.max), y2: y(TDS_AXIS.min), class: 'ey-grid' }));
+        svg.append(svgEl('text', { x: x(v), y: h - 4, 'text-anchor': 'middle', class: 'ey-tick' }, String(v)));
+    }
+    for (let v = TDS_AXIS.min; v <= TDS_AXIS.max + 1e-9; v += TDS_AXIS.step) {
+        svg.append(svgEl('line', { x1: x(EY_AXIS.min), x2: x(EY_AXIS.max), y1: y(v), y2: y(v), class: 'ey-grid' }));
+        svg.append(svgEl('text', { x: pad.l - 5, y: y(v) + 3.5, 'text-anchor': 'end', class: 'ey-tick' }, v.toFixed(1)));
+    }
+    // Gold cup zone (no label)
+    svg.append(svgEl('rect', {
+        x: x(GOLD_CUP.ey[0]), y: y(GOLD_CUP.tds[1]),
+        width: x(GOLD_CUP.ey[1]) - x(GOLD_CUP.ey[0]), height: y(GOLD_CUP.tds[0]) - y(GOLD_CUP.tds[1]),
+        class: 'ey-gold',
+    }));
+    // Reference points; top-row labels go below the point, bottom-row labels above
+    for (const p of EY_REFERENCE) {
+        svg.append(svgEl('circle', { cx: x(p.ey), cy: y(p.tds), r: 3.5, class: 'ey-ref' }));
+        if (!extractionLabelsShown) continue;
+        const left = p.ey < 20;
+        const top = p.tds > 1.2;
+        const text = svgEl('text', { x: x(p.ey) + (left ? -4 : 4), y: y(p.tds) + (top ? 14 : -18), 'text-anchor': left ? 'start' : 'end', class: 'ey-label' });
+        p.label.forEach((line, i) => text.append(svgEl('tspan', { x: x(p.ey) + (left ? -4 : 4), dy: i ? 11 : 0 }, line)));
+        svg.append(text);
+    }
+    // This brew (pinned to the edge, with the real values in its label, if it is off the chart)
+    const pt = extractionPoint();
+    let desc = 'no TDS for this brew yet';
+    if (pt) {
+        const cx = x(Math.min(EY_AXIS.max, Math.max(EY_AXIS.min, pt.ey)));
+        const cy = y(Math.min(TDS_AXIS.max, Math.max(TDS_AXIS.min, pt.tds)));
+        svg.append(svgEl('circle', { cx, cy, r: 5.5, class: pt.final ? 'ey-brew' : 'ey-brew ey-brew-estimate' }));
+        const right = cx < w / 2;
+        const below = cy < pad.t + 14;
+        // The region labels take over while they are shown; the dot stays
+        if (!extractionLabelsShown) svg.append(svgEl('text', { x: cx + (right ? 9 : -9), y: cy + (below ? 14 : -8), 'text-anchor': right ? 'start' : 'end', class: 'ey-brew-label' },
+            `${pt.final ? '' : '≈ '}${pt.ey.toFixed(1)} %, ${pt.tds.toFixed(2)} %`));
+        desc = `${pt.final ? '' : 'estimated '}extraction ${pt.ey.toFixed(1)} %, TDS ${pt.tds.toFixed(2)} %: ${extractionRegion(pt.tds, pt.ey)}`;
+    } else if (!(memory.beans?.weight > 0)) {
+        svg.append(svgEl('text', { x: w / 2, y: h / 2, 'text-anchor': 'middle', class: 'ey-hint' }, 'Set the bean dose to plot this brew'));
+    }
+    svg.setAttribute('aria-label', `TDS versus extraction yield chart, ${desc}. Tap to ${extractionLabelsShown ? 'hide' : 'show'} region labels.`);
+}
+
+function toggleExtractionLabels() {
+    extractionLabelsShown = !extractionLabelsShown;
+    renderExtractionChart();
+}
+
+/** Scroll the chart carousel to a slide (0 = brew chart, 1 = TDS vs extraction). */
+function showChartSlide(i, smooth = true) {
+    const track = byId('chartTrack');
+    if (!track) return;
+    track.scrollTo({ left: i * track.clientWidth, behavior: smooth ? 'smooth' : 'instant' });
+    renderChartDots(i);
+}
+
+function renderChartDots(i) {
+    const track = byId('chartTrack');
+    const active = i ?? (track && track.clientWidth ? Math.round(track.scrollLeft / track.clientWidth) : 0);
+    document.querySelectorAll('#chartDots .chart-dot').forEach((d, n) => d.setAttribute('aria-current', String(n === active)));
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const svg = byId('extractionChart');
+    svg.addEventListener('click', toggleExtractionLabels);
+    svg.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExtractionLabels(); }
+    });
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => renderExtractionChart()).observe(svg);
+    byId('chartTrack').addEventListener('scroll', () => renderChartDots(), { passive: true });
+    renderChartDots(0);
+});
+
 // Expose for HTML
 window.openRatioSlider = openRatioSlider;
 window.closeRatioSlider = closeRatioSlider;
@@ -1543,6 +1672,7 @@ window.closeCalibration = closeCalibration;
 window.calibrationNext = calibrationNext;
 window.keepCurrentKv = keepCurrentKv;
 window.saveNewKv = saveNewKv;
+window.showChartSlide = showChartSlide;
 
 // Test helpers (test-only): allow E2E tests to inject memory and update UI deterministically.
 window.__test_setMemory = (m) => {

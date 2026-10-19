@@ -46,9 +46,23 @@
             </div>
         </section>
         <!-- Live brew chart: EC when the EC meter is connected, otherwise weight -->
+        <!-- After a TDS brew is stopped it becomes a two-slide carousel: brew chart, then TDS vs extraction -->
         <section class="brew-chart" aria-label="Brew chart">
-            <div class="brew-chart-label" id="brewChartLabel">EC · mS/cm</div>
-            <canvas id="brewChartCanvas" role="img" aria-label="Brew chart, no data yet"></canvas>
+            <div class="chart-track" id="chartTrack">
+                <div class="chart-slide">
+                    <div class="brew-chart-label" id="brewChartLabel">EC · mS/cm</div>
+                    <canvas id="brewChartCanvas" role="img" aria-label="Brew chart, no data yet"></canvas>
+                </div>
+                <div class="chart-slide" id="extractionSlide" hidden>
+                    <div class="brew-chart-label"><span>TDS · %</span><span class="chart-label-right">Extraction · %</span></div>
+                    <!-- Tap to show the region labels -->
+                    <svg id="extractionChart" class="extraction-chart" role="img" tabindex="0" aria-label="TDS versus extraction yield"></svg>
+                </div>
+            </div>
+            <div class="chart-dots" id="chartDots" hidden>
+                <button type="button" class="chart-dot" aria-label="Show brew chart" onclick="showChartSlide(0)"></button>
+                <button type="button" class="chart-dot" aria-label="Show TDS vs extraction chart" onclick="showChartSlide(1)"></button>
+            </div>
         </section>
         <!-- After Stop: the big values are frozen, live readings show here -->
         <div class="live-strip" id="liveStrip" aria-live="polite" hidden></div>
