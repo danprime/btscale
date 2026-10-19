@@ -469,3 +469,20 @@ test('default k_v 0.005 is used and marked uncalibrated until a k_v is saved', a
   await expect(page.locator('#kvSettingValue')).toHaveText('0.0076');
   await expect(page.locator('#tdsLabel')).toHaveText('TDS');
 });
+
+test('target card "in → out" stays on one line next to the Yield card', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 18.5 }, carafe: { weight: 186 } } });
+  const target = page.locator('#targetWeight');
+  await expect(target).toHaveText('18.5gin → 277.5gout');
+  await page.evaluate(async () => {
+    await window.__connect(['scale', 'portal']);
+    await window.__brew();
+    await triStateTimer();
+    await window.__emitScale(window.__mock, 336, 2000);
+  });
+  await page.click('#tareBeanBtn');
+  await page.click('#ftNextBtn');
+  await expect(page.locator('#yieldPanel')).toBeVisible();
+  await expect.poll(() => target.evaluate((el) => el.scrollWidth <= el.clientWidth && el.getBoundingClientRect().height < 30)).toBe(true);
+});

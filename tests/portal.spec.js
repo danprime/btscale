@@ -454,7 +454,9 @@ test('ratio setting: default 1:15, Overwrite edits it, target weight = bean dose
 
   // Target follows the stored bean dose without pressing the beans button
   await page.evaluate(() => window.__test_setMemory({ beans: { weight: 20 } }));
-  await expect(target).toHaveText('300.0 g');
+  await expect(target).toHaveText('20gin → 300gout'); // bean dose in -> target out
+  await expect(target.locator('sub')).toHaveText(['in', 'out']);
+  await expect(target).toHaveAttribute('aria-label', '20 grams in, 300 grams out');
 
   await page.click('#settingsBtn');
   await page.click('#ratioEditBtn');
@@ -471,14 +473,14 @@ test('ratio setting: default 1:15, Overwrite edits it, target weight = bean dose
   await input.press('Enter');
   await expect(page.locator('#ratioSettingCell')).toHaveText('1:16.5');
   await expect(page.locator('#ratioEditBtn')).toHaveText('Overwrite');
-  await expect(target).toHaveText('330.0 g');
+  await expect(target).toHaveText('20gin → 330gout');
   expect(await page.evaluate(() => localStorage.getItem('brewRatioV1'))).toBe('16.5');
 
   // Persists across reloads; the target is computed on load
   await page.evaluate(() => localStorage.setItem('scaleMemoryV1', JSON.stringify({ beans: { weight: 18 } })));
   await page.reload();
   await expect(page.locator('#ratioSettingCell')).toHaveText('1:16.5');
-  await expect(target).toHaveText('297.0 g');
+  await expect(target).toHaveText('18gin → 297gout');
 
   // Escape cancels an edit without saving or closing Settings
   await page.click('#settingsBtn');
@@ -493,9 +495,9 @@ test('target weight stays when the scale disconnects', async ({ page }) => {
   await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['scale'] }); });
   await page.evaluate(() => toggleConnect());
   await page.evaluate(() => window.__test_setMemory({ beans: { weight: 15 } }));
-  await expect(page.locator('#targetWeight')).toHaveText('225.0 g');
+  await expect(page.locator('#targetWeight')).toHaveText('15gin → 225gout');
   await page.evaluate(() => disconnect());
-  await expect(page.locator('#targetWeight')).toHaveText('225.0 g');
+  await expect(page.locator('#targetWeight')).toHaveText('15gin → 225gout');
 });
 
 test('phone layout: chart and cards have 12px side margins; chart labels match their line colours', async ({ page }) => {
