@@ -901,12 +901,47 @@ function formatRatioNumber(r) {
 function recomputeTarget() {
     const dose = memory.beans?.weight;
     targetWeight = dose > 0 ? dose * currentRatio : null;
+    // Target card: "20g(in) → 300g(out)" with in/out as subscripts
     const twEl = document.getElementById('targetWeight');
-    if (twEl) twEl.textContent = targetWeight != null ? `${targetWeight.toFixed(1)} g` : '-- g';
+    if (twEl) {
+        const g = (v) => String(Number(v.toFixed(1))); // 20, 18.5, 277.5
+        if (targetWeight != null) {
+            twEl.innerHTML = `${g(dose)}g<sub>in</sub> → ${g(targetWeight)}g<sub>out</sub>`;
+            twEl.setAttribute('aria-label', `${g(dose)} grams in, ${g(targetWeight)} grams out`);
+        } else {
+            twEl.textContent = '-- g';
+            twEl.removeAttribute('aria-label');
+        }
+        fitTarget(twEl);
+    }
     // Refresh remainder / current-ratio panels and the chart's target line
     if (lastScaleData && !finalSnapshot) updateDisplay(lastScaleData);
     refreshChart();
 }
+
+/** Shrink a one-line value until it fits its card (down to 11px). */
+function fitText(el) {
+    el.style.fontSize = '';
+    if (!el.clientWidth) return; // hidden
+    let size = parseFloat(getComputedStyle(el).fontSize);
+    while (el.scrollWidth > el.clientWidth && size > 11) {
+        size -= 0.5;
+        el.style.fontSize = `${size}px`;
+    }
+}
+
+/** Three or more cards in the row: plain "20g → 300g" (no in/out subscripts), then fit. */
+function fitTarget(el) {
+    const cards = [...el.parentElement.parentElement.children].filter((c) => getComputedStyle(c).display !== 'none').length;
+    el.classList.toggle('compact', cards >= 3);
+    fitText(el);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    // Re-fit when the card changes width (e.g. the Yield card appears next to it)
+    const twEl = document.getElementById('targetWeight');
+    if (twEl && typeof ResizeObserver !== 'undefined') new ResizeObserver(() => fitTarget(twEl)).observe(twEl.parentElement);
+});
 
 function setRatio(r) {
     currentRatio = r;
