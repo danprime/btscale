@@ -3,8 +3,7 @@
 const MEMORY_KEY = 'scaleMemoryV1';
 let memory = {
   beans: null, // { weight: number }
-  carafe: null, // { weight: number }
-  portafilter: null // { weight: number }
+  carafe: null // { weight: number }
 };
 
 function loadMemory() {
@@ -24,7 +23,6 @@ function updateMemoryTable() {
   recomputeTarget();
   document.getElementById('memoryBeansWeight').textContent = memory.beans?.weight != null ? memory.beans.weight.toFixed(2) : '--';
   document.getElementById('memoryCarafeWeight').textContent = memory.carafe?.weight != null ? memory.carafe.weight.toFixed(2) : '--';
-  document.getElementById('memoryPortafilterWeight').textContent = memory.portafilter?.weight != null ? memory.portafilter.weight.toFixed(2) : '--';
 }
 
 // Confirmation modal logic
