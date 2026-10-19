@@ -73,5 +73,7 @@ test('settings modal labels are visible and not clipped', async ({ page }) => {
     expect(overflow).toBeFalsy();
   }
   // shutdown server
+  // Drop keep-alive sockets first, or close() can hang (seen with Chromium on Windows)
+  server.closeAllConnections();
   await new Promise((r) => server.close(r));
 });

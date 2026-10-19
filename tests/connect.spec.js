@@ -58,5 +58,7 @@ test('connect and disconnect flow updates UI controls', async ({ page }) => {
   await expect(connectBtn).toHaveText('Connect');
   await expect(page.locator('#tareBtn')).toBeDisabled();
 
+  // Drop keep-alive sockets first, or close() can hang (seen with Chromium on Windows)
+  server.closeAllConnections();
   await new Promise((r) => server.close(r));
 });
