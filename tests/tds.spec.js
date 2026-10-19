@@ -121,11 +121,11 @@ test('live TDS needs the scale and the EC meter, waits 30 s, then uses the live 
 
   await page.evaluate(() => { window.__mock.uninstall(); return window.__connect(['scale', 'portal']); });
   await expect(panel).toBeVisible();
-  await expect(page.locator('#tdsLabel')).toHaveText('TDS ≈');
-  await expect(page.locator('#tdsValue')).toHaveText('Calibrate'); // no k_v yet
+  await expect(page.locator('#tdsLabel')).toHaveText('TDS ≈ (uncal.)'); // default k_v until calibrated
+  await expect(page.locator('#tdsValue')).toHaveText('-- %');
   // Temperature, TDS, EC in one row
   const labels = await page.locator('#portalInfo .ritual-info-item:visible .ritual-info-label').allTextContents();
-  expect(labels).toEqual(['Temperature', 'TDS ≈', 'EC']);
+  expect(labels).toEqual(['Temperature', 'TDS ≈ (uncal.)', 'EC']);
 
   await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 20 } } });
   await page.evaluate(() => window.__connect(['scale', 'portal']));
@@ -228,7 +228,8 @@ test('settings: bed absorption and k_v under Ratio (default 2.0), Calibrate, no 
   expect(rows).toEqual(['Bean Dose', 'Carafe/Server', 'Portafilter', 'Ratio', 'Bed absorption', 'kv']);
   await expect(page.locator('#settingsModal h3', { hasText: 'TDS' })).toHaveCount(0);
   await expect(page.locator('#absorptionSettingCell')).toHaveText('2.0 g/g');
-  await expect(page.locator('#kvSettingValue')).toHaveText('--');
+  await expect(page.locator('#kvSettingValue')).toHaveText('0.005uncalibrated'); // default until calibrated
+  await expect(page.locator('#kvSettingValue .kv-uncalibrated')).toBeVisible();
   await expect(page.locator('#kvCalibrateBtn')).toHaveText('Calibrate');
   await expect(page.locator('.setting-hint')).toHaveCount(0);
 
@@ -436,4 +437,35 @@ test('no carousel after an EC-only brew', async ({ page }) => {
   });
   await expect(page.locator('#extractionSlide')).toBeHidden();
   await expect(page.locator('#chartDots')).toBeHidden();
+});
+
+test('default k_v 0.005 is used and marked uncalibrated until a k_v is saved', async ({ page }) => {
+  await withStorage(page, { scaleMemoryV1: { beans: { weight: 20 }, carafe: { weight: 186 } } });
+  await page.evaluate(async () => {
+    await window.__connect(['scale', 'portal']);
+    await window.__brew();
+    window.__test_setTdsDelay(0);
+  });
+  // Same numbers as with a stored 0.005, but marked
+  await expect(page.locator('#tdsLabel')).toHaveText('TDS ≈ (uncal.)');
+  await expect(page.locator('#tdsValue')).toHaveText('0.85 %');
+  await page.evaluate(() => triStateTimer()); // stop
+  await expect(page.locator('#tdsLabel')).toHaveText('TDS ≈ (uncal.)');
+  await expect(page.locator('.ey-brew')).toHaveCount(1); // plotted with the default
+  await page.evaluate(() => window.__emitScale(window.__mock, 336, 2000));
+  await page.click('#tareBeanBtn');
+  await expect(page.locator('#ftTds')).toHaveText('0.91 % · uncalibrated');
+  await page.click('#ftNextBtn');
+  await expect(page.locator('#tdsLabel')).toHaveText('TDS (uncal.)');
+  await expect(page.locator('#tdsValue')).toHaveText('0.91 %');
+
+  // Calibrating clears the marks
+  await page.click('#settingsBtn');
+  await page.click('#kvCalibrateBtn');
+  await page.locator('#calTds').fill('1.38');
+  await page.click('#calNextBtn');
+  await expect(page.locator('#calCurrentKv')).toHaveText('0.005 (uncalibrated)');
+  await page.click('#calSaveBtn');
+  await expect(page.locator('#kvSettingValue')).toHaveText('0.0076');
+  await expect(page.locator('#tdsLabel')).toHaveText('TDS');
 });

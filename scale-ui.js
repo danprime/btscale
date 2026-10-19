@@ -69,7 +69,7 @@ import { installMockBluetooth } from './ble-mock.js';
 import { DeviceManager } from './device-manager.js';
 import { BrewRecorder } from './brew-recorder.js';
 import { BrewChart } from './brew-chart.js';
-import { CiyIntegrator, ec25, liveYield, tdsPercent, calcKv, extractionYield, extractionRegion, DEFAULT_ABSORPTION, MAX_ABSORPTION } from './tds.js';
+import { CiyIntegrator, ec25, liveYield, tdsPercent, calcKv, extractionYield, extractionRegion, DEFAULT_KV, DEFAULT_ABSORPTION, MAX_ABSORPTION } from './tds.js';
 
 // --- Settings modal logic (moved to top for global availability) ---
 function openSettingsModal() {
@@ -1158,7 +1158,9 @@ function saveJson(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
 
+// Calibrated k_v (null until the first calibration; DEFAULT_KV is used meanwhile)
 let kv = (() => { const v = loadJson(KV_KEY); return typeof v === 'number' && v > 0 ? v : null; })();
+function activeKv() { return kv ?? DEFAULT_KV; }
 let absorption = (() => { const v = loadJson(ABSORPTION_KEY); return typeof v === 'number' && v >= 0 && v <= MAX_ABSORPTION ? v : DEFAULT_ABSORPTION; })();
 
 /** 4 significant digits, no trailing zeros ("0.005", "0.005086") */
@@ -1179,7 +1181,7 @@ function estimatedYield() {
 
 /** TDS % estimated from the live yield; null until it can be computed. */
 function liveTds() {
-    return tdsBrew ? tdsPercent(kv, ciy.ciy, estimatedYield()) : null;
+    return tdsBrew ? tdsPercent(activeKv(), ciy.ciy, estimatedYield()) : null;
 }
 
 /** EC25, CIY and TDS go into the CSV rows next to the raw readings. */
@@ -1200,10 +1202,10 @@ function renderTdsPanel() {
     const show = finalSnapshot ? finalSnapshot.ciy != null : both;
     panel.hidden = !show;
     if (!show) return;
-    setText('tdsLabel', finalTds ? 'TDS' : 'TDS ≈');
+    // Marked until k_v has been calibrated (the default is used meanwhile)
+    setText('tdsLabel', `${finalTds ? 'TDS' : 'TDS ≈'}${kv ? '' : ' (uncal.)'}`);
     let text;
-    if (!(kv > 0)) text = 'Calibrate';
-    else if (finalTds) text = formatTds(finalTds.tds);
+    if (finalTds) text = formatTds(finalTds.tds);
     else if (finalSnapshot) text = formatTds(finalSnapshot.estTds);
     else if (!recorder.running || recorder.elapsed() < tdsMinSeconds) text = '-- %';
     else text = formatTds(liveTds());
@@ -1282,7 +1284,7 @@ function renderFinalTdsDialog() {
         if (input.value !== auto) input.value = auto;
     }
     setText('ftCiy', formatCiy(finalSnapshot.ciy));
-    setText('ftTds', kv > 0 ? formatTds(tdsPercent(kv, finalSnapshot.ciy, parseFloat(input.value))) : 'Calibrate kᵥ in Settings');
+    setText('ftTds', `${formatTds(tdsPercent(activeKv(), finalSnapshot.ciy, parseFloat(input.value)))}${kv ? '' : ' · uncalibrated'}`);
     byId('ftTareBtn').disabled = !deviceConnected('scale');
 }
 
@@ -1293,7 +1295,7 @@ function applyFinalTds() {
         byId('ftYield').focus();
         return;
     }
-    finalTds = { yieldG, tds: tdsPercent(kv, finalSnapshot.ciy, yieldG) };
+    finalTds = { yieldG, tds: tdsPercent(activeKv(), finalSnapshot.ciy, yieldG) };
     // Calibration uses this measured yield for the same brew
     const brew = loadJson(LAST_BREW_KEY);
     if (brew) saveLastBrew({ ...brew, yield: yieldG });
@@ -1367,7 +1369,8 @@ let calBrew = null; // last brew being calibrated against
 let calKv = null; // k_v calculated in step 1
 
 function renderKvSetting() {
-    setText('kvSettingValue', formatKv(kv));
+    const cell = byId('kvSettingValue');
+    if (cell) cell.innerHTML = kv ? formatKv(kv) : `${formatKv(DEFAULT_KV)}<span class="kv-uncalibrated">uncalibrated</span>`;
 }
 
 function setKv(v) {
@@ -1438,7 +1441,7 @@ function calibrationNext() {
     renderCalibrationKv();
     calBrew = { ...calBrew, yield: y };
     saveLastBrew(calBrew);
-    setText('calCurrentKv', formatKv(kv));
+    setText('calCurrentKv', kv ? formatKv(kv) : `${formatKv(DEFAULT_KV)} (uncalibrated)`);
     byId('calNewKv').value = formatKv(calKv);
     showFieldError('calNewKvError', '');
     renderKvHistory();
@@ -1599,8 +1602,8 @@ function renderExtractionChart() {
         if (!extractionLabelsShown) svg.append(svgEl('text', { x: cx + (right ? 9 : -9), y: cy + (below ? 14 : -8), 'text-anchor': right ? 'start' : 'end', class: 'ey-brew-label' },
             `${pt.final ? '' : '≈ '}${pt.ey.toFixed(1)} %, ${pt.tds.toFixed(2)} %`));
         desc = `${pt.final ? '' : 'estimated '}extraction ${pt.ey.toFixed(1)} %, TDS ${pt.tds.toFixed(2)} %: ${extractionRegion(pt.tds, pt.ey)}`;
-    } else if (!(kv > 0) || !(memory.beans?.weight > 0)) {
-        svg.append(svgEl('text', { x: w / 2, y: h / 2, 'text-anchor': 'middle', class: 'ey-hint' }, !(kv > 0) ? 'Calibrate kᵥ to plot this brew' : 'Set the bean dose to plot this brew'));
+    } else if (!(memory.beans?.weight > 0)) {
+        svg.append(svgEl('text', { x: w / 2, y: h / 2, 'text-anchor': 'middle', class: 'ey-hint' }, 'Set the bean dose to plot this brew'));
     }
     svg.setAttribute('aria-label', `TDS versus extraction yield chart, ${desc}. Tap to ${extractionLabelsShown ? 'hide' : 'show'} region labels.`);
 }

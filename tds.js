@@ -10,6 +10,7 @@
  *   k_v   = TDS % × yield / (100 × CIY)
  */
 export const ALPHA = 0.02; // conductivity rises ~2% per °C
+export const DEFAULT_KV = 0.005; // rough k_v until the first refractometer calibration
 export const DEFAULT_ABSORPTION = 2.0; // g of water held per g of coffee
 export const MAX_ABSORPTION = 5;
 

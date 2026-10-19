@@ -1211,3 +1211,9 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     fill: #c9a46c;
     font-size: 12px;
 }
+/* Default k_v in use until the first calibration */
+.kv-uncalibrated {
+    display: block;
+    font-size: 0.75em;
+    color: #8a5a1c;
+}
