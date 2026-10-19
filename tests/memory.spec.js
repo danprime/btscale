@@ -31,45 +31,60 @@ function createStaticServer(root, port = 0) {
   });
 }
 
-test('memory overwrite flow updates localStorage and UI', async ({ page }) => {
+test('Bean Dose and Carafe/Server are typed in Settings, never taken from the scale', async ({ page }) => {
   const root = path.resolve(__dirname, '..');
   const { server, port } = await createStaticServer(root, 0);
   const baseUrl = `http://localhost:${port}`;
   await page.goto(`${baseUrl}/index.html`);
 
-  // seed a weight into the display so overwrite uses it
+  // A weight on the scale display must not be used by Overwrite
   await page.evaluate(() => {
     document.getElementById('weightDisplay').textContent = '42.50';
   });
 
-  // Open settings modal
   await page.click('#settingsBtn');
   await page.waitForSelector('#settingsModal', { state: 'visible' });
+  await expect(page.locator('#memoryConfirmModal')).toHaveCount(0); // no scale-weight confirm popup
 
-  // Click Overwrite for Beans
-  await page.click('button.memory-overwrite');
-  // Confirm modal should appear
-  await page.waitForSelector('#memoryConfirmModal', { state: 'visible' });
+  // Bean Dose: Overwrite -> input (empty, not 42.50) -> validation -> Enter saves
+  await page.click('#memoryBeansEditBtn');
+  await expect(page.locator('#memoryBeansEditBtn')).toHaveText('Save');
+  const beans = page.locator('#beansMemoryInput');
+  await expect(beans).toBeVisible();
+  await expect(beans).toHaveValue('');
+  for (const bad of ['0', '-5', '6000', '']) {
+    await beans.fill(bad);
+    await page.click('#memoryBeansEditBtn');
+    await expect(page.locator('#memoryError')).toBeVisible();
+    await expect(beans).toBeVisible(); // still editing
+  }
+  await beans.fill('18.5');
+  await expect(page.locator('#memoryError')).toBeHidden(); // typing clears the error
+  await beans.press('Enter');
+  await expect(page.locator('#memoryBeansWeight')).toHaveText('18.50');
+  await expect(page.locator('#memoryBeansEditBtn')).toHaveText('Overwrite');
+  await expect(page.locator('#targetWeight')).toHaveText('18.5gin → 277.5gout'); // target follows the dose
 
-  // Click Cancel first
-  await page.click('#memoryConfirmModal .modal-content .ritual-btn');
-  // Ensure confirm modal hidden
-  await page.waitForSelector('#memoryConfirmModal', { state: 'hidden' });
+  // Carafe/Server: Save button; editing again starts from the stored value
+  await page.click('#memoryCarafeEditBtn');
+  await page.locator('#carafeMemoryInput').fill('186');
+  await page.click('#memoryCarafeEditBtn');
+  await expect(page.locator('#memoryCarafeWeight')).toHaveText('186.00');
+  await page.click('#memoryCarafeEditBtn');
+  await expect(page.locator('#carafeMemoryInput')).toHaveValue('186');
 
-  // Click Overwrite again and confirm
-  await page.click('button.memory-overwrite');
-  await page.waitForSelector('#memoryConfirmModal', { state: 'visible' });
-  // Click Overwrite confirm button (it has id memoryConfirmBtn)
-  await page.click('#memoryConfirmBtn');
+  // Escape cancels without saving and keeps Settings open
+  await page.locator('#carafeMemoryInput').fill('500');
+  await page.locator('#carafeMemoryInput').press('Escape');
+  await expect(page.locator('#memoryCarafeWeight')).toHaveText('186.00');
+  await expect(page.locator('#settingsModal')).toBeVisible();
 
-  // Verify UI updated
-  const displayed = await page.textContent('#memoryBeansWeight');
-  expect(displayed.trim()).toBe('42.50');
-
-  // Verify localStorage updated
-  const stored = await page.evaluate(() => localStorage.getItem('scaleMemoryV1'));
-  const obj = JSON.parse(stored);
-  expect(obj.beans.weight.toFixed(2)).toBe('42.50');
+  // Stored and restored across reloads
+  const obj = JSON.parse(await page.evaluate(() => localStorage.getItem('scaleMemoryV1')));
+  expect(obj).toEqual({ beans: { weight: 18.5 }, carafe: { weight: 186 } });
+  await page.reload();
+  await expect(page.locator('#memoryBeansWeight')).toHaveText('18.50');
+  await expect(page.locator('#memoryCarafeWeight')).toHaveText('186.00');
 
   // Drop keep-alive sockets first, or close() can hang (seen with Chromium on Windows)
   server.closeAllConnections();

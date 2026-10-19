@@ -147,6 +147,7 @@ Timer
 - Elapsed time comes from the scale's timer when the scale is connected and driven; otherwise the app's own clock is used.
 
 Ratio and target weight
+- Settings > Memory: Bean Dose and Carafe/Server are typed in (Overwrite turns the value into an input, above 0 and up to 5000 g; Enter or Save stores it, Escape cancels). Settings never takes the scale's reading; the M_B button on the main screen still stores the bean weight from the scale.
 - Settings > Memory has a Ratio row (default 1:15). Overwrite turns the number into an input (above 0, up to 30, decimals allowed); Enter or Save stores it, Escape cancels.
 - The target weight is always the stored bean dose × that ratio. The Target Weight card shows both, e.g. "20g<sub>in</sub> → 300g<sub>out</sub>" (or "-- g" without a bean dose). When three cards share the row (e.g. Avg flow, Target, Yield after Stop) it drops the subscripts: "20g → 300g". It updates whenever either changes, including on page load, and is not cleared when the scale disconnects.
 
