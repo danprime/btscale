@@ -1250,6 +1250,9 @@ function renderYieldPanel() {
     if (!panel) return;
     panel.hidden = !finalTds;
     if (finalTds) setText('yieldValue', `${finalTds.yieldG.toFixed(1)} g`);
+    // The target card's format depends on how many cards share its row; apply it now, not on the next resize
+    const twEl = byId('targetWeight');
+    if (twEl) fitTarget(twEl);
 }
 
 // --- Bean button: "set beans", or the final TDS calculator after a TDS brew is stopped ---

@@ -1230,6 +1230,7 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     overflow: hidden;
 }
 #targetWeight sub {
+    line-height: 0;                  /* subscripts must not make the line taller */
     font-size: 0.6em;
     font-weight: 500;
     vertical-align: baseline;

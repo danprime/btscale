@@ -476,6 +476,15 @@ test('target card: "in → out" subscripts with two cards, plain "20g → 300g" 
   const target = page.locator('#targetWeight');
   await expect(target).toHaveText('18.5gin → 277.5gout');
   await expect(target.locator('sub').first()).toBeVisible(); // two cards: in/out subscripts
+  // Subscripts must not make the card taller than plain text would
+  const heights = await target.evaluate((el) => {
+    const withSubs = el.getBoundingClientRect().height;
+    el.classList.add('compact');
+    const plain = el.getBoundingClientRect().height;
+    el.classList.remove('compact');
+    return { withSubs, plain };
+  });
+  expect(heights.withSubs).toBe(heights.plain);
   await page.evaluate(async () => {
     await window.__connect(['scale', 'portal']);
     await window.__brew();
