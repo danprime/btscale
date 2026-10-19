@@ -62,6 +62,11 @@
                 <div class="ritual-info-label" id="targetWeightLabel">Target Weight</div>
                 <div class="ritual-info-value" id="targetWeight" aria-live="polite">-- g</div>
             </div>
+            <!-- Measured yield, after the final TDS calculator -->
+            <div class="ritual-info-item" id="yieldPanel" hidden>
+                <div class="ritual-info-label" id="yieldLabel">Yield</div>
+                <div class="ritual-info-value" id="yieldValue" aria-live="polite">-- g</div>
+            </div>
             <div class="ritual-info-item" id="remainderPanel">
                 <div class="ritual-info-label" id="remainderLabel">Remainder</div>
                 <div class="ritual-info-value" id="remainder" aria-live="polite">-- g</div>
@@ -77,6 +82,11 @@
                 <div class="ritual-info-label" id="tempLabel">Temperature</div>
                 <div class="ritual-info-value" id="tempValue" aria-live="polite">-- °C</div>
             </div>
+            <!-- TDS: needs the scale and the EC meter -->
+            <div class="ritual-info-item" id="tdsPanel" hidden>
+                <div class="ritual-info-label" id="tdsLabel">TDS ≈</div>
+                <div class="ritual-info-value" id="tdsValue" aria-live="polite">-- %</div>
+            </div>
             <div class="ritual-info-item" id="ecPanel">
                 <div class="ritual-info-label" id="ecLabel">EC</div>
                 <div class="ritual-info-value" id="ecValue" aria-live="polite">-- mS/cm</div>
@@ -85,7 +95,8 @@
         <!-- Main Action Buttons -->
         <section class="ritual-controls ritual-main-actions" aria-label="Main actions">
             <button id="tareBtn" class="ritual-btn main-action" onclick="sendTareCommand()" disabled aria-label="Tare">T</button>
-            <button id="tareBeanBtn" class="ritual-btn main-action" onclick="tareBean()" disabled aria-label="Set beans" title="Set beans: stores the bean (B) weight in memory (M)"><span class="key"><span class="key-letter">M</span><span class="key-sub" aria-hidden="true">B</span></span></button>
+            <!-- Set beans; after a TDS brew is stopped it becomes the final TDS calculator -->
+            <button id="tareBeanBtn" class="ritual-btn main-action" onclick="beanButton()" disabled aria-label="Set beans" title="Set beans: stores the bean (B) weight in memory (M)"><span class="key"><span class="key-letter">M</span><span class="key-sub" aria-hidden="true">B</span></span></button>
             <button id="timerToggleBtn" class="ritual-btn main-action timer-action" onclick="triStateTimer()" aria-label="Start, Stop, or Reset Timer">
                 <span id="timerBtnIcon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play w-8 h-8 text-white ml-1"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
@@ -139,10 +150,22 @@
                       <td id="ratioSettingCell" style="text-align:right;">1:<span id="ratioSettingValue">15</span></td>
                       <td><button id="ratioEditBtn" class="ritual-btn memory-overwrite" onclick="startRatioEdit()">Overwrite</button></td>
                     </tr>
+                    <!-- Water held back by the coffee bed (g per g of beans), for the live yield -->
+                    <tr>
+                      <td>Bed absorption</td>
+                      <td id="absorptionSettingCell" style="text-align:right;"><span id="absorptionSettingValue">2.0</span> g/g</td>
+                      <td><button id="absorptionEditBtn" class="ritual-btn memory-overwrite" onclick="startAbsorptionEdit()">Overwrite</button></td>
+                    </tr>
+                    <!-- TDS calibration constant -->
+                    <tr>
+                      <td>k<sub>v</sub></td>
+                      <td id="kvSettingValue" style="text-align:right;">--</td>
+                      <td><button id="kvCalibrateBtn" class="ritual-btn memory-overwrite" onclick="openCalibration()">Calibrate</button></td>
+                    </tr>
                   </tbody>
                 </table>
                 <div id="ratioError" class="field-error" role="alert" hidden></div>
-                <p class="setting-hint">Target weight = bean dose × ratio.</p>
+                <div id="absorptionError" class="field-error" role="alert" hidden></div>
 
                 <!-- Memory Overwrite Confirmation Modal -->
                 <div id="memoryConfirmModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="memoryConfirmTitle">
@@ -204,6 +227,85 @@
                     <input type="checkbox" id="logToggle" aria-label="Enable Logging">
                     <span class="log-warning" style="color: #b77; font-size: 0.95em; margin-left: 0.5em;">(May affect UI responsiveness)</span>
                 </div>
+            </div>
+        </div>
+        <!-- Final TDS calculator (after Stop). Opening it never tares the scale. -->
+        <div id="finalTdsModal" class="modal tds-dialog" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="finalTdsTitle">
+            <div class="modal-content">
+                <p class="dialog-step">Final TDS</p>
+                <h3 id="finalTdsTitle">Weigh the coffee</h3>
+                <table class="memory-table tds-table">
+                  <tbody>
+                    <tr><td>Scale</td><td id="ftScale">-- g</td><td><button id="ftTareBtn" class="ritual-btn memory-overwrite" onclick="sendTareCommand()">Tare</button></td></tr>
+                    <tr><td>Carafe (memory)</td><td id="ftCarafe">--</td><td></td></tr>
+                    <tr class="tds-strong"><td><label for="ftYield">Yield</label></td><td><input type="number" id="ftYield" min="0" step="any" inputmode="decimal"> g</td><td></td></tr>
+                    <tr><td>CIY</td><td id="ftCiy">--</td><td></td></tr>
+                    <tr class="tds-strong"><td>TDS</td><td id="ftTds">-- %</td><td></td></tr>
+                  </tbody>
+                </table>
+                <div id="ftError" class="field-error" role="alert" hidden></div>
+                <div class="tds-formula">
+                    <math display="block"><mrow><mtext>TDS %</mtext><mo>=</mo><mfrac><mrow><msub><mi>k</mi><mi>v</mi></msub><mo lspace="0.25em" rspace="0.25em">×</mo><mtext>CIY</mtext></mrow><mtext>Yield (g)</mtext></mfrac><mo lspace="0.25em" rspace="0.25em">×</mo><mn>100</mn></mrow></math>
+                </div>
+                <div class="dialog-actions">
+                    <button class="ritual-btn" onclick="closeFinalTds()">Cancel</button>
+                    <button id="ftNextBtn" class="ritual-btn memory-confirm-btn" onclick="applyFinalTds()">Next</button>
+                </div>
+            </div>
+        </div>
+        <!-- k_v calibration (from Settings): refractometer reading, then compare and save -->
+        <div id="calibrateModal" class="modal tds-dialog" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="calTitle1">
+            <div class="modal-content">
+                <section id="calEmpty" hidden>
+                    <p class="dialog-step">Calibrate k<sub>v</sub></p>
+                    <h3 id="calTitleEmpty">No brew to calibrate from</h3>
+                    <p class="dialog-note">Brew a full cup with the scale and EC meter connected, then come back here.</p>
+                    <div class="dialog-actions">
+                        <button class="ritual-btn memory-confirm-btn" onclick="closeCalibration()">OK</button>
+                    </div>
+                </section>
+                <section id="calStep1" hidden>
+                    <p class="dialog-step">Calibrate k<sub>v</sub> · 1 of 2</p>
+                    <h3 id="calTitle1">Refractometer reading</h3>
+                    <table class="memory-table tds-table">
+                      <tbody>
+                        <tr><td>Last brew</td><td id="calBrewTime">--</td></tr>
+                        <tr><td>CIY</td><td id="calCiy">--</td></tr>
+                        <tr><td><label for="calYield">Yield</label></td><td><input type="number" id="calYield" min="0" step="any" inputmode="decimal"> g</td></tr>
+                        <tr><td><label for="calTds">True TDS</label></td><td><input type="number" id="calTds" min="0" max="25" step="any" inputmode="decimal" placeholder="1.38"> %</td></tr>
+                        <tr class="tds-strong"><td>k<sub>v</sub></td><td id="calKv">--</td></tr>
+                      </tbody>
+                    </table>
+                    <div id="calError" class="field-error" role="alert" hidden></div>
+                    <div class="tds-formula">
+                        <math display="block"><mrow><msub><mi>k</mi><mi>v</mi></msub><mo>=</mo><mfrac><mrow><mtext>TDS %</mtext><mo lspace="0.25em" rspace="0.25em">×</mo><mtext>Yield (g)</mtext></mrow><mrow><mn>100</mn><mo lspace="0.25em" rspace="0.25em">×</mo><mtext>CIY</mtext></mrow></mfrac></mrow></math>
+                    </div>
+                    <div class="dialog-actions">
+                        <button class="ritual-btn" onclick="closeCalibration()">Cancel</button>
+                        <button id="calNextBtn" class="ritual-btn memory-confirm-btn" onclick="calibrationNext()">Next</button>
+                    </div>
+                </section>
+                <section id="calStep2" hidden>
+                    <p class="dialog-step">Calibrate k<sub>v</sub> · 2 of 2</p>
+                    <h3 id="calTitle2">Compare and save</h3>
+                    <table class="memory-table tds-table">
+                      <tbody>
+                        <tr><td>Current</td><td id="calCurrentKv">--</td></tr>
+                        <tr class="tds-strong"><td><label for="calNewKv">New</label></td><td><input type="number" id="calNewKv" min="0" step="any" inputmode="decimal"></td></tr>
+                      </tbody>
+                    </table>
+                    <div id="calNewKvError" class="field-error" role="alert" hidden></div>
+                    <div id="calHistory" hidden>
+                        <p class="dialog-step">Last 3</p>
+                        <table class="memory-table tds-table">
+                          <tbody id="calHistoryRows"></tbody>
+                        </table>
+                    </div>
+                    <div class="dialog-actions">
+                        <button class="ritual-btn" onclick="keepCurrentKv()">Keep current</button>
+                        <button id="calSaveBtn" class="ritual-btn memory-confirm-btn" onclick="saveNewKv()"><span>Save new k<sub>v</sub></span></button>
+                    </div>
+                </section>
             </div>
         </div>
     </main>

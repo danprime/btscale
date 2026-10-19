@@ -69,6 +69,7 @@ import { installMockBluetooth } from './ble-mock.js';
 import { DeviceManager } from './device-manager.js';
 import { BrewRecorder } from './brew-recorder.js';
 import { BrewChart } from './brew-chart.js';
+import { CiyIntegrator, ec25, liveYield, tdsPercent, calcKv, DEFAULT_ABSORPTION, MAX_ABSORPTION } from './tds.js';
 
 // --- Settings modal logic (moved to top for global availability) ---
 function openSettingsModal() {
@@ -99,6 +100,12 @@ let lastScaleData = null;
 let lastPortalData = null;
 // Final values captured at Stop; while set, the main readouts stay frozen
 let finalSnapshot = null;
+
+// TDS (needs the scale and the EC meter): CIY accumulates while a brew runs with both
+const ciy = new CiyIntegrator();
+let tdsBrew = false; // true once this brew has summed EC over poured water
+let tdsMinSeconds = 30; // live TDS shows "--" for this long after Start
+let finalTds = null; // { yieldG, tds } from the final TDS calculator, after Stop
 
 // Live brew chart (replaces the progress ring). Cleared on Reset, refilled from Start.
 let brewChart = null;
@@ -264,6 +271,9 @@ function renderConnectionState(errorText) {
         const el = document.getElementById(id);
         if (el) el.disabled = !scaleOn;
     }
+    renderBeanButton();
+    renderTdsPanel();
+    renderFinalTdsDialog();
 
     // The timer works with either device (the app keeps its own clock as a fallback).
     const timerBtn = document.getElementById('timerToggleBtn');
@@ -276,6 +286,7 @@ function renderConnectionState(errorText) {
         captureFinal();
         releaseWakeLock();
     }
+    renderBeanButton();
     renderTimerIcon();
     updateExportButton();
     refreshChart();
@@ -387,19 +398,30 @@ function updatePortalDisplay(portalData) {
 }
 
 function onScaleData(scaleData) {
-    recorder.addScale(scaleData);
+    if (recorder.running) ciy.addWeight(scaleData.weight);
     lastScaleData = scaleData;
+    syncRecorderTds();
+    recorder.addScale(scaleData);
     if (finalSnapshot) renderLiveStrip();
     else updateDisplay(scaleData);
+    renderTdsPanel();
+    renderFinalTdsDialog();
     refreshChart();
     log(`Weight: ${scaleData.weight.toFixed(2)}g, Flow: ${scaleData.flowRate.toFixed(2)}g/s, Battery: ${scaleData.batteryPercent}%`);
 }
 
 function onPortalData(portalData) {
-    recorder.addPortal(portalData);
     lastPortalData = portalData;
+    // Each EC reading adds EC25 x the water poured since the last one
+    if (recorder.running && deviceConnected('scale') && lastScaleData) {
+        ciy.addEc(portalData.ec, portalData.temp);
+        tdsBrew = tdsBrew || ciy.steps > 0;
+    }
+    syncRecorderTds();
+    recorder.addPortal(portalData);
     if (finalSnapshot) renderLiveStrip();
     else updatePortalDisplay(portalData);
+    renderTdsPanel();
     refreshChart();
 }
 
@@ -415,7 +437,12 @@ function captureFinal() {
         peakEc: ecs.length ? Math.max(...ecs) : null,
         // Only if the EC meter took part in this brew
         temp: ecs.length && lastPortalData ? lastPortalData.temp : null,
+        // Only if the scale and the EC meter were both used (TDS)
+        ciy: tdsBrew ? ciy.ciy : null,
+        estYield: tdsBrew ? estimatedYield() : null,
+        estTds: tdsBrew ? liveTds() : null,
     };
+    if (tdsBrew) saveLastBrew({ ciy: ciy.ciy, estYield: finalSnapshot.estYield, yield: null, at: Date.now() });
     renderFinal();
 }
 
@@ -479,13 +506,24 @@ function renderFinal() {
     setText('flowRate', f.avgFlow != null ? `${f.avgFlow.toFixed(1)} g/s` : '-- g/s');
     setText('tempLabel', 'Temp at stop');
     setText('tempValue', f.temp != null ? `${f.temp.toFixed(1)} °C` : '-- °C');
-    setText('ecLabel', 'Peak EC');
-    setText('ecValue', f.peakEc != null ? `${f.peakEc.toFixed(2)} mS/cm` : '-- mS/cm');
+    if (f.ciy != null) {
+        // TDS brew: CIY replaces the EC card
+        setText('ecLabel', 'CIY');
+        setText('ecValue', formatCiy(f.ciy));
+    } else {
+        setText('ecLabel', 'Peak EC');
+        setText('ecValue', f.peakEc != null ? `${f.peakEc.toFixed(2)} mS/cm` : '-- mS/cm');
+    }
+    renderTdsPanel();
+    renderYieldPanel();
+    renderBeanButton();
     renderLiveStrip();
 }
 
 function clearFinal() {
     finalSnapshot = null;
+    finalTds = null;
+    closeFinalTds();
     setText('flowRateLabel', 'Flow Rate');
     setText('tempLabel', 'Temperature');
     setText('ecLabel', 'EC');
@@ -496,6 +534,9 @@ function clearFinal() {
     renderWeightReadout();
     if (lastPortalData && deviceConnected('portal')) updatePortalDisplay(lastPortalData);
     else resetPortalDisplay();
+    renderTdsPanel();
+    renderYieldPanel();
+    renderBeanButton();
     renderLiveStrip();
 }
 
@@ -652,6 +693,10 @@ async function sendToDevices(action, types) {
 async function startBrew({ scaleAlreadyStarted = false } = {}) {
     const targets = timerTargets().filter((t) => !(scaleAlreadyStarted && t === 'scale'));
     if (finalSnapshot) clearFinal();
+    // Tare and start zeroes the scale, so the brew starts from 0 g
+    ciy.reset(scaleAlreadyStarted ? 0 : lastScaleData?.weight ?? null);
+    tdsBrew = false;
+    recorder.setDerived();
     appTimer.start();
     recorder.start();
     chartCleared = false;
@@ -669,6 +714,7 @@ async function stopBrew() {
     refreshChart();
     timerState = 'reset-required';
     captureFinal();
+    renderBeanButton();
     renderTimerIcon();
     updateExportButton();
     releaseWakeLock();
@@ -1093,6 +1139,376 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
+// --- TDS: live estimate, final TDS calculator, bed absorption and k_v calibration ---
+const KV_KEY = 'tdsKvV1';
+const KV_HISTORY_KEY = 'kvHistoryV1';
+const LAST_BREW_KEY = 'lastBrewV1';
+const ABSORPTION_KEY = 'bedAbsorptionV1';
+const MIN_CAL_TDS = 0.1;
+const MAX_CAL_TDS = 25;
+
+function loadJson(key) {
+    try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
+}
+function saveJson(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
+
+let kv = (() => { const v = loadJson(KV_KEY); return typeof v === 'number' && v > 0 ? v : null; })();
+let absorption = (() => { const v = loadJson(ABSORPTION_KEY); return typeof v === 'number' && v >= 0 && v <= MAX_ABSORPTION ? v : DEFAULT_ABSORPTION; })();
+
+/** 4 significant digits, no trailing zeros ("0.005", "0.005086") */
+function formatKv(v) { return v > 0 ? String(Number(v.toPrecision(4))) : '--'; }
+function formatCiy(v) { return v != null ? v.toFixed(1) : '--'; }
+/** "2.0", "2.15" (at least one decimal) */
+function formatAbsorption(a) {
+    const s = String(Math.round(a * 100) / 100);
+    return s.includes('.') ? s : `${s}.0`;
+}
+function formatTds(v) { return v != null ? `${v.toFixed(2)} %` : '-- %'; }
+function byId(id) { return document.getElementById(id); }
+
+/** Water poured minus what the bed holds (bean dose x absorption). */
+function estimatedYield() {
+    return liveYield(ciy.poured, memory.beans?.weight, absorption);
+}
+
+/** TDS % estimated from the live yield; null until it can be computed. */
+function liveTds() {
+    return tdsBrew ? tdsPercent(kv, ciy.ciy, estimatedYield()) : null;
+}
+
+/** EC25, CIY and TDS go into the CSV rows next to the raw readings. */
+function syncRecorderTds() {
+    const portalOn = deviceConnected('portal') && lastPortalData;
+    recorder.setDerived({
+        ec25: portalOn ? ec25(lastPortalData.ec, lastPortalData.temp) : null,
+        ciy: tdsBrew ? ciy.ciy : null,
+        tds: tdsBrew ? liveTds() : null,
+    });
+}
+
+/** TDS card: live estimate while brewing with both devices, final values after Stop. */
+function renderTdsPanel() {
+    const panel = byId('tdsPanel');
+    if (!panel) return;
+    const both = deviceConnected('scale') && deviceConnected('portal');
+    const show = finalSnapshot ? finalSnapshot.ciy != null : both;
+    panel.hidden = !show;
+    if (!show) return;
+    setText('tdsLabel', finalTds ? 'TDS' : 'TDS ≈');
+    let text;
+    if (!(kv > 0)) text = 'Calibrate';
+    else if (finalTds) text = formatTds(finalTds.tds);
+    else if (finalSnapshot) text = formatTds(finalSnapshot.estTds);
+    else if (!recorder.running || recorder.elapsed() < tdsMinSeconds) text = '-- %';
+    else text = formatTds(liveTds());
+    setText('tdsValue', text);
+}
+
+function renderYieldPanel() {
+    const panel = byId('yieldPanel');
+    if (!panel) return;
+    panel.hidden = !finalTds;
+    if (finalTds) setText('yieldValue', `${finalTds.yieldG.toFixed(1)} g`);
+}
+
+// --- Bean button: "set beans", or the final TDS calculator after a TDS brew is stopped ---
+const CALC_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>`;
+let beanButtonHtml = null;
+
+function calculatorMode() {
+    return timerState === 'reset-required' && finalSnapshot?.ciy != null;
+}
+
+function renderBeanButton() {
+    const btn = byId('tareBeanBtn');
+    if (!btn) return;
+    if (beanButtonHtml == null) beanButtonHtml = btn.innerHTML;
+    const calc = calculatorMode();
+    const mode = calc ? 'calc' : 'bean';
+    if (btn.dataset.mode !== mode) {
+        btn.dataset.mode = mode;
+        btn.innerHTML = calc ? CALC_ICON : beanButtonHtml;
+        btn.setAttribute('aria-label', calc ? 'Final TDS calculator' : 'Set beans');
+        btn.title = calc ? 'Final TDS: weigh the coffee to calculate its TDS' : 'Set beans: stores the bean (B) weight in memory (M)';
+    }
+    btn.disabled = calc ? false : !deviceConnected('scale');
+}
+
+function beanButton() {
+    if (calculatorMode()) openFinalTds();
+    else tareBean();
+}
+
+// --- Final TDS calculator ---
+let ftYieldEdited = false;
+
+function finalTdsOpen() {
+    const modal = byId('finalTdsModal');
+    return !!modal && modal.style.display !== 'none';
+}
+
+function openFinalTds() {
+    if (!finalSnapshot || finalSnapshot.ciy == null) return;
+    const input = byId('ftYield');
+    // Re-opening keeps the yield that was entered last time
+    ftYieldEdited = !!finalTds;
+    input.value = finalTds ? finalTds.yieldG.toFixed(1) : '';
+    showFieldError('ftError', '');
+    byId('finalTdsModal').style.display = 'flex';
+    renderFinalTdsDialog();
+}
+
+function closeFinalTds() {
+    const modal = byId('finalTdsModal');
+    if (modal) modal.style.display = 'none';
+}
+
+/** Scale, carafe, yield (scale - carafe until edited), CIY and TDS. */
+function renderFinalTdsDialog() {
+    if (!finalTdsOpen() || !finalSnapshot) return;
+    const w = deviceConnected('scale') && lastScaleData ? lastScaleData.weight : null;
+    const carafe = memory.carafe?.weight;
+    setText('ftScale', w != null ? `${w.toFixed(1)} g` : '-- g');
+    setText('ftCarafe', carafe != null ? `${carafe.toFixed(1)} g` : '--');
+    const input = byId('ftYield');
+    if (!ftYieldEdited && w != null) {
+        const auto = (w - (carafe || 0)).toFixed(1);
+        if (input.value !== auto) input.value = auto;
+    }
+    setText('ftCiy', formatCiy(finalSnapshot.ciy));
+    setText('ftTds', kv > 0 ? formatTds(tdsPercent(kv, finalSnapshot.ciy, parseFloat(input.value))) : 'Calibrate kᵥ in Settings');
+    byId('ftTareBtn').disabled = !deviceConnected('scale');
+}
+
+function applyFinalTds() {
+    const yieldG = parseFloat(byId('ftYield').value);
+    if (!(yieldG > 0)) {
+        showFieldError('ftError', 'Enter the yield in grams.');
+        byId('ftYield').focus();
+        return;
+    }
+    finalTds = { yieldG, tds: tdsPercent(kv, finalSnapshot.ciy, yieldG) };
+    // Calibration uses this measured yield for the same brew
+    const brew = loadJson(LAST_BREW_KEY);
+    if (brew) saveLastBrew({ ...brew, yield: yieldG });
+    closeFinalTds();
+    renderTdsPanel();
+    renderYieldPanel();
+    log(`Final TDS: ${formatTds(finalTds.tds)} from ${yieldG.toFixed(1)} g`);
+}
+
+function showFieldError(id, msg) {
+    const el = byId(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.hidden = !msg;
+}
+
+function saveLastBrew(brew) { saveJson(LAST_BREW_KEY, brew); }
+
+// --- Settings: bed absorption row (Overwrite turns the number into an input) ---
+function renderAbsorptionSetting() {
+    const display = byId('absorptionSettingValue');
+    if (display) display.textContent = formatAbsorption(absorption);
+}
+
+function startAbsorptionEdit() {
+    const cell = byId('absorptionSettingCell');
+    const btn = byId('absorptionEditBtn');
+    if (!cell || !btn || byId('absorptionInput')) return;
+    cell.innerHTML = `<input type="number" id="absorptionInput" min="0" max="${MAX_ABSORPTION}" step="any" inputmode="decimal" aria-label="Bed absorption, grams of water per gram of beans" value="${formatAbsorption(absorption)}"> g/g`;
+    btn.textContent = 'Save';
+    btn.onclick = saveAbsorptionEdit;
+    const input = byId('absorptionInput');
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); saveAbsorptionEdit(); }
+        if (e.key === 'Escape') { e.stopPropagation(); endAbsorptionEdit(); }
+    });
+    input.addEventListener('input', () => showFieldError('absorptionError', ''));
+    input.focus();
+    input.select();
+}
+
+function saveAbsorptionEdit() {
+    const input = byId('absorptionInput');
+    if (!input) return;
+    const a = input.value.trim() === '' ? NaN : Number(input.value);
+    if (!(a >= 0 && a <= MAX_ABSORPTION)) {
+        showFieldError('absorptionError', `Enter a number from 0 to ${MAX_ABSORPTION}.`);
+        input.focus();
+        return;
+    }
+    absorption = a;
+    saveJson(ABSORPTION_KEY, a);
+    endAbsorptionEdit();
+    renderTdsPanel();
+    log(`Bed absorption set to ${formatAbsorption(a)} g/g`);
+}
+
+function endAbsorptionEdit() {
+    const cell = byId('absorptionSettingCell');
+    const btn = byId('absorptionEditBtn');
+    if (cell) cell.innerHTML = '<span id="absorptionSettingValue"></span> g/g';
+    if (btn) { btn.textContent = 'Overwrite'; btn.onclick = startAbsorptionEdit; }
+    showFieldError('absorptionError', '');
+    renderAbsorptionSetting();
+}
+
+// --- Settings: k_v and its calibration (refractometer reading, then compare and save) ---
+let calBrew = null; // last brew being calibrated against
+let calKv = null; // k_v calculated in step 1
+
+function renderKvSetting() {
+    setText('kvSettingValue', formatKv(kv));
+}
+
+function setKv(v) {
+    kv = v;
+    saveJson(KV_KEY, v);
+    renderKvSetting();
+    renderTdsPanel();
+}
+
+function calibrationOpen() {
+    const modal = byId('calibrateModal');
+    return !!modal && modal.style.display !== 'none';
+}
+
+function showCalibrationStep(id) {
+    for (const s of ['calEmpty', 'calStep1', 'calStep2']) byId(s).hidden = s !== id;
+    const title = { calEmpty: 'calTitleEmpty', calStep1: 'calTitle1', calStep2: 'calTitle2' }[id];
+    byId('calibrateModal').setAttribute('aria-labelledby', title);
+}
+
+function openCalibration() {
+    const brew = loadJson(LAST_BREW_KEY);
+    byId('calibrateModal').style.display = 'flex';
+    if (!(brew?.ciy > 0)) {
+        calBrew = null;
+        showCalibrationStep('calEmpty');
+        return;
+    }
+    calBrew = brew;
+    const at = new Date(brew.at);
+    setText('calBrewTime', `${at.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${at.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`);
+    setText('calCiy', formatCiy(brew.ciy));
+    const y = brew.yield ?? brew.estYield;
+    byId('calYield').value = y > 0 ? y.toFixed(1) : '';
+    byId('calTds').value = '';
+    showFieldError('calError', '');
+    renderCalibrationKv();
+    showCalibrationStep('calStep1');
+    byId('calTds').focus();
+}
+
+function closeCalibration() {
+    const modal = byId('calibrateModal');
+    if (modal) modal.style.display = 'none';
+}
+
+/** k_v follows the yield and TDS as they are typed (read-only). */
+function renderCalibrationKv() {
+    const tds = parseFloat(byId('calTds').value);
+    const y = parseFloat(byId('calYield').value);
+    calKv = calBrew && tds >= MIN_CAL_TDS && tds <= MAX_CAL_TDS ? calcKv(tds, y, calBrew.ciy) : null;
+    setText('calKv', formatKv(calKv));
+}
+
+function calibrationNext() {
+    const y = parseFloat(byId('calYield').value);
+    const tds = parseFloat(byId('calTds').value);
+    if (!(y > 0)) {
+        showFieldError('calError', 'Enter the yield in grams.');
+        byId('calYield').focus();
+        return;
+    }
+    if (!(tds >= MIN_CAL_TDS && tds <= MAX_CAL_TDS)) {
+        showFieldError('calError', `Enter TDS as a percentage from ${MIN_CAL_TDS} to ${MAX_CAL_TDS}, like 1.38.`);
+        byId('calTds').focus();
+        return;
+    }
+    renderCalibrationKv();
+    calBrew = { ...calBrew, yield: y };
+    saveLastBrew(calBrew);
+    setText('calCurrentKv', formatKv(kv));
+    byId('calNewKv').value = formatKv(calKv);
+    showFieldError('calNewKvError', '');
+    renderKvHistory();
+    showCalibrationStep('calStep2');
+}
+
+function loadKvHistory() {
+    const h = loadJson(KV_HISTORY_KEY);
+    return Array.isArray(h) ? h.filter((e) => e?.kv > 0) : [];
+}
+
+/** Last 3 calibrations, newest first, with their average. */
+function renderKvHistory() {
+    const history = loadKvHistory().slice(0, 3);
+    byId('calHistory').hidden = !history.length;
+    const rows = history.map((e) => {
+        const d = new Date(e.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        return `<tr><td>${d}</td><td>${formatKv(e.kv)}</td></tr>`;
+    });
+    if (history.length) {
+        const avg = history.reduce((sum, e) => sum + e.kv, 0) / history.length;
+        rows.push(`<tr class="tds-strong"><td>Average</td><td>${formatKv(avg)}</td></tr>`);
+    }
+    byId('calHistoryRows').innerHTML = rows.join('');
+}
+
+function pushKvHistory(value) {
+    if (!(value > 0)) return;
+    saveJson(KV_HISTORY_KEY, [{ at: Date.now(), kv: value }, ...loadKvHistory()].slice(0, 3));
+}
+
+/** Keep the current k_v; the calculated one still goes into the history. */
+function keepCurrentKv() {
+    pushKvHistory(calKv);
+    closeCalibration();
+}
+
+/** Store the new k_v (as edited); it goes into the history too. */
+function saveNewKv() {
+    const input = byId('calNewKv');
+    const v = input.value.trim() === '' ? NaN : Number(input.value);
+    if (!(v > 0)) {
+        showFieldError('calNewKvError', 'Enter a number above 0.');
+        input.focus();
+        return;
+    }
+    setKv(v);
+    pushKvHistory(v);
+    closeCalibration();
+    log(`k_v set to ${formatKv(v)}`);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    renderKvSetting();
+    endAbsorptionEdit();
+    byId('ftYield').addEventListener('input', () => {
+        ftYieldEdited = true;
+        showFieldError('ftError', '');
+        renderFinalTdsDialog();
+    });
+    for (const id of ['calYield', 'calTds']) {
+        byId(id).addEventListener('input', () => { showFieldError('calError', ''); renderCalibrationKv(); });
+    }
+    byId('calNewKv').addEventListener('input', () => showFieldError('calNewKvError', ''));
+    // Enter moves each dialog forward
+    byId('ftYield').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); applyFinalTds(); } });
+    byId('calTds').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); calibrationNext(); } });
+    byId('calNewKv').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveNewKv(); } });
+    // Clicking the backdrop closes a dialog
+    for (const [id, close] of [['finalTdsModal', closeFinalTds], ['calibrateModal', closeCalibration]]) {
+        byId(id).addEventListener('click', (e) => { if (e.target.id === id) close(); });
+    }
+    renderTdsPanel();
+    renderBeanButton();
+});
+
 // Expose for HTML
 window.openRatioSlider = openRatioSlider;
 window.closeRatioSlider = closeRatioSlider;
@@ -1118,6 +1534,15 @@ window.triStateTimer = triStateTimer;
 window.toggleConnect = toggleConnect;
 window.exportBrewCsv = exportBrewCsv;
 window.startRatioEdit = startRatioEdit;
+window.beanButton = beanButton;
+window.closeFinalTds = closeFinalTds;
+window.applyFinalTds = applyFinalTds;
+window.startAbsorptionEdit = startAbsorptionEdit;
+window.openCalibration = openCalibration;
+window.closeCalibration = closeCalibration;
+window.calibrationNext = calibrationNext;
+window.keepCurrentKv = keepCurrentKv;
+window.saveNewKv = saveNewKv;
 
 // Test helpers (test-only): allow E2E tests to inject memory and update UI deterministically.
 window.__test_setMemory = (m) => {
@@ -1166,6 +1591,8 @@ window.__test_emitPortal = (portalData) => {
     } catch (e) {}
 };
 window.__test_recorder = recorder;
+// Seconds before the live TDS estimate appears (30 in the app)
+window.__test_setTdsDelay = (seconds) => { tdsMinSeconds = seconds; renderTdsPanel(); };
 
 // Delegate test-only BLE mock installer to the library's installMock
 window.__test_installBLEMock = () => {
@@ -1184,7 +1611,11 @@ window.__test_installMultiBLEMock = (opts) => installMockBluetooth(opts);
 window.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('settingsModal');
     window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeSettingsModal();
+        if (e.key !== 'Escape') return;
+        // Close the top dialog only
+        if (calibrationOpen()) closeCalibration();
+        else if (finalTdsOpen()) closeFinalTds();
+        else closeSettingsModal();
     });
     window.addEventListener('click', (e) => {
         if (e.target === modal) closeSettingsModal();
