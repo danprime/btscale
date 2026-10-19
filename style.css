@@ -1217,3 +1217,9 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     font-size: 0.75em;
     color: #8a5a1c;
 }
+
+/* Popups taller than the screen (Settings on a phone) scroll inside the overlay */
+.modal {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
