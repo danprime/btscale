@@ -71,5 +71,7 @@ test('memory overwrite flow updates localStorage and UI', async ({ page }) => {
   const obj = JSON.parse(stored);
   expect(obj.beans.weight.toFixed(2)).toBe('42.50');
 
+  // Drop keep-alive sockets first, or close() can hang (seen with Chromium on Windows)
+  server.closeAllConnections();
   await new Promise((r) => server.close(r));
 });

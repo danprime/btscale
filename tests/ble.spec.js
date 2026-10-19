@@ -88,5 +88,7 @@ test('connectToScale works with BLE mock and delivers weight updates', async ({ 
 
   // Cleanup
   await page.evaluate(() => { window.__bleMock.uninstall(); delete window.__bleMock; });
+  // Drop keep-alive sockets first, or close() can hang (seen with Chromium on Windows)
+  server.closeAllConnections();
   await new Promise((r) => server.close(r));
 });

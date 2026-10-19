@@ -60,5 +60,7 @@ test('weight and calculated ratio update correctly', async ({ page }) => {
   const flow = await page.textContent('#flowRate');
   expect(flow.trim()).toBe('1.2 g/s');
 
+  // Drop keep-alive sockets first, or close() can hang (seen with Chromium on Windows)
+  server.closeAllConnections();
   await new Promise((r) => server.close(r));
 });
