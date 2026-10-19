@@ -225,7 +225,7 @@ test('EC meter only: no TDS, Peak EC after Stop and M_B stays Set beans', async 
 test('settings: bed absorption and k_v under Ratio (default 2.0), Calibrate, no TDS header or target hint', async ({ page }) => {
   await page.click('#settingsBtn');
   const rows = await page.locator('#memoryTable tbody tr td:first-child').allTextContents();
-  expect(rows).toEqual(['Bean Dose', 'Carafe/Server', 'Portafilter', 'Ratio', 'Bed absorption', 'kv']);
+  expect(rows).toEqual(['Bean Dose', 'Carafe/Server', 'Ratio', 'Bed absorption', 'kv']);
   await expect(page.locator('#settingsModal h3', { hasText: 'TDS' })).toHaveCount(0);
   await expect(page.locator('#absorptionSettingCell')).toHaveText('2.0 g/g');
   await expect(page.locator('#kvSettingValue')).toHaveText('0.005uncalibrated'); // default until calibrated

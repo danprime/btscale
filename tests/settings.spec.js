@@ -77,3 +77,23 @@ test('settings modal labels are visible and not clipped', async ({ page }) => {
   server.closeAllConnections();
   await new Promise((r) => server.close(r));
 });
+
+for (const size of [{ width: 384, height: 720 }, { width: 375, height: 667 }, { width: 375, height: 560 }]) {
+  test(`settings scrolls to its last option on a ${size.width}x${size.height} phone`, async ({ page }) => {
+    const { server, port } = await createStaticServer(path.resolve(__dirname, '..'), 0);
+    await page.setViewportSize(size);
+    await page.goto(`http://localhost:${port}/index.html`);
+    await page.click('#settingsBtn');
+    const modal = page.locator('#settingsModal');
+    await modal.evaluate((m) => { m.scrollTop = m.scrollHeight; });
+    const last = await page.locator('#logToggle').boundingBox();
+    expect(last.y).toBeGreaterThanOrEqual(0);
+    expect(last.y + last.height).toBeLessThanOrEqual(size.height);
+    // The top (close button, Memory) is still reachable
+    await modal.evaluate((m) => { m.scrollTop = 0; });
+    const close = await page.locator('#closeSettingsModal').boundingBox();
+    expect(close.y).toBeGreaterThanOrEqual(0);
+    server.closeAllConnections();
+    await new Promise((r) => server.close(r));
+  });
+}
