@@ -51,7 +51,7 @@ test.beforeEach(async ({ page }) => {
       window.__mock = window.__test_installMultiBLEMock({ devices });
       for (let i = 0; i < devices.length; i++) await toggleConnect();
     };
-    // A short brew with a known CIY: 220 + 1.1/(1 + 0.02 x 55) x 100 = 272.38
+    // A short brew with a known CIY: 2.2 x 100 + 1.1 x 100 = 330 (EC is used as-is: the device compensates temperature)
     window.__brew = async () => {
       await window.__emitScale(window.__mock, 0, 0);
       await triStateTimer(); // start
@@ -89,16 +89,13 @@ test('TDS maths: EC at 25 °C, CIY over poured water, TDS and k_v', async ({ pag
     const late = new m.CiyIntegrator();
     late.addWeight(30); late.addEc(2, 25); late.addWeight(40); late.addEc(2, 25); // first weight is the baseline
     return {
-      ec25: m.ec25(3, 85), ec25NoTemp: m.ec25(3, null),
       ciy: c.ciy, poured: c.poured, lateCiy: late.ciy, latePoured: late.poured,
       yield: m.liveYield(300, 20, 2), yieldNoDose: m.liveYield(300, null, 2),
       tds: m.tdsPercent(0.005, 700, 258), tdsNoKv: m.tdsPercent(null, 700, 258), tdsNoYield: m.tdsPercent(0.005, 700, -5),
       kv: m.calcKv(1.38, 258, 700),
     };
   });
-  expect(r.ec25).toBeCloseTo(3 / 2.2, 10);
-  expect(r.ec25NoTemp).toBe(3);
-  expect(r.ciy).toBeCloseTo(100 + (3 / 2.2) * 50, 10);
+  expect(r.ciy).toBe(100 + 3 * 50); // no temperature correction: the device already does it
   expect(r.poured).toBe(100);
   expect(r.lateCiy).toBe(20);
   expect(r.latePoured).toBe(10);
@@ -133,15 +130,15 @@ test('live TDS needs the scale and the EC meter, waits 30 s, then uses the live 
   await page.evaluate(() => window.__brew());
   await expect(page.locator('#tdsValue')).toHaveText('-- %'); // first 30 s
   await page.evaluate(() => window.__test_setTdsDelay(0));
-  // 100 x 0.005 x 272.38 / (200 - 20 x 2.0) = 0.85
-  await expect(page.locator('#tdsValue')).toHaveText('0.85 %');
+  // 100 x 0.005 x 330 / (200 - 20 x 2.0) = 1.03
+  await expect(page.locator('#tdsValue')).toHaveText('1.03 %');
 
-  // Bed absorption changes the live yield: 200 - 20 x 1.5 = 170 g -> 0.80 %
+  // Bed absorption changes the live yield: 200 - 20 x 1.5 = 170 g -> 0.97 %
   await page.click('#settingsBtn');
   await page.click('#absorptionEditBtn');
   await page.locator('#absorptionInput').fill('1.5');
   await page.locator('#absorptionInput').press('Enter');
-  await expect(page.locator('#tdsValue')).toHaveText('0.80 %');
+  await expect(page.locator('#tdsValue')).toHaveText('0.97 %');
 });
 
 test('after Stop: CIY replaces EC, M_B becomes the calculator; Next shows the final TDS and the yield', async ({ page }) => {
@@ -154,9 +151,9 @@ test('after Stop: CIY replaces EC, M_B becomes the calculator; Next shows the fi
   await expect(bean).toHaveAttribute('aria-label', 'Set beans');
   await page.evaluate(() => triStateTimer()); // stop
   await expect(page.locator('#ecLabel')).toHaveText('CIY');
-  await expect(page.locator('#ecValue')).toHaveText('272.4');
+  await expect(page.locator('#ecValue')).toHaveText('330.0');
   await expect(page.locator('#tdsLabel')).toHaveText('TDS ≈');
-  await expect(page.locator('#tdsValue')).toHaveText('0.85 %'); // estimate at stop
+  await expect(page.locator('#tdsValue')).toHaveText('1.03 %'); // estimate at stop
   await expect(bean).toHaveAttribute('aria-label', 'Final TDS calculator');
   await expect(page.locator('#yieldPanel')).toBeHidden();
 
@@ -169,8 +166,8 @@ test('after Stop: CIY replaces EC, M_B becomes the calculator; Next shows the fi
   await expect(page.locator('#ftScale')).toHaveText('336.0 g');
   await expect(page.locator('#ftCarafe')).toHaveText('186.0 g');
   await expect(page.locator('#ftYield')).toHaveValue('150.0'); // scale - carafe
-  await expect(page.locator('#ftCiy')).toHaveText('272.4');
-  await expect(page.locator('#ftTds')).toHaveText('0.91 %');
+  await expect(page.locator('#ftCiy')).toHaveText('330.0');
+  await expect(page.locator('#ftTds')).toHaveText('1.10 %');
   await expect(page.locator('#finalTdsModal math')).toHaveCount(1);
 
   // The yield follows the scale until it is edited
@@ -179,7 +176,7 @@ test('after Stop: CIY replaces EC, M_B becomes the calculator; Next shows the fi
   await page.locator('#ftYield').fill('150');
   await page.evaluate(() => window.__emitScale(window.__mock, 340, 2000));
   await expect(page.locator('#ftYield')).toHaveValue('150');
-  await expect(page.locator('#ftTds')).toHaveText('0.91 %');
+  await expect(page.locator('#ftTds')).toHaveText('1.10 %');
 
   // Tare is a separate button
   await page.click('#ftTareBtn');
@@ -193,11 +190,11 @@ test('after Stop: CIY replaces EC, M_B becomes the calculator; Next shows the fi
   await page.click('#ftNextBtn');
   await expect(page.locator('#finalTdsModal')).toBeHidden();
   await expect(page.locator('#tdsLabel')).toHaveText('TDS');
-  await expect(page.locator('#tdsValue')).toHaveText('0.91 %');
+  await expect(page.locator('#tdsValue')).toHaveText('1.10 %');
   await expect(page.locator('#yieldPanel')).toBeVisible();
   await expect(page.locator('#yieldValue')).toHaveText('150.0 g');
   const brew = await page.evaluate(() => JSON.parse(localStorage.getItem('lastBrewV1')));
-  expect(brew.ciy).toBeCloseTo(272.381, 3);
+  expect(brew.ciy).toBeCloseTo(330, 3); // EC arrives as float32
   expect(brew.yield).toBe(150);
   expect(brew.estYield).toBe(160);
 
@@ -321,10 +318,10 @@ test('CSV has EC at 25 °C, CIY and TDS columns at the end', async ({ page }) =>
   });
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#exportCsvBtn')]);
   const csv = fs.readFileSync(await download.path(), 'utf8').trim().split('\n');
-  expect(csv[0]).toBe('t_s,weight_g,flow_gps,temp_c,ec_mScm,source,ec25_mScm,ciy,tds_pct');
+  expect(csv[0]).toBe('t_s,weight_g,flow_gps,temp_c,ec_mScm,source,ciy,tds_pct');
   const last = csv[csv.length - 1].split(',');
   expect(last[5]).toBe('portal');
-  expect(last.slice(6)).toEqual(['0.524', '272.38', '0.851']);
+  expect(last.slice(6)).toEqual(['330.00', '1.031']);
 });
 
 for (const size of [{ width: 384, height: 720 }, { width: 375, height: 667 }]) {
@@ -390,10 +387,10 @@ test('after Stop the chart becomes a carousel: estimate (hollow), tap for labels
   await expect(slide).toBeAttached();
   await expect(dots).toBeVisible();
   expect(await track.evaluate((t) => t.scrollLeft)).toBe(0); // stays on the brew chart at Stop
-  // Estimate: 160 g x 0.85 % / 20 g = 6.8 % extraction, pinned to the left edge, hollow
+  // Estimate: 160 g x 1.03125 % / 20 g = 8.25 % extraction, pinned to the left edge, hollow
   await expect(page.locator('.ey-brew.ey-brew-estimate')).toHaveCount(1);
-  await expect(page.locator('#extractionChart')).toHaveAttribute('aria-label', /estimated extraction 6\.8 %, TDS 0\.85 %: Weak \/ under-extracted/);
-  await expect(page.locator('.ey-brew-label')).toHaveText('≈ 6.8 %, 0.85 %');
+  await expect(page.locator('#extractionChart')).toHaveAttribute('aria-label', /estimated extraction 8\.3 %, TDS 1\.03 %: Weak \/ under-extracted/);
+  await expect(page.locator('.ey-brew-label')).toHaveText('≈ 8.3 %, 1.03 %');
   // No gold cup label or ideal dot; region labels hidden until a tap
   expect(await page.locator('#extractionChart').textContent()).not.toMatch(/Gold|Ideal/);
   await expect(page.locator('.ey-ref')).toHaveCount(4);
@@ -418,8 +415,8 @@ test('after Stop the chart becomes a carousel: estimate (hollow), tap for labels
   await expect.poll(() => track.evaluate((t) => Math.round(t.scrollLeft / t.clientWidth))).toBe(1);
   await expect(page.locator('#chartDots .chart-dot >> nth=1')).toHaveAttribute('aria-current', 'true');
   await expect(page.locator('.ey-brew-estimate')).toHaveCount(0);
-  // 150 g x 0.908 % / 20 g = 6.8 %
-  await expect(page.locator('.ey-brew-label')).toHaveText('6.8 %, 0.91 %');
+  // 150 g x 1.1 % / 20 g = 8.25 %
+  await expect(page.locator('.ey-brew-label')).toHaveText('8.3 %, 1.10 %');
 
   // Reset: back to the brew chart alone
   await page.evaluate(() => triStateTimer());
@@ -448,16 +445,16 @@ test('default k_v 0.005 is used and marked uncalibrated until a k_v is saved', a
   });
   // Same numbers as with a stored 0.005, but marked
   await expect(page.locator('#tdsLabel')).toHaveText('TDS ≈ (uncal.)');
-  await expect(page.locator('#tdsValue')).toHaveText('0.85 %');
+  await expect(page.locator('#tdsValue')).toHaveText('1.03 %');
   await page.evaluate(() => triStateTimer()); // stop
   await expect(page.locator('#tdsLabel')).toHaveText('TDS ≈ (uncal.)');
   await expect(page.locator('.ey-brew')).toHaveCount(1); // plotted with the default
   await page.evaluate(() => window.__emitScale(window.__mock, 336, 2000));
   await page.click('#tareBeanBtn');
-  await expect(page.locator('#ftTds')).toHaveText('0.91 % · uncalibrated');
+  await expect(page.locator('#ftTds')).toHaveText('1.10 % · uncalibrated');
   await page.click('#ftNextBtn');
   await expect(page.locator('#tdsLabel')).toHaveText('TDS (uncal.)');
-  await expect(page.locator('#tdsValue')).toHaveText('0.91 %');
+  await expect(page.locator('#tdsValue')).toHaveText('1.10 %');
 
   // Calibrating clears the marks
   await page.click('#settingsBtn');
@@ -466,7 +463,7 @@ test('default k_v 0.005 is used and marked uncalibrated until a k_v is saved', a
   await page.click('#calNextBtn');
   await expect(page.locator('#calCurrentKv')).toHaveText('0.005 (uncalibrated)');
   await page.click('#calSaveBtn');
-  await expect(page.locator('#kvSettingValue')).toHaveText('0.0076');
+  await expect(page.locator('#kvSettingValue')).toHaveText('0.006273'); // 1.38 x 150 / (100 x 330)
   await expect(page.locator('#tdsLabel')).toHaveText('TDS');
 });
 
@@ -476,6 +473,15 @@ test('target card: "in → out" subscripts with two cards, plain "20g → 300g" 
   const target = page.locator('#targetWeight');
   await expect(target).toHaveText('18.5gin → 277.5gout');
   await expect(target.locator('sub').first()).toBeVisible(); // two cards: in/out subscripts
+  // Subscripts must not make the card taller than plain text would
+  const heights = await target.evaluate((el) => {
+    const withSubs = el.getBoundingClientRect().height;
+    el.classList.add('compact');
+    const plain = el.getBoundingClientRect().height;
+    el.classList.remove('compact');
+    return { withSubs, plain };
+  });
+  expect(heights.withSubs).toBe(heights.plain);
   await page.evaluate(async () => {
     await window.__connect(['scale', 'portal']);
     await window.__brew();
