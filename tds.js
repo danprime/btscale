@@ -1,26 +1,19 @@
 /**
  * TDS from the EC meter + scale.
  *
- * Cumulative Ionic Yield (CIY): EC normalised to 25 °C, summed over the water
- * poured (a Riemann sum over volume, 1 g of water ≈ 1 mL):
- *   EC25 = EC / (1 + α (T − 25))
- *   CIY += EC25 × ΔV            (one step per EC reading)
+ * Cumulative Ionic Yield (CIY): EC summed over the water poured (a Riemann
+ * sum over volume, 1 g of water ≈ 1 mL):
+ *   CIY += EC × ΔV              (one step per EC reading)
+ * The Portal's EC is already temperature-compensated to 25 °C on the device
+ * (EC = calibrated reading / (1 + tempCal_k × (T − 25)), see getTemporalEc in
+ * the Belka app), so it is used as-is.
  * TDS and the calibration constant k_v:
  *   TDS % = 100 × k_v × CIY / yield
  *   k_v   = TDS % × yield / (100 × CIY)
  */
-export const ALPHA = 0.02; // conductivity rises ~2% per °C
 export const DEFAULT_KV = 0.005; // rough k_v until the first refractometer calibration
 export const DEFAULT_ABSORPTION = 2.0; // g of water held per g of coffee
 export const MAX_ABSORPTION = 5;
-
-/** EC normalised to 25 °C, or null when it can't be computed. */
-export function ec25(ec, temp) {
-  if (!Number.isFinite(ec)) return null;
-  if (!Number.isFinite(temp)) return ec;
-  const k = 1 + ALPHA * (temp - 25);
-  return k > 0 ? ec / k : null;
-}
 
 /** Estimated liquid yield: water poured minus what the coffee bed holds back. */
 export function liveYield(poured, dose, absorption) {
@@ -88,13 +81,12 @@ export class CiyIntegrator {
     return this.weight == null ? null : this.weight - this.baseline;
   }
 
-  /** One EC reading: adds EC25 × the water poured since the previous reading. */
-  addEc(ec, temp) {
-    const e = ec25(ec, temp);
-    if (e == null || this.weight == null) return;
+  /** One EC reading (already at 25 °C): adds EC × the water poured since the previous reading. */
+  addEc(ec) {
+    if (!Number.isFinite(ec) || this.weight == null) return;
     const dV = Math.max(0, this.weight - this.highWater);
     this.highWater = Math.max(this.highWater, this.weight);
-    this.ciy += e * dV;
+    this.ciy += ec * dV;
     this.steps++;
   }
 }

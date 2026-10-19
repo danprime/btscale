@@ -196,7 +196,7 @@ test('brew is recorded and exported as merged CSV', async ({ page }) => {
   const [download] = await Promise.all([page.waitForEvent('download'), page.click('#exportCsvBtn')]);
   expect(download.suggestedFilename()).toMatch(/^brew-\d{4}-\d{2}-\d{2}_\d{6}\.csv$/);
   const csv = fs.readFileSync(await download.path(), 'utf8').trim().split('\n');
-  expect(csv[0]).toBe('t_s,weight_g,flow_gps,temp_c,ec_mScm,source,ec25_mScm,ciy,tds_pct');
+  expect(csv[0]).toBe('t_s,weight_g,flow_gps,temp_c,ec_mScm,source,ciy,tds_pct');
   const rows = csv.slice(1).map((l) => l.split(','));
   expect(rows.map((r) => r[5])).toEqual(['scale', 'portal', 'scale']);
   expect(rows[0].slice(1, 5)).toEqual(['0.0', '0.00', '', '']);

@@ -42,7 +42,7 @@ Packet length ≥ 13 bytes. Floats are **IEEE-754 float32, little-endian**.
 
 | Offset | Size | Type | Meaning |
 |---|---|---|---|
-| 0–3 | 4 | float32 LE | **EC** in mS/cm (already calibrated by the device) |
+| 0–3 | 4 | float32 LE | **EC** in mS/cm (already calibrated and **temperature-compensated to 25 °C** by the device: `getTemporalEc` computes EC = calibrated reading × 1 / (1 + tempCal_k × (pTemp − 25)) **[strong evidence from app code; not yet checked on device]**) |
 | 4–7 | 4 | float32 LE | Not used by the app. Reads a steady 31.2–31.3 on device (the raw hex jumps only because the low mantissa bits change). **Internal (device) temperature, °C** **[confirmed on device]** |
 | 8–11 | 4 | float32 LE | **pTemp** — spout/probe temperature, °C |
 | 12 | 1 | uint8 | **Battery %** **[confirmed on device]** |

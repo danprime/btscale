@@ -4,7 +4,7 @@
  * the latest known values from the other device merged in.
  */
 // TDS columns come last so existing column positions don't move
-export const CSV_HEADER = 't_s,weight_g,flow_gps,temp_c,ec_mScm,source,ec25_mScm,ciy,tds_pct';
+export const CSV_HEADER = 't_s,weight_g,flow_gps,temp_c,ec_mScm,source,ciy,tds_pct';
 
 export class BrewRecorder {
   /** @param {{now?: () => number}} options - clock in ms (injectable for tests) */
@@ -15,7 +15,7 @@ export class BrewRecorder {
     this.startedAt = null; // wall-clock Date, used for the file name
     this._t0 = 0;
     this._t1 = null; // stop time (ms), null while running
-    this._latest = { weight: null, flow: null, temp: null, ec: null, ec25: null, ciy: null, tds: null };
+    this._latest = { weight: null, flow: null, temp: null, ec: null, ciy: null, tds: null };
   }
 
   start() {
@@ -52,15 +52,15 @@ export class BrewRecorder {
     this._push('portal');
   }
 
-  /** TDS values (EC at 25 °C, CIY, TDS %) to store with the next rows; null clears them. */
-  setDerived({ ec25 = null, ciy = null, tds = null } = {}) {
-    Object.assign(this._latest, { ec25, ciy, tds });
+  /** TDS values (CIY, TDS %) to store with the next rows; null clears them. */
+  setDerived({ ciy = null, tds = null } = {}) {
+    Object.assign(this._latest, { ciy, tds });
   }
 
   /** Forget a device's values (e.g. after it disconnects). */
   clearSource(source) {
     if (source === 'scale') { this._latest.weight = null; this._latest.flow = null; }
-    if (source === 'portal') { this._latest.temp = null; this._latest.ec = null; this._latest.ec25 = null; }
+    if (source === 'portal') { this._latest.temp = null; this._latest.ec = null; }
   }
 
   _push(source) {
@@ -70,7 +70,7 @@ export class BrewRecorder {
 
   toCSV() {
     const f = (v, digits) => (v == null || !Number.isFinite(v) ? '' : v.toFixed(digits));
-    const lines = this.rows.map((r) => [f(r.t, 2), f(r.weight, 1), f(r.flow, 2), f(r.temp, 1), f(r.ec, 3), r.source, f(r.ec25, 3), f(r.ciy, 2), f(r.tds, 3)].join(','));
+    const lines = this.rows.map((r) => [f(r.t, 2), f(r.weight, 1), f(r.flow, 2), f(r.temp, 1), f(r.ec, 3), r.source, f(r.ciy, 2), f(r.tds, 3)].join(','));
     return [CSV_HEADER, ...lines].join('\n') + '\n';
   }
 
