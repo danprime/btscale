@@ -132,6 +132,7 @@ Files
 - `belka-portal.js` - `BelkaPortal` driver: connects (service `0x7400`), parses the 13-byte stream packet (`parsePortalPacket()`), and sends start/stop timer commands. Protocol notes: `belka_portal_protocol.md`.
 - `device-manager.js` - `DeviceManager` owns both connections and implements the single Connect button.
 - `brew-recorder.js` - `BrewRecorder` records weight, flow, temperature and EC between Start and Stop and produces the CSV.
+- `tds.js` - TDS maths: EC at 25 °C, the Cumulative Ionic Yield (`CiyIntegrator`), live yield, TDS and the calibration constant k_v.
 - `emitter.js` - shared `SimpleEmitter` (multiple listeners per event).
 - `ble-mock.js` - `installMockBluetooth({ devices, permitted })`, a multi-device `navigator.bluetooth` mock used by the tests.
 
@@ -157,5 +158,14 @@ After Stop
 - Until Reset, the weight, timer and ratio show the brew's final values ("Final · grams"), and the chart stays frozen. The cards show average flow (final weight ÷ time), temperature at stop and peak EC.
 - Live readings (weight, temperature, EC) appear in a slim line under the chart, so you can still weigh the cup or check temperature. Reset returns everything to live.
 
+TDS (scale and EC meter both connected)
+- Each EC reading is normalised to 25 °C: EC25 = EC / (1 + 0.02 × (T − 25)), using the spout temperature.
+- Cumulative Ionic Yield (CIY) is a Riemann sum over the water poured (the scale sits under the brewer; 1 g ≈ 1 mL): every EC reading adds EC25 × the grams poured since the previous reading. Water is measured against the highest weight so far, so scale noise or a bumped scale never counts twice.
+- Live yield = water poured − bean dose × bed absorption (Settings > Memory > Bed absorption, default 2.0 g/g, 0 to 5).
+- TDS % = 100 × k_v × CIY / yield. While brewing, the TDS ≈ card (between Temperature and EC) shows the estimate from the live yield, starting 30 s after Start. Without a k_v it says "Calibrate".
+- After Stop, CIY replaces the EC card and the M_B button becomes a calculator. It shows the live scale weight, the Carafe/Server memory and the yield (scale − carafe until you edit it), plus a Tare button; opening it never tares. Next sets the final TDS and adds a Yield card. With only one of the devices, none of this appears.
+- Calibration (Settings > Memory > k_v > Calibrate) uses the last finished TDS brew (saved across reloads): enter the refractometer TDS % (and the yield if needed) and k_v = TDS % × yield / (100 × CIY) is shown as you type. Step 2 compares it with the current k_v and the last 3 calibrations (with their average); the new value can be edited before saving. Each calibration adds one history entry: the saved value, or the calculated one if you keep the current k_v.
+- Stored in localStorage: `tdsKvV1`, `kvHistoryV1`, `bedAbsorptionV1`, `lastBrewV1`.
+
 Recording
-- Samples are recorded from Start to Stop. After Stop, a download button exports a CSV with one row per packet from either device (`t_s,weight_g,flow_gps,temp_c,ec_mScm,source`), with the latest value from the other device filled in.
+- Samples are recorded from Start to Stop. After Stop, a download button exports a CSV with one row per packet from either device (`t_s,weight_g,flow_gps,temp_c,ec_mScm,source,ec25_mScm,ciy,tds_pct`), with the latest value from the other device filled in. The last three columns are only filled during a TDS brew (`tds_pct` is the live estimate).
