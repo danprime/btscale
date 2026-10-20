@@ -1256,3 +1256,142 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
         padding-right: 14px;
     }
 }
+
+/* --- Brew log (Settings > Brew log): list of saved brews, then one brew --- */
+.modal .ritual-btn.brew-log-btn {
+    display: flex;
+    width: 100%;
+    max-width: none;
+    margin-top: 0.4em;
+}
+.modal.brew-log {
+    z-index: 1003;                   /* above Settings */
+    align-items: flex-start;
+}
+.brew-log .modal-content {
+    position: relative;
+    box-sizing: border-box;
+    width: min(480px, 100vw);
+    min-width: 0;
+    min-height: 100dvh;
+    padding: 12px 14px 24px;
+    border-radius: 0;
+    background: #fffdf6;
+}
+.log-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.log-header h3 {
+    margin: 0;
+    flex: 1;
+    color: #5e361c;
+}
+.log-spacer {
+    flex: 1;
+}
+.log-back {
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff3e0;
+    color: #b77b2b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.log-count {
+    color: #b77b2b;
+    font-size: 0.85em;
+}
+.log-list {
+    list-style: none;
+    margin: 0 0 0.6em;
+    padding: 0;
+}
+.log-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 2px;
+    border: 0;
+    border-bottom: 1px solid #f0dfc0;
+    background: none;
+    color: #5e361c;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.log-item-name {
+    font-weight: 600;
+}
+.log-item-sub {
+    color: #8a5a1c;
+    font-size: 0.85em;
+}
+.log-item-right {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+#logName {
+    margin: 4px 0 0;
+    color: #5e361c;
+}
+.log-name-input {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    padding: 4px 8px;
+    border: 1.5px solid #e0c9a6;
+    border-radius: 8px;
+    color: #5e361c;
+    background: #fff;
+}
+.log-chart {
+    margin: 8px 0;
+    padding: 8px 8px 4px 4px;
+    background: #fffbe8;
+    border-radius: 10px;
+}
+.log-chart canvas {
+    display: block;
+    width: 100%;
+    height: 150px;
+}
+.log-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin: 8px 0 14px;
+}
+.log-cards .ritual-info-item {
+    padding: 8px 2px 6px;
+    border-radius: 10px;
+    min-width: 0;
+}
+.log-cards .ritual-info-value {
+    font-size: 1.05em;
+    overflow-wrap: anywhere;
+}
+.modal .ritual-btn.log-delete {
+    white-space: nowrap;
+    max-width: none;
+    padding: 0.45em 1.1em;
+    background: #fff;
+    color: #b3261e;
+    border: 1.5px solid #e6b3ad;
+}
+.log-delete-confirm p {
+    color: #5e361c;
+    margin: 0 0 0.6em;
+}
+.log-ey-chart {
+    cursor: default;
+}

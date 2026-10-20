@@ -134,6 +134,8 @@
         <!-- Settings Modal -->
         <div id="settingsModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
             <div class="modal-content">
+                <!-- Saved brews (opens the brew log) -->
+                <button id="brewLogBtn" class="ritual-btn brew-log-btn" onclick="openBrewLog()">Brew log</button>
                 <!-- Memory Table -->
                 <h3 style="margin-top:1.5em;">Memory</h3>
                 <table id="memoryTable" class="memory-table" style="width:100%;margin-bottom:0.25em;">
@@ -303,6 +305,50 @@
                     <div class="dialog-actions">
                         <button class="ritual-btn" onclick="keepCurrentKv()">Keep current</button>
                         <button id="calSaveBtn" class="ritual-btn memory-confirm-btn" onclick="saveNewKv()"><span>Save new k<sub>v</sub></span></button>
+                    </div>
+                </section>
+            </div>
+        </div>
+        <!-- Brew log: saved brews (newest first), then one brew's charts and final data -->
+        <div id="brewLogModal" class="modal brew-log" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="brewLogTitle">
+            <div class="modal-content">
+                <section id="logListView">
+                    <div class="log-header">
+                        <button type="button" class="log-back" onclick="closeBrewLog()" aria-label="Back to settings"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></button>
+                        <h3 id="brewLogTitle">Brew log</h3>
+                        <span id="logCount" class="log-count"></span>
+                    </div>
+                    <ul id="logList" class="log-list"></ul>
+                    <p id="logEmpty" class="dialog-note" hidden>No brews yet. Each brew is saved here when you press Stop.</p>
+                    <p class="dialog-step">Newest first. Only the latest 100 brews are kept.</p>
+                </section>
+                <section id="logDetailView" hidden>
+                    <div class="log-header">
+                        <button type="button" class="log-back" onclick="showBrewList()" aria-label="Back to the brew log"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></button>
+                        <span class="log-spacer"></span>
+                        <button id="logRenameBtn" class="ritual-btn memory-overwrite" onclick="startLogRename()">Rename</button>
+                    </div>
+                    <h3 id="logName"></h3>
+                    <p id="logDate" class="dialog-step"></p>
+                    <div id="logRenameError" class="field-error" role="alert" hidden></div>
+                    <div class="log-chart" id="logBrewChartBox">
+                        <div class="brew-chart-label" id="logBrewChartLabel"></div>
+                        <canvas id="logBrewChart" role="img" aria-label="Brew chart"></canvas>
+                    </div>
+                    <div class="log-chart" id="logEyChartBox">
+                        <div class="brew-chart-label"><span>TDS · %</span><span class="chart-label-right">Extraction · %</span></div>
+                        <svg id="logEyChart" class="extraction-chart log-ey-chart" role="img" aria-label="TDS versus extraction yield"></svg>
+                    </div>
+                    <div id="logCards" class="log-cards"></div>
+                    <div class="log-delete-area">
+                        <button id="logDeleteBtn" class="ritual-btn log-delete" onclick="askDeleteBrew()">Delete brew</button>
+                        <div id="logDeleteConfirm" class="log-delete-confirm" hidden>
+                            <p>Delete this brew? This can't be undone.</p>
+                            <div class="dialog-actions">
+                                <button class="ritual-btn" onclick="cancelDeleteBrew()">Cancel</button>
+                                <button id="logDeleteConfirmBtn" class="ritual-btn log-delete" onclick="deleteBrew()">Delete</button>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </div>
