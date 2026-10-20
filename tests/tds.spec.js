@@ -380,8 +380,12 @@ test('after Stop the chart becomes a carousel: estimate (hollow), tap for labels
   const slide = page.locator('#extractionSlide');
   const dots = page.locator('#chartDots');
   const track = page.locator('#chartTrack');
-  await expect(slide).toBeHidden(); // while brewing: brew chart only
-  await expect(dots).toBeHidden();
+  // While brewing: the carousel is there but stays on the brew chart; the live path waits for live TDS
+  await expect(slide).toBeAttached();
+  await expect(dots).toBeVisible();
+  expect(await track.evaluate((t) => t.scrollLeft)).toBe(0);
+  await expect(page.locator('.ey-hint')).toHaveText('Live path from 0:30');
+  await expect(page.locator('.ey-brew')).toHaveCount(0);
 
   await page.evaluate(() => triStateTimer()); // stop
   await expect(slide).toBeAttached();
@@ -499,4 +503,57 @@ test('target card: "in → out" subscripts with two cards, plain "20g → 300g" 
   // Reset: back to two cards with subscripts
   await page.evaluate(() => triStateTimer());
   await expect(target.locator('sub').first()).toBeVisible();
+});
+
+test('live extraction path while brewing: hollow dot and trail, final dot only after Next', async ({ page }) => {
+  await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 20 }, carafe: { weight: 186 } } });
+  await page.evaluate(async () => {
+    await window.__connect(['scale', 'portal']);
+    window.__test_setTdsDelay(0);
+    await window.__brew();
+  });
+  const track = page.locator('#chartTrack');
+  // Two live estimates: (100 g, CIY 220) then (200 g, CIY 330) -> 8.25 % extraction, 1.03 % TDS now
+  await expect(page.locator('.ey-trail')).toHaveCount(1);
+  expect((await page.locator('.ey-trail').getAttribute('points')).trim().split(' ')).toHaveLength(2);
+  await expect(page.locator('.ey-brew.ey-brew-estimate')).toHaveCount(1);
+  await expect(page.locator('.ey-brew-label')).toHaveText('≈ 8.3 %, 1.03 %');
+  await expect(page.locator('#extractionChart')).toHaveAttribute('aria-label', /live estimate: extraction 8\.3 %, TDS 1\.03 %/);
+  expect(await track.evaluate((t) => t.scrollLeft)).toBe(0); // no automatic switch while brewing
+
+  // The dot moves with each EC reading: 300 g, CIY 330 + 0.5 x 100 = 380 -> 9.5 %, 0.73 %
+  await page.evaluate(async () => {
+    await window.__emitScale(window.__mock, 300, 3000);
+    window.__mock.emitPortal({ ec: 0.5, temp: 80 });
+  });
+  await expect(page.locator('.ey-brew-label')).toHaveText('≈ 9.5 %, 0.73 %');
+  expect((await page.locator('.ey-trail').getAttribute('points')).trim().split(' ')).toHaveLength(3);
+
+  // Stop: the trail stays with the hollow estimate
+  await page.evaluate(() => triStateTimer());
+  await expect(page.locator('.ey-trail')).toHaveCount(1);
+  await expect(page.locator('.ey-brew-estimate')).toHaveCount(1);
+
+  // Next: only the solid final dot
+  await page.evaluate(() => window.__emitScale(window.__mock, 436, 3000));
+  await page.click('#tareBeanBtn');
+  await page.click('#ftNextBtn');
+  await expect(page.locator('.ey-trail')).toHaveCount(0);
+  await expect(page.locator('.ey-brew-estimate')).toHaveCount(0);
+  await expect(page.locator('.ey-brew')).toHaveCount(1);
+
+  // Next brew starts a new path
+  await page.evaluate(() => triStateTimer()); // reset
+  await page.evaluate(() => window.__brew());
+  expect((await page.locator('.ey-trail').getAttribute('points')).trim().split(' ')).toHaveLength(2);
+});
+
+test('no live path with only the scale connected', async ({ page }) => {
+  await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 20 } } });
+  await page.evaluate(async () => {
+    await window.__connect(['scale']);
+    await triStateTimer();
+  });
+  await expect(page.locator('#extractionSlide')).toBeHidden();
+  await expect(page.locator('#chartDots')).toBeHidden();
 });

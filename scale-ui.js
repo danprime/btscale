@@ -101,7 +101,7 @@ import { installMock } from './ble-scale.js';
 import { installMockBluetooth } from './ble-mock.js';
 import { DeviceManager } from './device-manager.js';
 import { BrewRecorder } from './brew-recorder.js';
-import { BrewChart } from './brew-chart.js';
+import { BrewChart, formatSeconds } from './brew-chart.js';
 import { CiyIntegrator, liveYield, tdsPercent, calcKv, extractionYield, extractionRegion, DEFAULT_KV, DEFAULT_ABSORPTION, MAX_ABSORPTION } from './tds.js';
 
 // --- Settings modal logic (moved to top for global availability) ---
@@ -307,6 +307,7 @@ function renderConnectionState(errorText) {
     renderBeanButton();
     renderTdsPanel();
     renderFinalTdsDialog();
+    renderExtractionChart();
 
     // The timer works with either device (the app keeps its own clock as a fallback).
     const timerBtn = document.getElementById('timerToggleBtn');
@@ -455,6 +456,10 @@ function onPortalData(portalData) {
     if (finalSnapshot) renderLiveStrip();
     else updatePortalDisplay(portalData);
     renderTdsPanel();
+    if (!finalSnapshot) {
+        recordExtractionTrail();
+        renderExtractionChart();
+    }
     refreshChart();
 }
 
@@ -733,6 +738,7 @@ async function startBrew({ scaleAlreadyStarted = false } = {}) {
     // Tare and start zeroes the scale, so the brew starts from 0 g
     ciy.reset(scaleAlreadyStarted ? 0 : lastScaleData?.weight ?? null);
     tdsBrew = false;
+    extractionTrail = [];
     recorder.setDerived();
     appTimer.start();
     recorder.start();
@@ -741,6 +747,7 @@ async function startBrew({ scaleAlreadyStarted = false } = {}) {
     timerState = 'running';
     renderTimerIcon();
     updateExportButton();
+    renderExtractionChart(); // the live path slide (stays on the brew chart)
     requestWakeLock();
     await sendToDevices('start', targets);
 }
@@ -1602,12 +1609,33 @@ let extractionLabelsShown = false;
 
 /** This brew on the chart: estimated (hollow) after Stop, measured (solid) after the calculator. */
 function extractionPoint() {
-    if (!finalSnapshot || finalSnapshot.ciy == null) return null;
     const dose = memory.beans?.weight;
+    if (!finalSnapshot) {
+        // Brewing: live estimate (if this cup stopped now), after the live TDS delay
+        if (!liveExtractionActive() || recorder.elapsed() < tdsMinSeconds) return null;
+        const tds = liveTds();
+        const ey = extractionYield(estimatedYield(), tds, dose);
+        return ey != null ? { ey, tds, final: false } : null;
+    }
+    if (finalSnapshot.ciy == null) return null;
     const final = !!finalTds;
     const tds = final ? finalTds.tds : finalSnapshot.estTds;
     const ey = extractionYield(final ? finalTds.yieldG : finalSnapshot.estYield, tds, dose);
     return ey != null ? { ey, tds, final } : null;
+}
+
+/** Live path while brewing: the scale and the EC meter are both connected. */
+function liveExtractionActive() {
+    return recorder.running && deviceConnected('scale') && deviceConnected('portal');
+}
+
+// The live estimates during this brew; drawn as a trail until the calculator's Next
+let extractionTrail = [];
+
+/** Each EC reading while brewing adds the current live estimate to the trail. */
+function recordExtractionTrail() {
+    const pt = extractionPoint();
+    if (pt && !finalSnapshot) extractionTrail.push({ ey: pt.ey, tds: pt.tds });
 }
 
 function svgEl(tag, attrs, text) {
@@ -1621,7 +1649,8 @@ function renderExtractionChart() {
     const svg = byId('extractionChart');
     const slide = byId('extractionSlide');
     if (!svg || !slide) return;
-    const show = !!finalSnapshot && finalSnapshot.ciy != null;
+    // During a TDS brew (live path) and after one is stopped
+    const show = finalSnapshot ? finalSnapshot.ciy != null : liveExtractionActive();
     slide.hidden = !show;
     byId('chartDots').hidden = !show;
     if (!show) return;
@@ -1659,20 +1688,33 @@ function renderExtractionChart() {
         svg.append(text);
     }
     // This brew (pinned to the edge, with the real values in its label, if it is off the chart)
+    const px = (ey) => x(Math.min(EY_AXIS.max, Math.max(EY_AXIS.min, ey)));
+    const py = (tds) => y(Math.min(TDS_AXIS.max, Math.max(TDS_AXIS.min, tds)));
     const pt = extractionPoint();
+    // Live trail until the final dot (after Next) replaces it
+    // (clipped at the chart edges rather than pinned, so it enters the chart where it really does)
+    if (!finalTds && extractionTrail.length > 1) {
+        const clip = svgEl('clipPath', { id: 'eyPlotClip' });
+        clip.append(svgEl('rect', { x: x(EY_AXIS.min), y: y(TDS_AXIS.max), width: x(EY_AXIS.max) - x(EY_AXIS.min), height: y(TDS_AXIS.min) - y(TDS_AXIS.max) }));
+        svg.append(clip);
+        svg.append(svgEl('polyline', { points: extractionTrail.map((p) => `${x(p.ey)},${y(p.tds)}`).join(' '), class: 'ey-trail', 'clip-path': 'url(#eyPlotClip)' }));
+    }
     let desc = 'no TDS for this brew yet';
     if (pt) {
-        const cx = x(Math.min(EY_AXIS.max, Math.max(EY_AXIS.min, pt.ey)));
-        const cy = y(Math.min(TDS_AXIS.max, Math.max(TDS_AXIS.min, pt.tds)));
+        const cx = px(pt.ey);
+        const cy = py(pt.tds);
         svg.append(svgEl('circle', { cx, cy, r: 5.5, class: pt.final ? 'ey-brew' : 'ey-brew ey-brew-estimate' }));
         const right = cx < w / 2;
         const below = cy < pad.t + 14;
         // The region labels take over while they are shown; the dot stays
         if (!extractionLabelsShown) svg.append(svgEl('text', { x: cx + (right ? 9 : -9), y: cy + (below ? 14 : -8), 'text-anchor': right ? 'start' : 'end', class: 'ey-brew-label' },
             `${pt.final ? '' : '≈ '}${pt.ey.toFixed(1)} %, ${pt.tds.toFixed(2)} %`));
-        desc = `${pt.final ? '' : 'estimated '}extraction ${pt.ey.toFixed(1)} %, TDS ${pt.tds.toFixed(2)} %: ${extractionRegion(pt.tds, pt.ey)}`;
+        desc = `${pt.final ? '' : finalSnapshot ? 'estimated ' : 'live estimate: '}extraction ${pt.ey.toFixed(1)} %, TDS ${pt.tds.toFixed(2)} %: ${extractionRegion(pt.tds, pt.ey)}`;
     } else if (!(memory.beans?.weight > 0)) {
         svg.append(svgEl('text', { x: w / 2, y: h / 2, 'text-anchor': 'middle', class: 'ey-hint' }, 'Set the bean dose to plot this brew'));
+    } else if (!finalSnapshot && recorder.elapsed() < tdsMinSeconds) {
+        svg.append(svgEl('text', { x: w / 2, y: h / 2, 'text-anchor': 'middle', class: 'ey-hint' }, `Live path from ${formatSeconds(tdsMinSeconds)}`));
+        desc = 'live path starts shortly';
     }
     svg.setAttribute('aria-label', `TDS versus extraction yield chart, ${desc}. Tap to ${extractionLabelsShown ? 'hide' : 'show'} region labels.`);
 }
