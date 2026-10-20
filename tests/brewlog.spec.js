@@ -190,6 +190,7 @@ test('rename (Enter saves, Escape cancels, empty refused) and the date stays', a
   await page.click('#settingsBtn');
   await page.click('#brewLogBtn');
   await page.click('.log-item');
+  await expect(page.locator('#logDate')).not.toBeEmpty(); // the detail view loads asynchronously
   const date = await page.locator('#logDate').textContent();
   await page.click('#logRenameBtn');
   await expect(page.locator('#logRenameBtn')).toHaveText('Save');

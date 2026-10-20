@@ -143,7 +143,7 @@ Connecting
 - Header icons show what is connected: a weight for the scale, a lightning bolt for the EC meter (hover for battery %). The status line under the header is only shown for connection errors.
 
 Timer
-- Settings > "Start/Stop also controls" chooses which connected devices the Start/Stop button drives (scale timer, EC meter timer + beep). Only connected devices are sent commands.
+- Settings > "Start/Stop also controls" (hidden for now, with the other device and display settings below Connect; saved values still apply) chooses which connected devices the Start/Stop button drives (scale timer, EC meter timer + beep). Only connected devices are sent commands.
 - Elapsed time comes from the scale's timer when the scale is connected and driven; otherwise the app's own clock is used.
 
 Ratio and target weight

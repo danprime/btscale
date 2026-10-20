@@ -134,8 +134,6 @@
         <!-- Settings Modal -->
         <div id="settingsModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
             <div class="modal-content">
-                <!-- Saved brews (opens the brew log) -->
-                <button id="brewLogBtn" class="ritual-btn brew-log-btn" onclick="openBrewLog()">Brew log</button>
                 <!-- Memory Table -->
                 <h3 style="margin-top:1.5em;">Memory</h3>
                 <table id="memoryTable" class="memory-table" style="width:100%;margin-bottom:0.25em;">
@@ -180,52 +178,58 @@
                 <div id="absorptionError" class="field-error" role="alert" hidden></div>
                 <button class="close" id="closeSettingsModal" onclick="closeSettingsModal()" aria-label="Close settings">&times;</button>
                 <h2 id="settingsTitle">Settings</h2>
+                <!-- Saved brews (opens the brew log) -->
+                <button id="brewLogBtn" class="ritual-btn brew-log-btn" onclick="openBrewLog()">Brew log</button>
                 <div class="modal-controls connect-controls">
                     <button id="connectToggleBtn" class="ritual-btn ritual-connect" onclick="toggleConnect()" aria-pressed="false">Connect</button>
                     <button id="disconnectAllBtn" class="ritual-btn ritual-disconnect" onclick="disconnect()" hidden>Disconnect</button>
                 </div>
-                <div class="modal-controls">
-                    <span class="setting-heading">Start/Stop also controls:</span>
-                    <label for="driveScaleTimer"><input type="checkbox" id="driveScaleTimer" checked aria-label="Scale timer"> Scale timer</label>
-                    <label for="drivePortalTimer"><input type="checkbox" id="drivePortalTimer" checked aria-label="EC meter timer"> EC meter timer</label>
-                </div>
-                <div class="modal-controls">
-                    <label for="beepLevel">Beep Level (0-5):</label>
-                    <input type="range" id="beepLevel" min="0" max="5" value="2" onchange="setBeepLevel(this.value)" disabled aria-valuemin="0" aria-valuemax="5" aria-valuenow="2" aria-label="Beep Level">
-                    <span id="beepValue">2</span>
-                </div>
-                <div class="modal-controls">
-                    <label for="autoOff">Auto-off (1-30 min):</label>
-                    <input type="range" id="autoOff" min="1" max="30" value="5" onchange="setAutoOff(this.value)" disabled aria-valuemin="1" aria-valuemax="30" aria-valuenow="5" aria-label="Auto-off">
-                    <span id="autoOffValue">5</span>
-                </div>
-                <div class="modal-controls">
-                    <label for="flowSmoothing">Flow Smoothing:</label>
-                    <input type="checkbox" id="flowSmoothing" onchange="setFlowSmoothing(this.checked)" disabled aria-label="Flow Smoothing">
-                </div>
-                <div class="modal-controls">
-                    <label for="flowSymbolSetting">Flow Symbol:</label>
-                    <select id="flowSymbolSetting" onchange="setFlowSymbol(this.value)" disabled aria-label="Flow Symbol">
-                        <option value="+">+</option>
-                        <option value="-">-</option>
-                    </select>
-                </div>
-                <div class="modal-controls">
-                    <label for="showRemainder">Show Remainder:</label>
-                    <input type="checkbox" id="showRemainder" aria-label="Show Remainder">
-                </div>
-                <div class="modal-controls">
-                    <label for="showTareStart">Show Tare & Start:</label>
-                    <input type="checkbox" id="showTareStart" aria-label="Show Tare and Start">
-                </div>
-                <div class="modal-controls">
-                    <label for="showCurrentRatio">Show Current Ratio:</label>
-                    <input type="checkbox" id="showCurrentRatio" aria-label="Show Current Ratio">
-                </div>
-                <div class="controls">
-                    <label for="logToggle">Enable Logging:</label>
-                    <input type="checkbox" id="logToggle" aria-label="Enable Logging">
-                    <span class="log-warning" style="color: #b77; font-size: 0.95em; margin-left: 0.5em;">(May affect UI responsiveness)</span>
+                <!-- Device and display settings: hidden for now (not in use), kept so they
+                     can be shown again. Saved values (e.g. Start/Stop timer drives) still apply. -->
+                <div id="moreSettings" hidden>
+                    <div class="modal-controls">
+                        <span class="setting-heading">Start/Stop also controls:</span>
+                        <label for="driveScaleTimer"><input type="checkbox" id="driveScaleTimer" checked aria-label="Scale timer"> Scale timer</label>
+                        <label for="drivePortalTimer"><input type="checkbox" id="drivePortalTimer" checked aria-label="EC meter timer"> EC meter timer</label>
+                    </div>
+                    <div class="modal-controls">
+                        <label for="beepLevel">Beep Level (0-5):</label>
+                        <input type="range" id="beepLevel" min="0" max="5" value="2" onchange="setBeepLevel(this.value)" disabled aria-valuemin="0" aria-valuemax="5" aria-valuenow="2" aria-label="Beep Level">
+                        <span id="beepValue">2</span>
+                    </div>
+                    <div class="modal-controls">
+                        <label for="autoOff">Auto-off (1-30 min):</label>
+                        <input type="range" id="autoOff" min="1" max="30" value="5" onchange="setAutoOff(this.value)" disabled aria-valuemin="1" aria-valuemax="30" aria-valuenow="5" aria-label="Auto-off">
+                        <span id="autoOffValue">5</span>
+                    </div>
+                    <div class="modal-controls">
+                        <label for="flowSmoothing">Flow Smoothing:</label>
+                        <input type="checkbox" id="flowSmoothing" onchange="setFlowSmoothing(this.checked)" disabled aria-label="Flow Smoothing">
+                    </div>
+                    <div class="modal-controls">
+                        <label for="flowSymbolSetting">Flow Symbol:</label>
+                        <select id="flowSymbolSetting" onchange="setFlowSymbol(this.value)" disabled aria-label="Flow Symbol">
+                            <option value="+">+</option>
+                            <option value="-">-</option>
+                        </select>
+                    </div>
+                    <div class="modal-controls">
+                        <label for="showRemainder">Show Remainder:</label>
+                        <input type="checkbox" id="showRemainder" aria-label="Show Remainder">
+                    </div>
+                    <div class="modal-controls">
+                        <label for="showTareStart">Show Tare & Start:</label>
+                        <input type="checkbox" id="showTareStart" aria-label="Show Tare and Start">
+                    </div>
+                    <div class="modal-controls">
+                        <label for="showCurrentRatio">Show Current Ratio:</label>
+                        <input type="checkbox" id="showCurrentRatio" aria-label="Show Current Ratio">
+                    </div>
+                    <div class="controls">
+                        <label for="logToggle">Enable Logging:</label>
+                        <input type="checkbox" id="logToggle" aria-label="Enable Logging">
+                        <span class="log-warning" style="color: #b77; font-size: 0.95em; margin-left: 0.5em;">(May affect UI responsiveness)</span>
+                    </div>
                 </div>
             </div>
         </div>

@@ -153,9 +153,8 @@ test('timer drives the devices selected in settings', async ({ page }) => {
   await page.evaluate(() => triStateTimer()); // reset (scale only)
 
   // Untick the EC meter: start/stop only go to the scale.
-  await page.click('#settingsBtn');
-  await page.uncheck('#drivePortalTimer');
-  await page.evaluate(() => closeSettingsModal());
+  // The setting is hidden in Settings for now; untick it the way the change handler sees it
+  await page.evaluate(() => { const el = document.getElementById('drivePortalTimer'); el.checked = false; el.dispatchEvent(new Event('change')); });
   await page.evaluate(() => triStateTimer());
   await page.evaluate(() => triStateTimer());
   writes = await page.evaluate(() => ({ portal: window.__mock.portalCommandWrites(), scale: window.__mock.scaleCommandWrites() }));
@@ -273,9 +272,8 @@ test('remembered device out of range: reconnect times out, is forgotten, next pr
 test('scale timer not driven: elapsed time comes from the app clock, not the scale', async ({ page }) => {
   await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['scale'] }); });
   await page.evaluate(() => toggleConnect());
-  await page.click('#settingsBtn');
-  await page.uncheck('#driveScaleTimer');
-  await page.evaluate(() => closeSettingsModal());
+  // The setting is hidden in Settings for now; untick it the way the change handler sees it
+  await page.evaluate(() => { const el = document.getElementById('driveScaleTimer'); el.checked = false; el.dispatchEvent(new Event('change')); });
   await page.evaluate(() => triStateTimer());
   // The scale's own timer says 1:30, but it isn't the time source.
   await page.evaluate(() => window.__emitScale(window.__mock, 10, 90000));
