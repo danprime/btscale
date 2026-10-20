@@ -1591,3 +1591,9 @@ button, input, select {
 .log-delete-area {
     margin-top: 16px;
 }
+
+/* TDS vs extraction: x-axis title under the tick numbers, bottom right */
+.ey-axis-title {
+    fill: #b77b2b;
+    font-size: 10.5px;
+}

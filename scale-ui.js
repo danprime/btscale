@@ -1685,15 +1685,17 @@ function drawExtractionChart(svg, { point = null, trail = [], labelsShown = fals
     const h = svg.clientHeight || 150;
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     svg.replaceChildren();
-    const pad = { l: 32, r: 10, t: 8, b: 18 };
+    const pad = { l: 32, r: 10, t: 8, b: 30 }; // bottom: tick numbers, then the x-axis title
     const x = (ey) => pad.l + ((ey - EY_AXIS.min) / (EY_AXIS.max - EY_AXIS.min)) * (w - pad.l - pad.r);
     const y = (tds) => h - pad.b - ((tds - TDS_AXIS.min) / (TDS_AXIS.max - TDS_AXIS.min)) * (h - pad.t - pad.b);
 
     // Grid and ticks
     for (let v = EY_AXIS.min; v <= EY_AXIS.max + 1e-9; v += EY_AXIS.step) {
         svg.append(svgEl('line', { x1: x(v), x2: x(v), y1: y(TDS_AXIS.max), y2: y(TDS_AXIS.min), class: 'ey-grid' }));
-        svg.append(svgEl('text', { x: x(v), y: h - 4, 'text-anchor': 'middle', class: 'ey-tick' }, String(v)));
+        svg.append(svgEl('text', { x: x(v), y: h - pad.b + 12, 'text-anchor': 'middle', class: 'ey-tick' }, String(v)));
     }
+    // x-axis title, bottom right (the y-axis title "TDS · %" is in the card header)
+    svg.append(svgEl('text', { x: w - pad.r, y: h - 4, 'text-anchor': 'end', class: 'ey-axis-title' }, 'Extraction · %'));
     for (let v = TDS_AXIS.min; v <= TDS_AXIS.max + 1e-9; v += TDS_AXIS.step) {
         svg.append(svgEl('line', { x1: x(EY_AXIS.min), x2: x(EY_AXIS.max), y1: y(v), y2: y(v), class: 'ey-grid' }));
         svg.append(svgEl('text', { x: pad.l - 5, y: y(v) + 3.5, 'text-anchor': 'end', class: 'ey-tick' }, v.toFixed(1)));

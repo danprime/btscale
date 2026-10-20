@@ -398,6 +398,18 @@ test('after Stop the chart becomes a carousel: estimate (hollow), tap for labels
   // No gold cup label or ideal dot; region labels hidden until a tap
   expect(await page.locator('#extractionChart').textContent()).not.toMatch(/Gold|Ideal/);
   await expect(page.locator('.ey-ref')).toHaveCount(4);
+  // Axis titles: TDS in the header (y axis), Extraction at the bottom right (x axis)
+  await expect(page.locator('#extractionSlide .brew-chart-label')).toHaveText('TDS · %');
+  const axis = await page.evaluate(() => {
+    const svg = document.querySelector('#extractionChart').getBoundingClientRect();
+    const t = document.querySelector('#extractionChart .ey-axis-title').getBoundingClientRect();
+    const ticks = [...document.querySelectorAll('#extractionChart .ey-tick')].map((e) => e.getBoundingClientRect().bottom);
+    return { text: document.querySelector('#extractionChart .ey-axis-title').textContent, rightGap: svg.right - t.right, belowTicks: t.top >= Math.max(...ticks) - 1, inside: t.bottom <= svg.bottom + 0.5 };
+  });
+  expect(axis.text).toBe('Extraction · %');
+  expect(axis.rightGap).toBeLessThan(14); // right-aligned
+  expect(axis.belowTicks).toBe(true); // under the tick numbers
+  expect(axis.inside).toBe(true);
   await expect(page.locator('.ey-label')).toHaveCount(0);
 
   await page.click('#chartDots .chart-dot >> nth=1');
