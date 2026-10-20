@@ -102,6 +102,7 @@ import { installMockBluetooth } from './ble-mock.js';
 import { DeviceManager } from './device-manager.js';
 import { BrewRecorder } from './brew-recorder.js';
 import { BrewChart, formatSeconds } from './brew-chart.js';
+import { BrewLog, downsample, MAX_BREWS } from './brew-log.js';
 import { CiyIntegrator, liveYield, tdsPercent, calcKv, extractionYield, extractionRegion, DEFAULT_KV, DEFAULT_ABSORPTION, MAX_ABSORPTION } from './tds.js';
 
 // --- Settings modal logic (moved to top for global availability) ---
@@ -481,6 +482,7 @@ function captureFinal() {
         estTds: tdsBrew ? liveTds() : null,
     };
     if (tdsBrew) saveLastBrew({ ciy: ciy.ciy, estYield: finalSnapshot.estYield, yield: null, at: Date.now() });
+    saveBrewToLog();
     renderFinal();
 }
 
@@ -1379,6 +1381,7 @@ function applyFinalTds() {
     // Calibration uses this measured yield for the same brew
     const brew = loadJson(LAST_BREW_KEY);
     if (brew) saveLastBrew({ ...brew, yield: yieldG });
+    updateLoggedBrewTds(yieldG, finalTds.tds);
     closeFinalTds();
     renderTdsPanel();
     renderYieldPanel();
@@ -1658,6 +1661,26 @@ function renderExtractionChart() {
     slide.hidden = !show;
     byId('chartDots').hidden = !show;
     if (!show) return;
+    const point = extractionPoint();
+    let hint = null;
+    if (!point && !(memory.beans?.weight > 0)) hint = 'Set the bean dose to plot this brew';
+    else if (!point && !finalSnapshot && recorder.elapsed() < tdsMinSeconds) hint = `Live path from ${formatSeconds(tdsMinSeconds)}`;
+    // Live trail until the final dot (after Next) replaces it
+    const desc = drawExtractionChart(svg, {
+        point,
+        trail: finalTds ? [] : extractionTrail,
+        labelsShown: extractionLabelsShown,
+        hint,
+        estimateWord: finalSnapshot ? 'estimated' : 'live estimate:',
+    });
+    svg.setAttribute('aria-label', `TDS versus extraction yield chart, ${desc}. Tap to ${extractionLabelsShown ? 'hide' : 'show'} region labels.`);
+}
+
+/**
+ * Draw the TDS vs extraction chart into an <svg> (also used by the brew log).
+ * point: {ey, tds, final} or null; trail: [{ey, tds}]; returns a description for aria-label.
+ */
+function drawExtractionChart(svg, { point = null, trail = [], labelsShown = false, hint = null, estimateWord = 'estimated' } = {}) {
     const w = svg.clientWidth || 300;
     const h = svg.clientHeight || 150;
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
@@ -1684,43 +1707,40 @@ function renderExtractionChart() {
     // Reference points; top-row labels go below the point, bottom-row labels above
     for (const p of EY_REFERENCE) {
         svg.append(svgEl('circle', { cx: x(p.ey), cy: y(p.tds), r: 3.5, class: 'ey-ref' }));
-        if (!extractionLabelsShown) continue;
+        if (!labelsShown) continue;
         const left = p.ey < 20;
         const top = p.tds > 1.2;
         const text = svgEl('text', { x: x(p.ey) + (left ? -4 : 4), y: y(p.tds) + (top ? 14 : -18), 'text-anchor': left ? 'start' : 'end', class: 'ey-label' });
         p.label.forEach((line, i) => text.append(svgEl('tspan', { x: x(p.ey) + (left ? -4 : 4), dy: i ? 11 : 0 }, line)));
         svg.append(text);
     }
+    // Trail, clipped at the chart edges rather than pinned, so it enters the chart where it really does
+    if (trail.length > 1) {
+        const clipId = `eyClip-${svg.id || 'chart'}`;
+        const clip = svgEl('clipPath', { id: clipId });
+        clip.append(svgEl('rect', { x: x(EY_AXIS.min), y: y(TDS_AXIS.max), width: x(EY_AXIS.max) - x(EY_AXIS.min), height: y(TDS_AXIS.min) - y(TDS_AXIS.max) }));
+        svg.append(clip);
+        svg.append(svgEl('polyline', { points: trail.map((p) => `${x(p.ey)},${y(p.tds)}`).join(' '), class: 'ey-trail', 'clip-path': `url(#${clipId})` }));
+    }
     // This brew (pinned to the edge, with the real values in its label, if it is off the chart)
     const px = (ey) => x(Math.min(EY_AXIS.max, Math.max(EY_AXIS.min, ey)));
     const py = (tds) => y(Math.min(TDS_AXIS.max, Math.max(TDS_AXIS.min, tds)));
-    const pt = extractionPoint();
-    // Live trail until the final dot (after Next) replaces it
-    // (clipped at the chart edges rather than pinned, so it enters the chart where it really does)
-    if (!finalTds && extractionTrail.length > 1) {
-        const clip = svgEl('clipPath', { id: 'eyPlotClip' });
-        clip.append(svgEl('rect', { x: x(EY_AXIS.min), y: y(TDS_AXIS.max), width: x(EY_AXIS.max) - x(EY_AXIS.min), height: y(TDS_AXIS.min) - y(TDS_AXIS.max) }));
-        svg.append(clip);
-        svg.append(svgEl('polyline', { points: extractionTrail.map((p) => `${x(p.ey)},${y(p.tds)}`).join(' '), class: 'ey-trail', 'clip-path': 'url(#eyPlotClip)' }));
-    }
     let desc = 'no TDS for this brew yet';
-    if (pt) {
-        const cx = px(pt.ey);
-        const cy = py(pt.tds);
-        svg.append(svgEl('circle', { cx, cy, r: 5.5, class: pt.final ? 'ey-brew' : 'ey-brew ey-brew-estimate' }));
+    if (point) {
+        const cx = px(point.ey);
+        const cy = py(point.tds);
+        svg.append(svgEl('circle', { cx, cy, r: 5.5, class: point.final ? 'ey-brew' : 'ey-brew ey-brew-estimate' }));
         const right = cx < w / 2;
         const below = cy < pad.t + 14;
         // The region labels take over while they are shown; the dot stays
-        if (!extractionLabelsShown) svg.append(svgEl('text', { x: cx + (right ? 9 : -9), y: cy + (below ? 14 : -8), 'text-anchor': right ? 'start' : 'end', class: 'ey-brew-label' },
-            `${pt.final ? '' : '≈ '}${pt.ey.toFixed(1)} %, ${pt.tds.toFixed(2)} %`));
-        desc = `${pt.final ? '' : finalSnapshot ? 'estimated ' : 'live estimate: '}extraction ${pt.ey.toFixed(1)} %, TDS ${pt.tds.toFixed(2)} %: ${extractionRegion(pt.tds, pt.ey)}`;
-    } else if (!(memory.beans?.weight > 0)) {
-        svg.append(svgEl('text', { x: w / 2, y: h / 2, 'text-anchor': 'middle', class: 'ey-hint' }, 'Set the bean dose to plot this brew'));
-    } else if (!finalSnapshot && recorder.elapsed() < tdsMinSeconds) {
-        svg.append(svgEl('text', { x: w / 2, y: h / 2, 'text-anchor': 'middle', class: 'ey-hint' }, `Live path from ${formatSeconds(tdsMinSeconds)}`));
-        desc = 'live path starts shortly';
+        if (!labelsShown) svg.append(svgEl('text', { x: cx + (right ? 9 : -9), y: cy + (below ? 14 : -8), 'text-anchor': right ? 'start' : 'end', class: 'ey-brew-label' },
+            `${point.final ? '' : '≈ '}${point.ey.toFixed(1)} %, ${point.tds.toFixed(2)} %`));
+        desc = `${point.final ? '' : `${estimateWord} `}extraction ${point.ey.toFixed(1)} %, TDS ${point.tds.toFixed(2)} %: ${extractionRegion(point.tds, point.ey)}`;
+    } else if (hint) {
+        svg.append(svgEl('text', { x: w / 2, y: h / 2, 'text-anchor': 'middle', class: 'ey-hint' }, hint));
+        if (hint.startsWith('Live path')) desc = 'live path starts shortly';
     }
-    svg.setAttribute('aria-label', `TDS versus extraction yield chart, ${desc}. Tap to ${extractionLabelsShown ? 'hide' : 'show'} region labels.`);
+    return desc;
 }
 
 function toggleExtractionLabels() {
@@ -1751,6 +1771,287 @@ window.addEventListener('DOMContentLoaded', () => {
     if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => renderExtractionChart()).observe(svg);
     byId('chartTrack').addEventListener('scroll', () => renderChartDots(), { passive: true });
     renderChartDots(0);
+});
+
+// --- Brew log: every stopped brew is saved (summary + chart points); Settings > Brew log ---
+const brewLog = new BrewLog();
+let currentLogId = null; // the brew saved at the last Stop (updated by the calculator)
+let openLogBrew = null; // the brew shown in the detail view
+let logChart = null;
+let logChartData = null;
+let logNav = 0; // bumped on every navigation, so a slow load can't reopen a view you've left
+
+function fmtGrams(v) { return String(Number(v.toFixed(1))); } // 20, 18.5
+function logDefaultName(at) {
+    const d = new Date(at);
+    return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ${d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+}
+function logName(brew) { return brew.name || logDefaultName(brew.at); }
+
+/** Snapshot of the stopped brew for the log (null if nothing was recorded). */
+function buildLogEntry() {
+    const rows = recorder.rows;
+    const f = finalSnapshot;
+    if (!rows.length || !f || !recorder.startedAt) return null;
+    const weight = downsample(rows.filter((r) => r.source === 'scale' && r.weight != null).map((r) => ({ t: r.t, v: r.weight })));
+    const ec = downsample(rows.filter((r) => r.source === 'portal' && r.ec != null).map((r) => ({ t: r.t, v: r.ec })));
+    const dose = memory.beans?.weight > 0 ? memory.beans.weight : null;
+    const at = recorder.startedAt.getTime();
+    return {
+        id: at,
+        at,
+        name: null,
+        summary: {
+            hasScale: weight.length > 0,
+            hasEc: ec.length > 0,
+            ms: f.ms,
+            elapsed: recorder.elapsed(),
+            finalWeight: f.weight,
+            avgFlow: f.avgFlow,
+            dose,
+            target: targetWeight,
+            ratio: dose && f.weight != null ? f.weight / dose : null,
+            tempAtStop: f.temp,
+            peakEc: f.peakEc,
+            ciy: f.ciy,
+            estYield: f.estYield,
+            estTds: f.estTds,
+            yield: null,
+            tds: null,
+            kv: f.ciy != null ? activeKv() : null,
+            kvCalibrated: !!kv,
+            absorption,
+        },
+        series: { weight, ec },
+    };
+}
+
+/** Called at Stop: save this brew to the log. */
+function saveBrewToLog() {
+    const entry = buildLogEntry();
+    if (!entry) return;
+    currentLogId = entry.id;
+    brewLog.save(entry).then(refreshLogCount).catch((e) => log(`Brew log save failed: ${e.message}`));
+}
+
+/** Called by the calculator's Next: the measured yield and final TDS. */
+function updateLoggedBrewTds(yieldG, tds) {
+    if (currentLogId == null) return;
+    brewLog.update(currentLogId, { summary: { yield: yieldG, tds } }).catch((e) => log(`Brew log update failed: ${e.message}`));
+}
+
+async function refreshLogCount() {
+    const btn = byId('brewLogBtn');
+    if (!btn) return;
+    const n = await brewLog.count().catch(() => 0);
+    btn.textContent = n ? `Brew log · ${n}` : 'Brew log';
+}
+
+function brewLogOpen() {
+    const modal = byId('brewLogModal');
+    return !!modal && modal.style.display !== 'none';
+}
+
+async function openBrewLog() {
+    byId('brewLogModal').style.display = 'flex';
+    await showBrewList();
+}
+
+function closeBrewLog() {
+    logNav++;
+    const modal = byId('brewLogModal');
+    if (modal) modal.style.display = 'none';
+    openLogBrew = null;
+}
+
+/** List view: newest first, with dose -> yield (or final weight) and TDS. */
+async function showBrewList() {
+    const nav = ++logNav;
+    endLogRename(false);
+    openLogBrew = null;
+    byId('logDetailView').hidden = true;
+    byId('logListView').hidden = false;
+    byId('brewLogModal').setAttribute('aria-labelledby', 'brewLogTitle');
+    const brews = await brewLog.list().catch(() => []);
+    if (nav !== logNav) return;
+    setText('logCount', `${brews.length} of ${MAX_BREWS}`);
+    byId('logEmpty').hidden = brews.length > 0;
+    const list = byId('logList');
+    list.replaceChildren(...brews.map((b) => {
+        const s = b.summary;
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'log-item';
+        btn.dataset.id = String(b.id);
+        btn.onclick = () => openBrewDetail(b.id);
+        const left = document.createElement('div');
+        left.append(
+            Object.assign(document.createElement('div'), { className: 'log-item-name', textContent: logName(b) }),
+            Object.assign(document.createElement('div'), { className: 'log-item-sub', textContent: `${new Date(b.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${formatSeconds(s.ms / 1000)}` }),
+        );
+        const right = document.createElement('div');
+        right.className = 'log-item-right';
+        const out = s.ciy != null ? s.yield ?? s.estYield : s.finalWeight;
+        if (s.hasScale && out != null) right.append(Object.assign(document.createElement('div'), { textContent: s.dose ? `${fmtGrams(s.dose)}g → ${fmtGrams(out)}g` : `${fmtGrams(out)}g` }));
+        const tds = s.tds ?? s.estTds;
+        if (s.ciy != null && tds != null) right.append(Object.assign(document.createElement('div'), { className: 'log-item-sub', textContent: `TDS ${s.tds != null ? '' : '≈ '}${tds.toFixed(2)} %` }));
+        else if (!s.hasScale && s.peakEc != null) right.append(Object.assign(document.createElement('div'), { className: 'log-item-sub', textContent: `Peak EC ${s.peakEc.toFixed(2)}` }));
+        btn.append(left, right);
+        li.append(btn);
+        return li;
+    }));
+}
+
+/** Detail view: static charts and the final data for one brew. */
+async function openBrewDetail(id) {
+    const nav = ++logNav;
+    const brew = await brewLog.get(id);
+    if (nav !== logNav || !brewLogOpen()) return;
+    if (!brew) return showBrewList();
+    openLogBrew = brew;
+    byId('logListView').hidden = true;
+    byId('logDetailView').hidden = false;
+    byId('brewLogModal').setAttribute('aria-labelledby', 'logName');
+    byId('logDeleteConfirm').hidden = true;
+    byId('logDeleteBtn').hidden = false;
+    renderBrewDetail();
+}
+
+function renderBrewDetail() {
+    const brew = openLogBrew;
+    if (!brew) return;
+    const s = brew.summary;
+    setText('logName', logName(brew));
+    const d = new Date(brew.at);
+    setText('logDate', `${d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} · ${d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`);
+
+    // Brew chart: EC (with weight) if the EC meter was used, otherwise weight with the target line
+    const dual = s.hasEc && s.hasScale;
+    logChartData = {
+        mode: s.hasEc ? 'ec' : 'weight',
+        points: s.hasEc ? brew.series.ec : brew.series.weight,
+        weightPoints: dual ? brew.series.weight : null,
+        elapsed: s.elapsed,
+        target: s.target,
+        running: false,
+    };
+    byId('logBrewChartLabel').innerHTML = !s.hasEc ? 'Weight · g'
+        : dual ? '<span class="brew-chart-label-weight">Weight · g</span><span class="brew-chart-label-ec">EC · mS/cm</span>' : 'EC · mS/cm';
+    if (!logChart) logChart = new BrewChart(byId('logBrewChart'), () => logChartData);
+    logChart.requestDraw();
+
+    // TDS vs extraction: only for brews with both devices (CIY)
+    const tdsBrewLogged = s.ciy != null;
+    byId('logEyChartBox').hidden = !tdsBrewLogged;
+    const tds = s.tds ?? s.estTds;
+    const yieldG = s.yield ?? s.estYield;
+    const ey = tdsBrewLogged ? extractionYield(yieldG, tds, s.dose) : null;
+    if (tdsBrewLogged) {
+        const svg = byId('logEyChart');
+        const point = ey != null ? { ey, tds, final: s.tds != null } : null;
+        const desc = drawExtractionChart(svg, { point, hint: point ? null : 'No extraction for this brew' });
+        svg.setAttribute('aria-label', `TDS versus extraction yield chart, ${desc}.`);
+    }
+
+    // Final data: weight cards with the scale, temperature/EC with the EC meter, TDS cards with both
+    const cards = [];
+    const uncal = s.kvCalibrated ? '' : ' (uncal.)';
+    if (s.hasScale) {
+        cards.push(['Final weight', s.finalWeight != null ? `${s.finalWeight.toFixed(1)} g` : '--']);
+        cards.push(['Time', formatSeconds(s.ms / 1000)]);
+        cards.push(['Ratio', s.ratio ? `1:${s.ratio.toFixed(1)}` : '--']);
+        cards.push(['In → out', s.dose && s.target ? `${fmtGrams(s.dose)}g → ${fmtGrams(s.target)}g` : '--']);
+        cards.push(['Avg flow', s.avgFlow != null ? `${s.avgFlow.toFixed(1)} g/s` : '--']);
+    } else {
+        cards.push(['Time', formatSeconds(s.ms / 1000)]);
+    }
+    if (s.hasEc) {
+        cards.push(['Temp at stop', s.tempAtStop != null ? `${s.tempAtStop.toFixed(1)} °C` : '--']);
+        cards.push(['Peak EC', s.peakEc != null ? `${s.peakEc.toFixed(2)} mS/cm` : '--']);
+    }
+    if (tdsBrewLogged) {
+        cards.push(['CIY', formatCiy(s.ciy)]);
+        cards.push([s.yield != null ? 'Yield' : 'Yield ≈', yieldG != null ? `${yieldG.toFixed(1)} g` : '--']);
+        cards.push([`${s.tds != null ? 'TDS' : 'TDS ≈'}${uncal}`, formatTds(tds)]);
+        cards.push(['Extraction', ey != null ? `${ey.toFixed(1)} %` : '--']);
+        cards.push([`kᵥ${uncal}`, formatKv(s.kv)]);
+    }
+    byId('logCards').replaceChildren(...cards.map(([label, value]) => {
+        const item = document.createElement('div');
+        item.className = 'ritual-info-item';
+        item.append(
+            Object.assign(document.createElement('div'), { className: 'ritual-info-label', textContent: label }),
+            Object.assign(document.createElement('div'), { className: 'ritual-info-value', textContent: value }),
+        );
+        return item;
+    }));
+}
+
+// Rename: the name becomes a text input; Enter or Save stores it, Escape cancels
+function startLogRename() {
+    if (!openLogBrew || byId('logNameInput')) return;
+    const h = byId('logName');
+    const input = Object.assign(document.createElement('input'), { type: 'text', id: 'logNameInput', className: 'log-name-input', maxLength: 60, value: logName(openLogBrew) });
+    input.setAttribute('aria-label', 'Brew name');
+    h.replaceChildren(input);
+    const btn = byId('logRenameBtn');
+    btn.textContent = 'Save';
+    btn.onclick = () => endLogRename(true);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); endLogRename(true); }
+        if (e.key === 'Escape') { e.stopPropagation(); endLogRename(false); }
+    });
+    input.addEventListener('input', () => showFieldError('logRenameError', ''));
+    input.focus();
+    input.select();
+}
+
+async function endLogRename(save) {
+    const input = byId('logNameInput');
+    const btn = byId('logRenameBtn');
+    if (input && save) {
+        const name = input.value.trim();
+        if (!name) {
+            showFieldError('logRenameError', 'Enter a name.');
+            input.focus();
+            return;
+        }
+        openLogBrew = await brewLog.update(openLogBrew.id, { name });
+    }
+    if (btn) { btn.textContent = 'Rename'; btn.onclick = startLogRename; }
+    showFieldError('logRenameError', '');
+    if (openLogBrew) setText('logName', logName(openLogBrew));
+}
+
+// Delete asks first (it can't be undone)
+function askDeleteBrew() {
+    byId('logDeleteBtn').hidden = true;
+    byId('logDeleteConfirm').hidden = false;
+}
+function cancelDeleteBrew() {
+    byId('logDeleteConfirm').hidden = true;
+    byId('logDeleteBtn').hidden = false;
+}
+async function deleteBrew() {
+    if (!openLogBrew) return;
+    const id = openLogBrew.id;
+    await brewLog.remove(id);
+    if (currentLogId === id) currentLogId = null;
+    await refreshLogCount();
+    await showBrewList();
+}
+
+/** Escape in the brew log: cancel delete, then back to the list, then close. */
+function brewLogEscape() {
+    if (!byId('logDeleteConfirm').hidden) cancelDeleteBrew();
+    else if (!byId('logDetailView').hidden) showBrewList();
+    else closeBrewLog();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    refreshLogCount();
+    byId('brewLogModal').addEventListener('click', (e) => { if (e.target.id === 'brewLogModal') closeBrewLog(); });
 });
 
 // Expose for HTML
@@ -1788,6 +2089,13 @@ window.calibrationNext = calibrationNext;
 window.keepCurrentKv = keepCurrentKv;
 window.saveNewKv = saveNewKv;
 window.showChartSlide = showChartSlide;
+window.openBrewLog = openBrewLog;
+window.closeBrewLog = closeBrewLog;
+window.showBrewList = showBrewList;
+window.startLogRename = startLogRename;
+window.askDeleteBrew = askDeleteBrew;
+window.cancelDeleteBrew = cancelDeleteBrew;
+window.deleteBrew = deleteBrew;
 
 // Test helpers (test-only): allow E2E tests to inject memory and update UI deterministically.
 window.__test_setMemory = (m) => {
@@ -1836,6 +2144,7 @@ window.__test_emitPortal = (portalData) => {
     } catch (e) {}
 };
 window.__test_recorder = recorder;
+window.__test_brewLog = brewLog;
 // Seconds before the live TDS estimate appears (30 in the app)
 window.__test_setTdsDelay = (seconds) => { tdsMinSeconds = seconds; renderTdsPanel(); };
 
@@ -1858,7 +2167,8 @@ window.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
         // Close the top dialog only
-        if (calibrationOpen()) closeCalibration();
+        if (brewLogOpen()) brewLogEscape();
+        else if (calibrationOpen()) closeCalibration();
         else if (finalTdsOpen()) closeFinalTds();
         else closeSettingsModal();
     });

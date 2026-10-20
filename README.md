@@ -174,5 +174,10 @@ TDS vs extraction chart (after a TDS brew)
 - Extraction yield % = yield (g) × TDS % / bean dose (g). Right after Stop the brew is a hollow dot from the estimated yield and TDS; after the calculator's Next it turns solid (measured yield and final TDS), the trail is removed and the carousel switches to this chart. A brew outside the axes is pinned to the edge; its label shows the real values.
 - Tap the chart to show or hide the four region labels (Strong & Sour, Strong & Bitter, Weak & Under-extracted, Weak & Over-extracted). Reset returns to the brew chart alone.
 
+Brew log (Settings > Brew log)
+- Every stopped brew with readings is saved automatically (IndexedDB, in this browser on this device only; `brew-log.js`). The calculator's Next updates the saved brew with the measured yield and final TDS. Only the latest 100 brews are kept.
+- Saved per brew: the start date/time, an optional name, a summary (final weight, time, ratio, dose and target, average flow, temperature at stop, peak EC, CIY, estimated and final yield/TDS, the k_v and bed absorption used) and up to 300 chart points per line.
+- The list is newest first (name, date, time, dose → yield or final weight, TDS). A brew opens a detail view with static charts and its final data: weight chart and weight numbers with the scale only, the EC chart and EC numbers with the EC meter only, and everything (including TDS vs extraction) with both. Rename (Enter saves, Escape cancels) and Delete (asks first) are in the detail view. Escape steps back: delete prompt, detail, list.
+
 Recording
 - Samples are recorded from Start to Stop. After Stop, a download button exports a CSV with one row per packet from either device (`t_s,weight_g,flow_gps,temp_c,ec_mScm,source,ciy,tds_pct`), with the latest value from the other device filled in. The last two columns are only filled during a TDS brew (`tds_pct` is the live estimate).
