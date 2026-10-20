@@ -219,10 +219,10 @@ test('EC meter only: no TDS, Peak EC after Stop and M_B stays Set beans', async 
   await expect(page.locator('#tareBeanBtn')).toBeDisabled();
 });
 
-test('settings: bed absorption and k_v under Ratio (default 2.0), Calibrate, no TDS header or target hint', async ({ page }) => {
+test('settings: retained ratio and k_v under Ratio (default 2.0), Calibrate, no TDS header or target hint', async ({ page }) => {
   await page.click('#settingsBtn');
   const rows = await page.locator('#memoryTable tbody tr td:first-child').allTextContents();
-  expect(rows).toEqual(['Bean Dose', 'Carafe/Server', 'Ratio', 'Bed absorption', 'kv']);
+  expect(rows).toEqual(['Bean dose', 'Carafe', 'Ratio', 'Retained ratio', 'kv']);
   await expect(page.locator('#settingsModal h3', { hasText: 'TDS' })).toHaveCount(0);
   await expect(page.locator('#absorptionSettingCell')).toHaveText('2.0 g/g');
   await expect(page.locator('#kvSettingValue')).toHaveText('0.005uncalibrated'); // default until calibrated
@@ -599,5 +599,5 @@ test('final TDS calculator fits a narrow phone with large text: Tare next to Sca
     return { tareRightOfScale: tare.left >= text.right && tare.top < text.bottom && tare.bottom > text.top, carafeText: carafe.innerText };
   });
   expect(layout.tareRightOfScale).toBe(true);
-  expect(layout.carafeText.replace(/\s+/g, ' ')).toBe('Carafe (memory)'); // no mid-word break
+  expect(layout.carafeText.replace(/\s+/g, ' ')).toBe('Carafe'); // no mid-word break
 });

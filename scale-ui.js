@@ -31,11 +31,11 @@ function updateMemoryTable() {
   for (const [key, row] of Object.entries(MEMORY_ROWS)) {
     const cell = document.getElementById(row.cell);
     if (!cell || cell.querySelector('input')) continue; // being edited
-    cell.textContent = memory[key]?.weight != null ? memory[key].weight.toFixed(2) : '--';
+    cell.textContent = memory[key]?.weight != null ? `${Number(memory[key].weight.toFixed(1))} g` : '--';
   }
 }
 
-// Overwrite turns the stored weight into an input; Enter or Save stores it, Escape cancels
+// Edit turns the stored weight into an input; Enter or Save stores it, Escape cancels
 function startMemoryEdit(key) {
   const row = MEMORY_ROWS[key];
   const cell = document.getElementById(row.cell);
@@ -78,7 +78,7 @@ function endMemoryEdit(key) {
   const cell = document.getElementById(row.cell);
   const btn = document.getElementById(row.btn);
   if (cell) cell.replaceChildren();
-  if (btn) { btn.textContent = 'Overwrite'; btn.onclick = () => startMemoryEdit(key); }
+  if (btn) { btn.textContent = 'Edit'; btn.onclick = () => startMemoryEdit(key); }
   showMemoryError('');
   updateMemoryTable();
 }
@@ -994,7 +994,7 @@ function setRatio(r) {
     recomputeTarget();
 }
 
-// --- Settings: ratio row (Overwrite turns the number into an input) ---
+// --- Settings: ratio row (Edit turns the number into an input) ---
 function renderRatioSetting() {
     const display = document.getElementById('ratioSettingValue');
     if (display) display.textContent = formatRatioNumber(currentRatio);
@@ -1035,7 +1035,7 @@ function endRatioEdit() {
     const cell = document.getElementById('ratioSettingCell');
     const btn = document.getElementById('ratioEditBtn');
     if (cell) cell.innerHTML = '1:<span id="ratioSettingValue"></span>';
-    if (btn) { btn.textContent = 'Overwrite'; btn.onclick = startRatioEdit; }
+    if (btn) { btn.textContent = 'Edit'; btn.onclick = startRatioEdit; }
     showRatioError('');
     renderRatioSetting();
 }
@@ -1399,7 +1399,7 @@ function showFieldError(id, msg) {
 
 function saveLastBrew(brew) { saveJson(LAST_BREW_KEY, brew); }
 
-// --- Settings: bed absorption row (Overwrite turns the number into an input) ---
+// --- Settings: retained ratio row (Edit turns the number into an input) ---
 function renderAbsorptionSetting() {
     const display = byId('absorptionSettingValue');
     if (display) display.textContent = formatAbsorption(absorption);
@@ -1409,7 +1409,7 @@ function startAbsorptionEdit() {
     const cell = byId('absorptionSettingCell');
     const btn = byId('absorptionEditBtn');
     if (!cell || !btn || byId('absorptionInput')) return;
-    cell.innerHTML = `<input type="number" id="absorptionInput" min="0" max="${MAX_ABSORPTION}" step="any" inputmode="decimal" aria-label="Bed absorption, grams of water per gram of beans" value="${formatAbsorption(absorption)}"> g/g`;
+    cell.innerHTML = `<input type="number" id="absorptionInput" min="0" max="${MAX_ABSORPTION}" step="any" inputmode="decimal" aria-label="Retained ratio, grams of water held per gram of beans" value="${formatAbsorption(absorption)}"> g/g`;
     btn.textContent = 'Save';
     btn.onclick = saveAbsorptionEdit;
     const input = byId('absorptionInput');
@@ -1435,14 +1435,14 @@ function saveAbsorptionEdit() {
     saveJson(ABSORPTION_KEY, a);
     endAbsorptionEdit();
     renderTdsPanel();
-    log(`Bed absorption set to ${formatAbsorption(a)} g/g`);
+    log(`Retained ratio set to ${formatAbsorption(a)} g/g`);
 }
 
 function endAbsorptionEdit() {
     const cell = byId('absorptionSettingCell');
     const btn = byId('absorptionEditBtn');
     if (cell) cell.innerHTML = '<span id="absorptionSettingValue"></span> g/g';
-    if (btn) { btn.textContent = 'Overwrite'; btn.onclick = startAbsorptionEdit; }
+    if (btn) { btn.textContent = 'Edit'; btn.onclick = startAbsorptionEdit; }
     showFieldError('absorptionError', '');
     renderAbsorptionSetting();
 }
@@ -1841,10 +1841,10 @@ function updateLoggedBrewTds(yieldG, tds) {
 }
 
 async function refreshLogCount() {
-    const btn = byId('brewLogBtn');
-    if (!btn) return;
+    const el = byId('brewLogCount');
+    if (!el) return;
     const n = await brewLog.count().catch(() => 0);
-    btn.textContent = n ? `Brew log · ${n}` : 'Brew log';
+    el.textContent = n ? `${n} brew${n === 1 ? '' : 's'}` : '';
 }
 
 function brewLogOpen() {
@@ -1954,39 +1954,62 @@ function renderBrewDetail() {
         svg.setAttribute('aria-label', `TDS versus extraction yield chart, ${desc}.`);
     }
 
-    // Final data: weight cards with the scale, temperature/EC with the EC meter, TDS cards with both
-    const cards = [];
+    // Summary row: time, ratio (with the scale), then TDS / final weight / peak EC
     const uncal = s.kvCalibrated ? '' : ' (uncal.)';
-    if (s.hasScale) {
-        cards.push(['Final weight', s.finalWeight != null ? `${s.finalWeight.toFixed(1)} g` : '--']);
-        cards.push(['Time', formatSeconds(s.ms / 1000)]);
-        cards.push(['Ratio', s.ratio ? `1:${s.ratio.toFixed(1)}` : '--']);
-        cards.push(['In → out', s.dose && s.target ? `${fmtGrams(s.dose)}g → ${fmtGrams(s.target)}g` : '--']);
-        cards.push(['Avg flow', s.avgFlow != null ? `${s.avgFlow.toFixed(1)} g/s` : '--']);
-    } else {
-        cards.push(['Time', formatSeconds(s.ms / 1000)]);
-    }
-    if (s.hasEc) {
-        cards.push(['Temp at stop', s.tempAtStop != null ? `${s.tempAtStop.toFixed(1)} °C` : '--']);
-        cards.push(['Peak EC', s.peakEc != null ? `${s.peakEc.toFixed(2)} mS/cm` : '--']);
-    }
-    if (tdsBrewLogged) {
-        cards.push(['CIY', formatCiy(s.ciy)]);
-        cards.push([s.yield != null ? 'Yield' : 'Yield ≈', yieldG != null ? `${yieldG.toFixed(1)} g` : '--']);
-        cards.push([`${s.tds != null ? 'TDS' : 'TDS ≈'}${uncal}`, formatTds(tds)]);
-        cards.push(['Extraction', ey != null ? `${ey.toFixed(1)} %` : '--']);
-        cards.push([`kᵥ${uncal}`, formatKv(s.kv)]);
-    }
-    byId('logCards').replaceChildren(...cards.map(([label, value]) => {
+    const summary = [['Time', formatSeconds(s.ms / 1000)]];
+    if (s.hasScale) summary.push(['Ratio', s.ratio ? `1:${s.ratio.toFixed(1)}` : '--']);
+    if (tdsBrewLogged) summary.push([`${s.tds != null ? 'TDS' : 'TDS ≈'}${uncal}`, formatTds(tds)]);
+    else if (s.hasScale) summary.push(['Final weight', s.finalWeight != null ? `${s.finalWeight.toFixed(1)} g` : '--']);
+    else if (s.hasEc) summary.push(['Peak EC', s.peakEc != null ? `${s.peakEc.toFixed(2)} mS/cm` : '--']);
+    byId('logSummary').replaceChildren(...summary.map(([label, value]) => {
         const item = document.createElement('div');
-        item.className = 'ritual-info-item';
         item.append(
-            Object.assign(document.createElement('div'), { className: 'ritual-info-label', textContent: label }),
-            Object.assign(document.createElement('div'), { className: 'ritual-info-value', textContent: value }),
+            Object.assign(document.createElement('b'), { className: 'log-summary-value', textContent: value }),
+            Object.assign(document.createElement('span'), { className: 'log-summary-label', textContent: label }),
         );
         return item;
     }));
+
+    // Grouped cards: Brew (scale), Extraction (both devices), EC meter
+    const groups = [];
+    if (s.hasScale) {
+        const brewCards = [];
+        if (tdsBrewLogged) brewCards.push(['Final weight', s.finalWeight != null ? `${s.finalWeight.toFixed(1)} g` : '--']);
+        brewCards.push(['Avg flow', s.avgFlow != null ? `${s.avgFlow.toFixed(1)} g/s` : '--']);
+        brewCards.push(['In → out', s.dose && s.target ? `${fmtGrams(s.dose)}g → ${fmtGrams(s.target)}g` : '--']);
+        groups.push(['Brew', brewCards]);
+    }
+    if (tdsBrewLogged) {
+        groups.push(['Extraction', [
+            [s.yield != null ? 'Yield' : 'Yield ≈', yieldG != null ? `${yieldG.toFixed(1)} g` : '--'],
+            ['Extraction', ey != null ? `${ey.toFixed(1)} %` : '--'],
+            ['CIY', formatCiy(s.ciy)],
+        ]]);
+    }
+    if (s.hasEc) {
+        const ecCards = [['Temp at stop', s.tempAtStop != null ? `${s.tempAtStop.toFixed(1)} °C` : '--']];
+        if (s.hasScale || tdsBrewLogged) ecCards.push(['Peak EC', s.peakEc != null ? `${s.peakEc.toFixed(2)} mS/cm` : '--']);
+        if (tdsBrewLogged) ecCards.push([`kᵥ${uncal}`, formatKv(s.kv)]);
+        groups.push(['EC meter', ecCards]);
+    }
+    byId('logCards').replaceChildren(...groups.flatMap(([title, cards]) => {
+        const heading = Object.assign(document.createElement('p'), { className: 'settings-group log-group', textContent: title });
+        const grid = document.createElement('div');
+        grid.className = 'log-cards';
+        grid.append(...cards.map(([label, value]) => {
+            const item = document.createElement('div');
+            item.className = 'ritual-info-item';
+            item.append(
+                Object.assign(document.createElement('div'), { className: 'ritual-info-label', textContent: label }),
+                Object.assign(document.createElement('div'), { className: 'ritual-info-value', textContent: value }),
+            );
+            return item;
+        }));
+        return [heading, grid];
+    }));
 }
+
+let logPencilHtml = null; // the rename button's icon, restored after editing
 
 // Rename: the name becomes a text input; Enter or Save stores it, Escape cancels
 function startLogRename() {
@@ -1996,7 +2019,10 @@ function startLogRename() {
     input.setAttribute('aria-label', 'Brew name');
     h.replaceChildren(input);
     const btn = byId('logRenameBtn');
+    if (logPencilHtml == null) logPencilHtml = btn.innerHTML;
     btn.textContent = 'Save';
+    btn.classList.add('is-saving');
+    btn.setAttribute('aria-label', 'Save name');
     btn.onclick = () => endLogRename(true);
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); endLogRename(true); }
@@ -2019,7 +2045,12 @@ async function endLogRename(save) {
         }
         openLogBrew = await brewLog.update(openLogBrew.id, { name });
     }
-    if (btn) { btn.textContent = 'Rename'; btn.onclick = startLogRename; }
+    if (btn && logPencilHtml != null) {
+        btn.innerHTML = logPencilHtml;
+        btn.classList.remove('is-saving');
+        btn.setAttribute('aria-label', 'Rename');
+        btn.onclick = startLogRename;
+    }
     showFieldError('logRenameError', '');
     if (openLogBrew) setText('logName', logName(openLogBrew));
 }

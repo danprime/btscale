@@ -445,7 +445,7 @@ test('weight readout: "grams" placeholder until there is a weight, then the deci
   await expect(page.locator('#weightUnitLabel')).toBeVisible();
 });
 
-test('ratio setting: default 1:15, Overwrite edits it, target weight = bean dose x ratio', async ({ page }) => {
+test('ratio setting: default 1:15, Edit changes it, target weight = bean dose x ratio', async ({ page }) => {
   const target = page.locator('#targetWeight');
   await expect(page.locator('#ratioSettingCell')).toHaveText('1:15');
   await expect(target).toHaveText('-- g'); // no bean dose stored yet
@@ -470,7 +470,7 @@ test('ratio setting: default 1:15, Overwrite edits it, target weight = bean dose
   await expect(page.locator('#ratioError')).toBeHidden(); // typing clears the error
   await input.press('Enter');
   await expect(page.locator('#ratioSettingCell')).toHaveText('1:16.5');
-  await expect(page.locator('#ratioEditBtn')).toHaveText('Overwrite');
+  await expect(page.locator('#ratioEditBtn')).toHaveText('Edit');
   await expect(target).toHaveText('20gin → 330gout');
   expect(await page.evaluate(() => localStorage.getItem('brewRatioV1'))).toBe('16.5');
 

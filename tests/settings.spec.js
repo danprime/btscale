@@ -98,7 +98,7 @@ for (const size of [{ width: 384, height: 720 }, { width: 375, height: 667 }, { 
   });
 }
 
-test('Brew log sits above Connect, clear of the close button; device settings are hidden', async ({ page }) => {
+test('Settings sheet: title bar with close, then Devices, Brew and History; device settings hidden', async ({ page }) => {
   const { server, port } = await createStaticServer(path.resolve(__dirname, '..'), 0);
   await page.setViewportSize({ width: 384, height: 720 });
   await page.goto(`http://localhost:${port}/index.html`);
@@ -108,10 +108,18 @@ test('Brew log sits above Connect, clear of the close button; device settings ar
   const close = await box('#closeSettingsModal');
   const connect = await box('#connectToggleBtn');
   const title = await box('#settingsTitle');
+  const table = await box('#memoryTable');
   const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  expect(overlaps(title, close)).toBe(false);
+  expect(Math.abs((title.y + title.height / 2) - (close.y + close.height / 2))).toBeLessThan(8); // same bar
+  expect(close.y).toBeLessThan(connect.y);
+  expect(connect.y).toBeLessThan(table.y); // Devices, then Brew
+  expect(table.y + table.height).toBeLessThanOrEqual(log.y); // then History (Brew log)
   expect(overlaps(log, close)).toBe(false);
-  expect(log.y).toBeGreaterThan(title.y); // under the Settings heading
-  expect(log.y + log.height).toBeLessThanOrEqual(connect.y); // above Connect
+  expect(await page.locator('.settings-group').allTextContents()).toEqual(['Devices', 'Brew', 'History']);
+  // Buttons use the app font, not the browser default
+  const fonts = await page.evaluate(() => [getComputedStyle(document.body).fontFamily, getComputedStyle(document.querySelector('#connectToggleBtn')).fontFamily]);
+  expect(fonts[1]).toBe(fonts[0]);
   // Hidden for now, but still in the page
   await expect(page.locator('#moreSettings')).toBeHidden();
   await expect(page.locator('#driveScaleTimer')).toBeAttached();

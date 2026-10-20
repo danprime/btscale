@@ -1395,3 +1395,199 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
 .log-ey-chart {
     cursor: default;
 }
+
+/* ===== Design tidy-up ===== */
+/* Buttons and inputs use the app font (they defaulted to the browser's, e.g. Arial) */
+button, input, select {
+    font-family: inherit;
+}
+
+/* --- Settings: a full-height sheet with a title bar, three groups --- */
+#settingsModal .modal-content.settings-sheet {
+    position: relative;
+    box-sizing: border-box;
+    width: min(480px, 100%);
+    min-width: 0;
+    min-height: 100%;
+    margin: 0 auto;
+    padding: 0 16px 28px;
+    border-radius: 0;
+    box-shadow: none;
+}
+.settings-bar {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0 10px;
+    background: #fff;
+    border-bottom: 1px solid #f0dfc0;
+}
+.settings-bar h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #5e361c;
+}
+.close.round-close {
+    position: static;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff3e0;
+    color: #b77b2b;
+    font-size: 1.6rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.settings-group {
+    margin: 18px 0 6px;
+    color: #b77b2b;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+.settings-table td {
+    border-bottom: 1px solid #f0dfc0;
+    padding: 0.45em 0.25em;
+}
+.settings-table td:nth-child(2) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+/* Quiet text buttons (Edit / Save / Calibrate) instead of filled ones */
+#settingsModal .memory-overwrite {
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 4px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: #b45309;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: right;
+    cursor: pointer;
+}
+#settingsModal .memory-overwrite:hover,
+#settingsModal .memory-overwrite:focus-visible {
+    background: #fff3e0;
+}
+/* Brew log: a row that opens the log */
+.settings-row-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 4px;
+    border: 0;
+    border-bottom: 1px solid #f0dfc0;
+    background: none;
+    color: #5e361c;
+    font-size: 1.05em;
+    text-align: left;
+    cursor: pointer;
+}
+.settings-row-btn > span:first-child {
+    flex: 1;
+}
+.settings-row-meta {
+    color: #8a5a1c;
+    font-size: 0.9em;
+}
+.settings-row-btn svg {
+    color: #b77b2b;
+}
+
+/* --- Dialogs: one filled button per screen --- */
+.modal .ritual-btn.btn-secondary {
+    min-width: 0;
+    background: transparent;
+    color: #b45309;
+    border: 0;
+    box-shadow: none;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+}
+.modal .ritual-btn.btn-secondary:hover,
+.modal .ritual-btn.btn-secondary:focus-visible {
+    background: #fff3e0;
+}
+.modal .ritual-btn.btn-outline {
+    background: #fff;
+    color: #b45309;
+    border: 1.5px solid #e0b98a;
+    box-shadow: none;
+}
+.modal .ritual-btn.log-delete-now {
+    background: #b3261e;
+    color: #fff;
+    border: 0;
+}
+
+/* --- Brew log detail: name with a pencil, summary row, grouped cards --- */
+.log-header #logName {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.log-rename {
+    flex: none;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 20px;
+    background: #fff3e0;
+    color: #b77b2b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    cursor: pointer;
+}
+.log-rename.is-saving {
+    background: #b45309;
+    color: #fff;
+    padding: 0 14px;
+}
+#logDate {
+    margin: 2px 0 8px 48px;          /* lines up with the name, past the back button */
+}
+.log-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 6px;
+    margin: 4px 0 8px;
+}
+.log-summary > div {
+    background: #fffbe8;
+    border-radius: 10px;
+    padding: 8px 4px;
+    text-align: center;
+}
+.log-summary-value {
+    display: block;
+    color: #b45309;
+    font-size: 1.3em;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.log-summary-label {
+    color: #8a5a1c;
+    font-size: 0.8em;
+}
+.log-group {
+    margin: 12px 0 4px;
+}
+#logCards .log-cards {
+    margin: 0;
+}
+.log-delete-area {
+    margin-top: 16px;
+}
