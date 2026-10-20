@@ -1,9 +1,9 @@
 name: Playwright Tests
 
+# Runs on main only: PRs are merged straight away, so a PR run would just
+# duplicate the run on the merge commit.
 on:
   push:
-    branches: [ main ]
-  pull_request:
     branches: [ main ]
 
 jobs:
