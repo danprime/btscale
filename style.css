@@ -1031,9 +1031,6 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
-.tds-table td:nth-child(3):empty {
-    padding: 0;
-}
 .tds-table tr.tds-strong td {
     font-weight: 600;
 }
@@ -1044,7 +1041,7 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     margin: 0;
 }
 .tds-table input[type="number"] {
-    width: 5.5em;
+    width: 4.5em;
     margin: 0 2px 0 0;
     padding: 4px 6px;
     text-align: right;
@@ -1074,8 +1071,26 @@ input[type="number"]:focus, input[type="range"]:focus, select:focus {
     padding: 4px 6px;
     text-align: right;
 }
-.tds-table td {
+/* Labels may wrap; values and the yield input stay on one line */
+.tds-table td:nth-child(2) {
     white-space: nowrap;
+}
+.tds-table td {
+    padding-left: 0.35em;
+    padding-right: 0.35em;
+}
+.tds-table td.tare-cell {
+    white-space: nowrap;             /* "Scale [Tare]" stays together */
+}
+.tds-dialog .modal-content {
+    overflow-x: hidden;              /* never scroll sideways */
+}
+.modal .ritual-btn.tare-inline {
+    min-width: 0;
+    min-height: 32px;
+    margin-left: 8px;
+    padding: 0.25em 0.8em;
+    vertical-align: middle;
 }
 /* Memory table: fixed columns so the buttons line up */
 #memoryTable {

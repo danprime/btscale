@@ -1360,7 +1360,11 @@ function renderFinalTdsDialog() {
         if (input.value !== auto) input.value = auto;
     }
     setText('ftCiy', formatCiy(finalSnapshot.ciy));
-    setText('ftTds', `${formatTds(tdsPercent(activeKv(), finalSnapshot.ciy, parseFloat(input.value)))}${kv ? '' : ' · uncalibrated'}`);
+    // "uncalibrated" goes on a small second line so the value column stays narrow
+    const tdsText = formatTds(tdsPercent(activeKv(), finalSnapshot.ciy, parseFloat(input.value)));
+    const ftTds = byId('ftTds');
+    ftTds.textContent = tdsText;
+    if (!kv) ftTds.append(Object.assign(document.createElement('span'), { className: 'kv-uncalibrated', textContent: 'uncalibrated' }));
     byId('ftTareBtn').disabled = !deviceConnected('scale');
 }
 

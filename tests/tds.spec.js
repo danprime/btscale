@@ -455,7 +455,8 @@ test('default k_v 0.005 is used and marked uncalibrated until a k_v is saved', a
   await expect(page.locator('.ey-brew')).toHaveCount(1); // plotted with the default
   await page.evaluate(() => window.__emitScale(window.__mock, 336, 2000));
   await page.click('#tareBeanBtn');
-  await expect(page.locator('#ftTds')).toHaveText('1.10 % · uncalibrated');
+  await expect(page.locator('#ftTds')).toHaveText('1.10 %uncalibrated'); // marker on its own small line
+  await expect(page.locator('#ftTds .kv-uncalibrated')).toBeVisible();
   await page.click('#ftNextBtn');
   await expect(page.locator('#tdsLabel')).toHaveText('TDS (uncal.)');
   await expect(page.locator('#tdsValue')).toHaveText('1.10 %');
@@ -556,4 +557,45 @@ test('no live path with only the scale connected', async ({ page }) => {
   });
   await expect(page.locator('#extractionSlide')).toBeHidden();
   await expect(page.locator('#chartDots')).toBeHidden();
+});
+
+test('final TDS calculator fits a narrow phone with large text: Tare next to Scale, no sideways scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await withStorage(page, { scaleMemoryV1: { beans: { weight: 20 }, carafe: { weight: 135 } } }); // uncalibrated: longest TDS text
+  await page.addStyleTag({ content: 'body { font-size: 20px !important; }' }); // large phone text setting
+  await page.evaluate(async () => {
+    await window.__connect(['scale', 'portal']);
+    await window.__brew();
+    await triStateTimer();
+  });
+  await page.click('#tareBeanBtn');
+  const r = await page.evaluate(() => {
+    const content = document.querySelector('#finalTdsModal .modal-content');
+    const box = content.getBoundingClientRect();
+    const tare = document.querySelector('#ftTareBtn').getBoundingClientRect();
+    const scaleRow = document.querySelector('#ftTareBtn').closest('tr').firstElementChild;
+    return {
+      sideways: content.scrollWidth - content.clientWidth,
+      tareInside: tare.left >= box.left && tare.right <= box.right,
+      tareInLabelCell: scaleRow.contains(document.querySelector('#ftTareBtn')),
+      columns: document.querySelector('#finalTdsModal tr').children.length,
+    };
+  });
+  expect(r.sideways).toBeLessThanOrEqual(0);
+  expect(r.tareInside).toBe(true);
+  expect(r.tareInLabelCell).toBe(true);
+  expect(r.columns).toBe(2);
+  // Tare is to the right of "Scale" (same line), and labels only wrap between words
+  const layout = await page.evaluate(() => {
+    const tare = document.querySelector('#ftTareBtn').getBoundingClientRect();
+    const range = document.createRange();
+    const label = document.querySelector('#ftTareBtn').parentElement.firstChild; // "Scale " text
+    range.selectNodeContents(label);
+    const text = range.getBoundingClientRect();
+    const carafe = document.querySelector('#ftCarafe').previousElementSibling;
+    const lines = Math.round(carafe.getBoundingClientRect().height / parseFloat(getComputedStyle(carafe).lineHeight || 24));
+    return { tareRightOfScale: tare.left >= text.right && tare.top < text.bottom && tare.bottom > text.top, carafeText: carafe.innerText };
+  });
+  expect(layout.tareRightOfScale).toBe(true);
+  expect(layout.carafeText.replace(/\s+/g, ' ')).toBe('Carafe (memory)'); // no mid-word break
 });
