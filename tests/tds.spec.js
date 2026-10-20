@@ -562,7 +562,9 @@ test('no live path with only the scale connected', async ({ page }) => {
 test('final TDS calculator fits a narrow phone with large text: Tare next to Scale, no sideways scroll', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 740 });
   await withStorage(page, { scaleMemoryV1: { beans: { weight: 20 }, carafe: { weight: 135 } } }); // uncalibrated: longest TDS text
-  await page.addStyleTag({ content: 'body { font-size: 20px !important; }' }); // large phone text setting
+  // Large phone text setting (125% root size, as Android text scaling does) in a wide font
+  // (Verdana on Windows, DejaVu Sans on Linux CI) so both platforms are equally strict
+  await page.addStyleTag({ content: 'html { font-size: 125% !important; } body, button, input { font-family: Verdana, "DejaVu Sans", sans-serif !important; }' });
   await page.evaluate(async () => {
     await window.__connect(['scale', 'portal']);
     await window.__brew();
