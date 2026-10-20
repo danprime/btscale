@@ -79,6 +79,9 @@ async function withStorage(page, items) {
 }
 
 const cardLabels = (page) => page.locator('#logCards .ritual-info-label').allTextContents();
+const cardValues = (page) => page.locator('#logCards .ritual-info-value').allTextContents();
+const groups = (page) => page.locator('#logCards .log-group').allTextContents();
+const summary = (page) => page.locator('#logSummary > div').evaluateAll((els) => els.map((e) => [e.querySelector('.log-summary-label').textContent, e.querySelector('.log-summary-value').textContent]));
 
 test('a stopped brew is saved; the calculator updates it; detail shows both charts and all final data', async ({ page }) => {
   await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 20 }, carafe: { weight: 186 } } });
@@ -89,7 +92,7 @@ test('a stopped brew is saved; the calculator updates it; detail shows both char
   await expect.poll(() => page.evaluate(() => window.__logCount())).toBe(1);
 
   await page.click('#settingsBtn');
-  await expect(page.locator('#brewLogBtn')).toHaveText('Brew log · 1');
+  await expect(page.locator('#brewLogCount')).toHaveText('1 brew');
   await page.click('#brewLogBtn');
   await expect(page.locator('#brewLogModal')).toBeVisible();
   await expect(page.locator('#logCount')).toHaveText('1 of 100');
@@ -118,9 +121,11 @@ test('a stopped brew is saved; the calculator updates it; detail shows both char
   await expect(page.locator('#logEyChart .ey-brew')).toHaveCount(1);
   await expect(page.locator('#logEyChart .ey-brew-estimate')).toHaveCount(0); // final, solid
   await expect(page.locator('#logEyChart .ey-trail')).toHaveCount(0);
-  expect(await cardLabels(page)).toEqual(['Final weight', 'Time', 'Ratio', 'In → out', 'Avg flow', 'Temp at stop', 'Peak EC', 'CIY', 'Yield', 'TDS', 'Extraction', 'kᵥ']);
-  const values = await page.locator('#logCards .ritual-info-value').allTextContents();
-  expect(values).toEqual(['200.0 g', '0:02', '1:10.0', '20g → 300g', '100.0 g/s', '80.0 °C', '2.20 mS/cm', '330.0', '150.0 g', '1.10 %', '8.3 %', '0.005']);
+  // Summary row: time, ratio, TDS; then grouped cards
+  expect(await summary(page)).toEqual([['Time', '0:02'], ['Ratio', '1:10.0'], ['TDS', '1.10 %']]);
+  expect(await groups(page)).toEqual(['Brew', 'Extraction', 'EC meter']);
+  expect(await cardLabels(page)).toEqual(['Final weight', 'Avg flow', 'In → out', 'Yield', 'Extraction', 'CIY', 'Temp at stop', 'Peak EC', 'kᵥ']);
+  expect(await cardValues(page)).toEqual(['200.0 g', '100.0 g/s', '20g → 300g', '150.0 g', '8.3 %', '330.0', '80.0 °C', '2.20 mS/cm', '0.005']);
   // The brew chart is drawn from the saved points
   await expect(page.locator('#logBrewChart')).toHaveAttribute('aria-label', /EC chart, latest 1\.10 mS\/cm/);
 });
@@ -142,8 +147,10 @@ test('scale-only brew: only the weight chart and weight numbers', async ({ page 
   await page.click('.log-item');
   await expect(page.locator('#logBrewChartLabel')).toHaveText('Weight · g');
   await expect(page.locator('#logEyChartBox')).toBeHidden();
-  expect(await cardLabels(page)).toEqual(['Final weight', 'Time', 'Ratio', 'In → out', 'Avg flow']);
-  expect(await page.locator('#logCards .ritual-info-value').allTextContents()).toEqual(['270.0 g', '2:00', '1:15.0', '18g → 270g', '2.3 g/s']);
+  expect(await summary(page)).toEqual([['Time', '2:00'], ['Ratio', '1:15.0'], ['Final weight', '270.0 g']]);
+  expect(await groups(page)).toEqual(['Brew']);
+  expect(await cardLabels(page)).toEqual(['Avg flow', 'In → out']);
+  expect(await cardValues(page)).toEqual(['2.3 g/s', '18g → 270g']);
 });
 
 test('EC-only brew: only the EC chart and EC numbers', async ({ page }) => {
@@ -161,7 +168,9 @@ test('EC-only brew: only the EC chart and EC numbers', async ({ page }) => {
   await page.click('.log-item');
   await expect(page.locator('#logBrewChartLabel')).toHaveText('EC · mS/cm');
   await expect(page.locator('#logEyChartBox')).toBeHidden();
-  expect(await cardLabels(page)).toEqual(['Time', 'Temp at stop', 'Peak EC']);
+  expect(await summary(page)).toEqual([['Time', '0:00'], ['Peak EC', '2.50 mS/cm']]);
+  expect(await groups(page)).toEqual(['EC meter']);
+  expect(await cardLabels(page)).toEqual(['Temp at stop']);
 });
 
 test('nothing recorded: Start/Stop with no readings is not saved', async ({ page }) => {
@@ -173,7 +182,7 @@ test('nothing recorded: Start/Stop with no readings is not saved', async ({ page
   await page.waitForTimeout(200);
   expect(await page.evaluate(() => window.__logCount())).toBe(0);
   await page.click('#settingsBtn');
-  await expect(page.locator('#brewLogBtn')).toHaveText('Brew log');
+  await expect(page.locator('#brewLogCount')).toHaveText('');
   await page.click('#brewLogBtn');
   await expect(page.locator('#logEmpty')).toBeVisible();
 });
@@ -190,6 +199,7 @@ test('rename (Enter saves, Escape cancels, empty refused) and the date stays', a
   await page.click('#settingsBtn');
   await page.click('#brewLogBtn');
   await page.click('.log-item');
+  await expect(page.locator('#logDate')).not.toBeEmpty(); // the detail view loads asynchronously
   const date = await page.locator('#logDate').textContent();
   await page.click('#logRenameBtn');
   await expect(page.locator('#logRenameBtn')).toHaveText('Save');
@@ -227,7 +237,7 @@ test('delete asks first; Escape steps back from detail to list to Settings', asy
   });
   await expect.poll(() => page.evaluate(() => window.__logCount())).toBe(2);
   await page.click('#settingsBtn');
-  await expect(page.locator('#brewLogBtn')).toHaveText('Brew log · 2');
+  await expect(page.locator('#brewLogCount')).toHaveText('2 brews');
   await page.click('#brewLogBtn');
   await expect(page.locator('.log-item-right')).toHaveText(['220g', '200g']); // newest first
   await page.locator('.log-item').first().click();
@@ -241,7 +251,7 @@ test('delete asks first; Escape steps back from detail to list to Settings', asy
   await page.click('#logDeleteConfirmBtn');
   await expect(page.locator('#logListView')).toBeVisible();
   await expect(page.locator('.log-item-right')).toHaveText(['200g']);
-  await expect(page.locator('#brewLogBtn')).toHaveText('Brew log · 1');
+  await expect(page.locator('#brewLogCount')).toHaveText('1 brew');
 
   await page.locator('.log-item').first().click();
   await expect(page.locator('#logDetailView')).toBeVisible();

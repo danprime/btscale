@@ -54,7 +54,7 @@
                     <canvas id="brewChartCanvas" role="img" aria-label="Brew chart, no data yet"></canvas>
                 </div>
                 <div class="chart-slide" id="extractionSlide" hidden>
-                    <div class="brew-chart-label"><span>TDS · %</span><span class="chart-label-right">Extraction · %</span></div>
+                    <div class="brew-chart-label">TDS · %</div>
                     <!-- Tap to show the region labels -->
                     <svg id="extractionChart" class="extraction-chart" role="img" tabindex="0" aria-label="TDS versus extraction yield"></svg>
                 </div>
@@ -133,99 +133,107 @@
         <div class="log" id="log" style="display:none;" aria-live="polite"></div>
         <!-- Settings Modal -->
         <div id="settingsModal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-            <div class="modal-content">
-                <!-- Saved brews (opens the brew log) -->
-                <button id="brewLogBtn" class="ritual-btn brew-log-btn" onclick="openBrewLog()">Brew log</button>
-                <!-- Memory Table -->
-                <h3 style="margin-top:1.5em;">Memory</h3>
-                <table id="memoryTable" class="memory-table" style="width:100%;margin-bottom:0.25em;">
-                  <thead>
-                    <tr><th style="text-align:left;">Label</th><th style="text-align:right;">Stored Weight (g)</th><th></th></tr>
-                  </thead>
+            <div class="modal-content settings-sheet">
+                <!-- Title bar (stays at the top while the sheet scrolls) -->
+                <div class="settings-bar">
+                    <h2 id="settingsTitle">Settings</h2>
+                    <button class="close round-close" id="closeSettingsModal" onclick="closeSettingsModal()" aria-label="Close settings">&times;</button>
+                </div>
+                <p class="settings-group">Devices</p>
+                <div class="modal-controls connect-controls">
+                    <button id="connectToggleBtn" class="ritual-btn ritual-connect" onclick="toggleConnect()" aria-pressed="false">Connect</button>
+                    <button id="disconnectAllBtn" class="ritual-btn ritual-disconnect" onclick="disconnect()" hidden>Disconnect</button>
+                </div>
+                <p class="settings-group">Brew</p>
+                <!-- Edit turns a value into an input (Enter or Save stores it, Escape cancels) -->
+                <table id="memoryTable" class="memory-table settings-table">
                   <tbody>
                     <tr>
-                      <td>Bean Dose</td>
-                      <td id="memoryBeansWeight" style="text-align:right;">--</td>
-                      <td><button id="memoryBeansEditBtn" class="ritual-btn memory-overwrite" onclick="startMemoryEdit('beans')">Overwrite</button></td>
+                      <td>Bean dose</td>
+                      <td id="memoryBeansWeight">--</td>
+                      <td><button id="memoryBeansEditBtn" class="memory-overwrite" onclick="startMemoryEdit('beans')">Edit</button></td>
                     </tr>
                     <tr>
-                      <td>Carafe/Server</td>
-                      <td id="memoryCarafeWeight" style="text-align:right;">--</td>
-                      <td><button id="memoryCarafeEditBtn" class="ritual-btn memory-overwrite" onclick="startMemoryEdit('carafe')">Overwrite</button></td>
+                      <td>Carafe</td>
+                      <td id="memoryCarafeWeight">--</td>
+                      <td><button id="memoryCarafeEditBtn" class="memory-overwrite" onclick="startMemoryEdit('carafe')">Edit</button></td>
                     </tr>
-                  </tbody>
-                  <!-- Brew ratio: target weight = bean dose x ratio -->
-                  <tbody class="ratio-group">
+                    <!-- Brew ratio: target weight = bean dose x ratio -->
                     <tr>
                       <td>Ratio</td>
-                      <td id="ratioSettingCell" style="text-align:right;">1:<span id="ratioSettingValue">15</span></td>
-                      <td><button id="ratioEditBtn" class="ritual-btn memory-overwrite" onclick="startRatioEdit()">Overwrite</button></td>
+                      <td id="ratioSettingCell">1:<span id="ratioSettingValue">15</span></td>
+                      <td><button id="ratioEditBtn" class="memory-overwrite" onclick="startRatioEdit()">Edit</button></td>
                     </tr>
-                    <!-- Water held back by the coffee bed (g per g of beans), for the live yield -->
+                    <!-- Water retained by the coffee bed (g per g of beans), for the live yield -->
                     <tr>
-                      <td>Bed absorption</td>
-                      <td id="absorptionSettingCell" style="text-align:right;"><span id="absorptionSettingValue">2.0</span> g/g</td>
-                      <td><button id="absorptionEditBtn" class="ritual-btn memory-overwrite" onclick="startAbsorptionEdit()">Overwrite</button></td>
+                      <td>Retained ratio</td>
+                      <td id="absorptionSettingCell"><span id="absorptionSettingValue">2.0</span> g/g</td>
+                      <td><button id="absorptionEditBtn" class="memory-overwrite" onclick="startAbsorptionEdit()">Edit</button></td>
                     </tr>
                     <!-- TDS calibration constant -->
                     <tr>
                       <td>k<sub>v</sub></td>
-                      <td id="kvSettingValue" style="text-align:right;">--</td>
-                      <td><button id="kvCalibrateBtn" class="ritual-btn memory-overwrite" onclick="openCalibration()">Calibrate</button></td>
+                      <td id="kvSettingValue">--</td>
+                      <td><button id="kvCalibrateBtn" class="memory-overwrite" onclick="openCalibration()">Calibrate</button></td>
                     </tr>
                   </tbody>
                 </table>
                 <div id="memoryError" class="field-error" role="alert" hidden></div>
                 <div id="ratioError" class="field-error" role="alert" hidden></div>
                 <div id="absorptionError" class="field-error" role="alert" hidden></div>
-                <button class="close" id="closeSettingsModal" onclick="closeSettingsModal()" aria-label="Close settings">&times;</button>
-                <h2 id="settingsTitle">Settings</h2>
-                <div class="modal-controls connect-controls">
-                    <button id="connectToggleBtn" class="ritual-btn ritual-connect" onclick="toggleConnect()" aria-pressed="false">Connect</button>
-                    <button id="disconnectAllBtn" class="ritual-btn ritual-disconnect" onclick="disconnect()" hidden>Disconnect</button>
-                </div>
-                <div class="modal-controls">
-                    <span class="setting-heading">Start/Stop also controls:</span>
-                    <label for="driveScaleTimer"><input type="checkbox" id="driveScaleTimer" checked aria-label="Scale timer"> Scale timer</label>
-                    <label for="drivePortalTimer"><input type="checkbox" id="drivePortalTimer" checked aria-label="EC meter timer"> EC meter timer</label>
-                </div>
-                <div class="modal-controls">
-                    <label for="beepLevel">Beep Level (0-5):</label>
-                    <input type="range" id="beepLevel" min="0" max="5" value="2" onchange="setBeepLevel(this.value)" disabled aria-valuemin="0" aria-valuemax="5" aria-valuenow="2" aria-label="Beep Level">
-                    <span id="beepValue">2</span>
-                </div>
-                <div class="modal-controls">
-                    <label for="autoOff">Auto-off (1-30 min):</label>
-                    <input type="range" id="autoOff" min="1" max="30" value="5" onchange="setAutoOff(this.value)" disabled aria-valuemin="1" aria-valuemax="30" aria-valuenow="5" aria-label="Auto-off">
-                    <span id="autoOffValue">5</span>
-                </div>
-                <div class="modal-controls">
-                    <label for="flowSmoothing">Flow Smoothing:</label>
-                    <input type="checkbox" id="flowSmoothing" onchange="setFlowSmoothing(this.checked)" disabled aria-label="Flow Smoothing">
-                </div>
-                <div class="modal-controls">
-                    <label for="flowSymbolSetting">Flow Symbol:</label>
-                    <select id="flowSymbolSetting" onchange="setFlowSymbol(this.value)" disabled aria-label="Flow Symbol">
-                        <option value="+">+</option>
-                        <option value="-">-</option>
-                    </select>
-                </div>
-                <div class="modal-controls">
-                    <label for="showRemainder">Show Remainder:</label>
-                    <input type="checkbox" id="showRemainder" aria-label="Show Remainder">
-                </div>
-                <div class="modal-controls">
-                    <label for="showTareStart">Show Tare & Start:</label>
-                    <input type="checkbox" id="showTareStart" aria-label="Show Tare and Start">
-                </div>
-                <div class="modal-controls">
-                    <label for="showCurrentRatio">Show Current Ratio:</label>
-                    <input type="checkbox" id="showCurrentRatio" aria-label="Show Current Ratio">
-                </div>
-                <div class="controls">
-                    <label for="logToggle">Enable Logging:</label>
-                    <input type="checkbox" id="logToggle" aria-label="Enable Logging">
-                    <span class="log-warning" style="color: #b77; font-size: 0.95em; margin-left: 0.5em;">(May affect UI responsiveness)</span>
+                <p class="settings-group">History</p>
+                <!-- Saved brews (opens the brew log) -->
+                <button id="brewLogBtn" class="settings-row-btn" onclick="openBrewLog()">
+                    <span>Brew log</span>
+                    <span id="brewLogCount" class="settings-row-meta"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+                <!-- Device and display settings: hidden for now (not in use), kept so they
+                     can be shown again. Saved values (e.g. Start/Stop timer drives) still apply. -->
+                <div id="moreSettings" hidden>
+                    <div class="modal-controls">
+                        <span class="setting-heading">Start/Stop also controls:</span>
+                        <label for="driveScaleTimer"><input type="checkbox" id="driveScaleTimer" checked aria-label="Scale timer"> Scale timer</label>
+                        <label for="drivePortalTimer"><input type="checkbox" id="drivePortalTimer" checked aria-label="EC meter timer"> EC meter timer</label>
+                    </div>
+                    <div class="modal-controls">
+                        <label for="beepLevel">Beep Level (0-5):</label>
+                        <input type="range" id="beepLevel" min="0" max="5" value="2" onchange="setBeepLevel(this.value)" disabled aria-valuemin="0" aria-valuemax="5" aria-valuenow="2" aria-label="Beep Level">
+                        <span id="beepValue">2</span>
+                    </div>
+                    <div class="modal-controls">
+                        <label for="autoOff">Auto-off (1-30 min):</label>
+                        <input type="range" id="autoOff" min="1" max="30" value="5" onchange="setAutoOff(this.value)" disabled aria-valuemin="1" aria-valuemax="30" aria-valuenow="5" aria-label="Auto-off">
+                        <span id="autoOffValue">5</span>
+                    </div>
+                    <div class="modal-controls">
+                        <label for="flowSmoothing">Flow Smoothing:</label>
+                        <input type="checkbox" id="flowSmoothing" onchange="setFlowSmoothing(this.checked)" disabled aria-label="Flow Smoothing">
+                    </div>
+                    <div class="modal-controls">
+                        <label for="flowSymbolSetting">Flow Symbol:</label>
+                        <select id="flowSymbolSetting" onchange="setFlowSymbol(this.value)" disabled aria-label="Flow Symbol">
+                            <option value="+">+</option>
+                            <option value="-">-</option>
+                        </select>
+                    </div>
+                    <div class="modal-controls">
+                        <label for="showRemainder">Show Remainder:</label>
+                        <input type="checkbox" id="showRemainder" aria-label="Show Remainder">
+                    </div>
+                    <div class="modal-controls">
+                        <label for="showTareStart">Show Tare & Start:</label>
+                        <input type="checkbox" id="showTareStart" aria-label="Show Tare and Start">
+                    </div>
+                    <div class="modal-controls">
+                        <label for="showCurrentRatio">Show Current Ratio:</label>
+                        <input type="checkbox" id="showCurrentRatio" aria-label="Show Current Ratio">
+                    </div>
+                    <div class="controls">
+                        <label for="logToggle">Enable Logging:</label>
+                        <input type="checkbox" id="logToggle" aria-label="Enable Logging">
+                        <span class="log-warning" style="color: #b77; font-size: 0.95em; margin-left: 0.5em;">(May affect UI responsiveness)</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -237,8 +245,8 @@
                 <table class="memory-table tds-table">
                   <tbody>
                     <!-- Two columns so the table fits narrow phones with large text; Tare sits next to its label -->
-                    <tr><td class="tare-cell">Scale <button id="ftTareBtn" class="ritual-btn memory-overwrite tare-inline" onclick="sendTareCommand()">Tare</button></td><td id="ftScale">-- g</td></tr>
-                    <tr><td>Carafe (memory)</td><td id="ftCarafe">--</td></tr>
+                    <tr><td class="tare-cell">Scale <button id="ftTareBtn" class="ritual-btn btn-outline tare-inline" onclick="sendTareCommand()">Tare</button></td><td id="ftScale">-- g</td></tr>
+                    <tr><td>Carafe</td><td id="ftCarafe">--</td></tr>
                     <tr class="tds-strong"><td><label for="ftYield">Yield</label></td><td><input type="number" id="ftYield" min="0" step="any" inputmode="decimal"> g</td></tr>
                     <tr><td>CIY</td><td id="ftCiy">--</td></tr>
                     <tr class="tds-strong"><td>TDS</td><td id="ftTds">-- %</td></tr>
@@ -249,7 +257,7 @@
                     <math display="block"><mrow><mtext>TDS %</mtext><mo>=</mo><mfrac><mrow><msub><mi>k</mi><mi>v</mi></msub><mo lspace="0.25em" rspace="0.25em">×</mo><mtext>CIY</mtext></mrow><mtext>Yield (g)</mtext></mfrac><mo lspace="0.25em" rspace="0.25em">×</mo><mn>100</mn></mrow></math>
                 </div>
                 <div class="dialog-actions">
-                    <button class="ritual-btn" onclick="closeFinalTds()">Cancel</button>
+                    <button class="ritual-btn btn-secondary" onclick="closeFinalTds()">Cancel</button>
                     <button id="ftNextBtn" class="ritual-btn memory-confirm-btn" onclick="applyFinalTds()">Next</button>
                 </div>
             </div>
@@ -282,7 +290,7 @@
                         <math display="block"><mrow><msub><mi>k</mi><mi>v</mi></msub><mo>=</mo><mfrac><mrow><mtext>TDS %</mtext><mo lspace="0.25em" rspace="0.25em">×</mo><mtext>Yield (g)</mtext></mrow><mrow><mn>100</mn><mo lspace="0.25em" rspace="0.25em">×</mo><mtext>CIY</mtext></mrow></mfrac></mrow></math>
                     </div>
                     <div class="dialog-actions">
-                        <button class="ritual-btn" onclick="closeCalibration()">Cancel</button>
+                        <button class="ritual-btn btn-secondary" onclick="closeCalibration()">Cancel</button>
                         <button id="calNextBtn" class="ritual-btn memory-confirm-btn" onclick="calibrationNext()">Next</button>
                     </div>
                 </section>
@@ -303,7 +311,7 @@
                         </table>
                     </div>
                     <div class="dialog-actions">
-                        <button class="ritual-btn" onclick="keepCurrentKv()">Keep current</button>
+                        <button class="ritual-btn btn-secondary" onclick="keepCurrentKv()">Keep current</button>
                         <button id="calSaveBtn" class="ritual-btn memory-confirm-btn" onclick="saveNewKv()"><span>Save new k<sub>v</sub></span></button>
                     </div>
                 </section>
@@ -325,28 +333,30 @@
                 <section id="logDetailView" hidden>
                     <div class="log-header">
                         <button type="button" class="log-back" onclick="showBrewList()" aria-label="Back to the brew log"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></button>
-                        <span class="log-spacer"></span>
-                        <button id="logRenameBtn" class="ritual-btn memory-overwrite" onclick="startLogRename()">Rename</button>
+                        <h3 id="logName"></h3>
+                        <button id="logRenameBtn" class="log-rename" onclick="startLogRename()" aria-label="Rename"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/><path d="m15 5 4 4"/></svg></button>
                     </div>
-                    <h3 id="logName"></h3>
                     <p id="logDate" class="dialog-step"></p>
+                    <!-- Time, ratio and TDS (or final weight / peak EC) -->
+                    <div id="logSummary" class="log-summary"></div>
                     <div id="logRenameError" class="field-error" role="alert" hidden></div>
                     <div class="log-chart" id="logBrewChartBox">
                         <div class="brew-chart-label" id="logBrewChartLabel"></div>
                         <canvas id="logBrewChart" role="img" aria-label="Brew chart"></canvas>
                     </div>
                     <div class="log-chart" id="logEyChartBox">
-                        <div class="brew-chart-label"><span>TDS · %</span><span class="chart-label-right">Extraction · %</span></div>
+                        <div class="brew-chart-label">TDS · %</div>
                         <svg id="logEyChart" class="extraction-chart log-ey-chart" role="img" aria-label="TDS versus extraction yield"></svg>
                     </div>
-                    <div id="logCards" class="log-cards"></div>
+                    <!-- Final data in groups: Brew, Extraction, EC meter -->
+                    <div id="logCards"></div>
                     <div class="log-delete-area">
                         <button id="logDeleteBtn" class="ritual-btn log-delete" onclick="askDeleteBrew()">Delete brew</button>
                         <div id="logDeleteConfirm" class="log-delete-confirm" hidden>
                             <p>Delete this brew? This can't be undone.</p>
                             <div class="dialog-actions">
-                                <button class="ritual-btn" onclick="cancelDeleteBrew()">Cancel</button>
-                                <button id="logDeleteConfirmBtn" class="ritual-btn log-delete" onclick="deleteBrew()">Delete</button>
+                                <button class="ritual-btn btn-secondary" onclick="cancelDeleteBrew()">Cancel</button>
+                                <button id="logDeleteConfirmBtn" class="ritual-btn log-delete-now" onclick="deleteBrew()">Delete</button>
                             </div>
                         </div>
                     </div>

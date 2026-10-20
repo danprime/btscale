@@ -219,10 +219,10 @@ test('EC meter only: no TDS, Peak EC after Stop and M_B stays Set beans', async 
   await expect(page.locator('#tareBeanBtn')).toBeDisabled();
 });
 
-test('settings: bed absorption and k_v under Ratio (default 2.0), Calibrate, no TDS header or target hint', async ({ page }) => {
+test('settings: retained ratio and k_v under Ratio (default 2.0), Calibrate, no TDS header or target hint', async ({ page }) => {
   await page.click('#settingsBtn');
   const rows = await page.locator('#memoryTable tbody tr td:first-child').allTextContents();
-  expect(rows).toEqual(['Bean Dose', 'Carafe/Server', 'Ratio', 'Bed absorption', 'kv']);
+  expect(rows).toEqual(['Bean dose', 'Carafe', 'Ratio', 'Retained ratio', 'kv']);
   await expect(page.locator('#settingsModal h3', { hasText: 'TDS' })).toHaveCount(0);
   await expect(page.locator('#absorptionSettingCell')).toHaveText('2.0 g/g');
   await expect(page.locator('#kvSettingValue')).toHaveText('0.005uncalibrated'); // default until calibrated
@@ -398,6 +398,18 @@ test('after Stop the chart becomes a carousel: estimate (hollow), tap for labels
   // No gold cup label or ideal dot; region labels hidden until a tap
   expect(await page.locator('#extractionChart').textContent()).not.toMatch(/Gold|Ideal/);
   await expect(page.locator('.ey-ref')).toHaveCount(4);
+  // Axis titles: TDS in the header (y axis), Extraction at the bottom right (x axis)
+  await expect(page.locator('#extractionSlide .brew-chart-label')).toHaveText('TDS · %');
+  const axis = await page.evaluate(() => {
+    const svg = document.querySelector('#extractionChart').getBoundingClientRect();
+    const t = document.querySelector('#extractionChart .ey-axis-title').getBoundingClientRect();
+    const ticks = [...document.querySelectorAll('#extractionChart .ey-tick')].map((e) => e.getBoundingClientRect().bottom);
+    return { text: document.querySelector('#extractionChart .ey-axis-title').textContent, rightGap: svg.right - t.right, belowTicks: t.top >= Math.max(...ticks) - 1, inside: t.bottom <= svg.bottom + 0.5 };
+  });
+  expect(axis.text).toBe('Extraction · %');
+  expect(axis.rightGap).toBeLessThan(14); // right-aligned
+  expect(axis.belowTicks).toBe(true); // under the tick numbers
+  expect(axis.inside).toBe(true);
   await expect(page.locator('.ey-label')).toHaveCount(0);
 
   await page.click('#chartDots .chart-dot >> nth=1');
@@ -599,5 +611,5 @@ test('final TDS calculator fits a narrow phone with large text: Tare next to Sca
     return { tareRightOfScale: tare.left >= text.right && tare.top < text.bottom && tare.bottom > text.top, carafeText: carafe.innerText };
   });
   expect(layout.tareRightOfScale).toBe(true);
-  expect(layout.carafeText.replace(/\s+/g, ' ')).toBe('Carafe (memory)'); // no mid-word break
+  expect(layout.carafeText.replace(/\s+/g, ' ')).toBe('Carafe'); // no mid-word break
 });

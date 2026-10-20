@@ -37,7 +37,7 @@ test('Bean Dose and Carafe/Server are typed in Settings, never taken from the sc
   const baseUrl = `http://localhost:${port}`;
   await page.goto(`${baseUrl}/index.html`);
 
-  // A weight on the scale display must not be used by Overwrite
+  // A weight on the scale display must not be used by Edit
   await page.evaluate(() => {
     document.getElementById('weightDisplay').textContent = '42.50';
   });
@@ -46,7 +46,7 @@ test('Bean Dose and Carafe/Server are typed in Settings, never taken from the sc
   await page.waitForSelector('#settingsModal', { state: 'visible' });
   await expect(page.locator('#memoryConfirmModal')).toHaveCount(0); // no scale-weight confirm popup
 
-  // Bean Dose: Overwrite -> input (empty, not 42.50) -> validation -> Enter saves
+  // Bean dose: Edit -> input (empty, not 42.50) -> validation -> Enter saves
   await page.click('#memoryBeansEditBtn');
   await expect(page.locator('#memoryBeansEditBtn')).toHaveText('Save');
   const beans = page.locator('#beansMemoryInput');
@@ -61,30 +61,30 @@ test('Bean Dose and Carafe/Server are typed in Settings, never taken from the sc
   await beans.fill('18.5');
   await expect(page.locator('#memoryError')).toBeHidden(); // typing clears the error
   await beans.press('Enter');
-  await expect(page.locator('#memoryBeansWeight')).toHaveText('18.50');
-  await expect(page.locator('#memoryBeansEditBtn')).toHaveText('Overwrite');
+  await expect(page.locator('#memoryBeansWeight')).toHaveText('18.5 g');
+  await expect(page.locator('#memoryBeansEditBtn')).toHaveText('Edit');
   await expect(page.locator('#targetWeight')).toHaveText('18.5gin → 277.5gout'); // target follows the dose
 
   // Carafe/Server: Save button; editing again starts from the stored value
   await page.click('#memoryCarafeEditBtn');
   await page.locator('#carafeMemoryInput').fill('186');
   await page.click('#memoryCarafeEditBtn');
-  await expect(page.locator('#memoryCarafeWeight')).toHaveText('186.00');
+  await expect(page.locator('#memoryCarafeWeight')).toHaveText('186 g');
   await page.click('#memoryCarafeEditBtn');
   await expect(page.locator('#carafeMemoryInput')).toHaveValue('186');
 
   // Escape cancels without saving and keeps Settings open
   await page.locator('#carafeMemoryInput').fill('500');
   await page.locator('#carafeMemoryInput').press('Escape');
-  await expect(page.locator('#memoryCarafeWeight')).toHaveText('186.00');
+  await expect(page.locator('#memoryCarafeWeight')).toHaveText('186 g');
   await expect(page.locator('#settingsModal')).toBeVisible();
 
   // Stored and restored across reloads
   const obj = JSON.parse(await page.evaluate(() => localStorage.getItem('scaleMemoryV1')));
   expect(obj).toEqual({ beans: { weight: 18.5 }, carafe: { weight: 186 } });
   await page.reload();
-  await expect(page.locator('#memoryBeansWeight')).toHaveText('18.50');
-  await expect(page.locator('#memoryCarafeWeight')).toHaveText('186.00');
+  await expect(page.locator('#memoryBeansWeight')).toHaveText('18.5 g');
+  await expect(page.locator('#memoryCarafeWeight')).toHaveText('186 g');
 
   // Drop keep-alive sockets first, or close() can hang (seen with Chromium on Windows)
   server.closeAllConnections();

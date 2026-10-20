@@ -143,12 +143,12 @@ Connecting
 - Header icons show what is connected: a weight for the scale, a lightning bolt for the EC meter (hover for battery %). The status line under the header is only shown for connection errors.
 
 Timer
-- Settings > "Start/Stop also controls" chooses which connected devices the Start/Stop button drives (scale timer, EC meter timer + beep). Only connected devices are sent commands.
+- Settings > "Start/Stop also controls" (hidden for now, with the other device and display settings below Connect; saved values still apply) chooses which connected devices the Start/Stop button drives (scale timer, EC meter timer + beep). Only connected devices are sent commands.
 - Elapsed time comes from the scale's timer when the scale is connected and driven; otherwise the app's own clock is used.
 
 Ratio and target weight
-- Settings > Memory: Bean Dose and Carafe/Server are typed in (Overwrite turns the value into an input, above 0 and up to 5000 g; Enter or Save stores it, Escape cancels). Settings never takes the scale's reading; the M_B button on the main screen still stores the bean weight from the scale.
-- Settings > Memory has a Ratio row (default 1:15). Overwrite turns the number into an input (above 0, up to 30, decimals allowed); Enter or Save stores it, Escape cancels.
+- Settings > Brew: Bean dose and Carafe are typed in (Edit turns the value into an input, above 0 and up to 5000 g; Enter or Save stores it, Escape cancels). Settings never takes the scale's reading; the M_B button on the main screen still stores the bean weight from the scale.
+- Settings > Brew has a Ratio row (default 1:15). Edit turns the number into an input (above 0, up to 30, decimals allowed); Enter or Save stores it, Escape cancels.
 - The target weight is always the stored bean dose × that ratio. The Target Weight card shows both, e.g. "20g<sub>in</sub> → 300g<sub>out</sub>" (or "-- g" without a bean dose). When three cards share the row (e.g. Avg flow, Target, Yield after Stop) it drops the subscripts: "20g → 300g". It updates whenever either changes, including on page load, and is not cleared when the scale disconnects.
 
 Brew chart
@@ -162,10 +162,10 @@ After Stop
 TDS (scale and EC meter both connected)
 - The Portal's EC is already temperature-compensated to 25 °C on the device (EC = calibrated reading / (1 + tempCal_k × (T − 25)); see `getTemporalEc` in the Belka app), so the app uses it as-is.
 - Cumulative Ionic Yield (CIY) is a Riemann sum over the water poured (the scale sits under the brewer; 1 g ≈ 1 mL): every EC reading adds EC × the grams poured since the previous reading. Water is measured against the highest weight so far, so scale noise or a bumped scale never counts twice.
-- Live yield = water poured − bean dose × bed absorption (Settings > Memory > Bed absorption, default 2.0 g/g, 0 to 5).
+- Live yield = water poured − bean dose × bed absorption (Settings > Brew > Retained ratio, the water held back by the coffee bed; default 2.0 g/g, 0 to 5).
 - TDS % = 100 × k_v × CIY / yield. While brewing, the TDS ≈ card (between Temperature and EC) shows the estimate from the live yield, starting 30 s after Start. Until k_v is calibrated a rough default of 0.005 is used, and the card ("TDS ≈ (uncal.)"), the calculator and Settings mark it as uncalibrated.
-- After Stop, CIY replaces the EC card and the M_B button becomes a calculator. It shows the live scale weight, the Carafe/Server memory and the yield (scale − carafe until you edit it), plus a Tare button; opening it never tares. Next sets the final TDS and adds a Yield card. With only one of the devices, none of this appears.
-- Calibration (Settings > Memory > k_v > Calibrate) uses the last finished TDS brew (saved across reloads): enter the refractometer TDS % (and the yield if needed) and k_v = TDS % × yield / (100 × CIY) is shown as you type. Step 2 compares it with the current k_v and the last 3 calibrations (with their average); the new value can be edited before saving. Each calibration adds one history entry: the saved value, or the calculated one if you keep the current k_v.
+- After Stop, CIY replaces the EC card and the M_B button becomes a calculator. It shows the live scale weight, the Carafe weight and the yield (scale − carafe until you edit it), plus a Tare button; opening it never tares. Next sets the final TDS and adds a Yield card. With only one of the devices, none of this appears.
+- Calibration (Settings > Brew > k_v > Calibrate) uses the last finished TDS brew (saved across reloads): enter the refractometer TDS % (and the yield if needed) and k_v = TDS % × yield / (100 × CIY) is shown as you type. Step 2 compares it with the current k_v and the last 3 calibrations (with their average); the new value can be edited before saving. Each calibration adds one history entry: the saved value, or the calculated one if you keep the current k_v.
 - Stored in localStorage: `tdsKvV1`, `kvHistoryV1`, `bedAbsorptionV1`, `lastBrewV1`.
 
 TDS vs extraction chart (after a TDS brew)
@@ -174,7 +174,7 @@ TDS vs extraction chart (after a TDS brew)
 - Extraction yield % = yield (g) × TDS % / bean dose (g). Right after Stop the brew is a hollow dot from the estimated yield and TDS; after the calculator's Next it turns solid (measured yield and final TDS), the trail is removed and the carousel switches to this chart. A brew outside the axes is pinned to the edge; its label shows the real values.
 - Tap the chart to show or hide the four region labels (Strong & Sour, Strong & Bitter, Weak & Under-extracted, Weak & Over-extracted). Reset returns to the brew chart alone.
 
-Brew log (Settings > Brew log)
+Brew log (Settings > History > Brew log)
 - Every stopped brew with readings is saved automatically (IndexedDB, in this browser on this device only; `brew-log.js`). The calculator's Next updates the saved brew with the measured yield and final TDS. Only the latest 100 brews are kept.
 - Saved per brew: the start date/time, an optional name, a summary (final weight, time, ratio, dose and target, average flow, temperature at stop, peak EC, CIY, estimated and final yield/TDS, the k_v and bed absorption used) and up to 300 chart points per line.
 - The list is newest first (name, date, time, dose → yield or final weight, TDS). A brew opens a detail view with static charts and its final data: weight chart and weight numbers with the scale only, the EC chart and EC numbers with the EC meter only, and everything (including TDS vs extraction) with both. Rename (Enter saves, Escape cancels) and Delete (asks first) are in the detail view. Escape steps back: delete prompt, detail, list.

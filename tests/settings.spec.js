@@ -79,14 +79,14 @@ test('settings modal labels are visible and not clipped', async ({ page }) => {
 });
 
 for (const size of [{ width: 384, height: 720 }, { width: 375, height: 667 }, { width: 375, height: 560 }]) {
-  test(`settings scrolls to its last option on a ${size.width}x${size.height} phone`, async ({ page }) => {
+  test(`settings scrolls to its last option (Connect) on a ${size.width}x${size.height} phone`, async ({ page }) => {
     const { server, port } = await createStaticServer(path.resolve(__dirname, '..'), 0);
     await page.setViewportSize(size);
     await page.goto(`http://localhost:${port}/index.html`);
     await page.click('#settingsBtn');
     const modal = page.locator('#settingsModal');
     await modal.evaluate((m) => { m.scrollTop = m.scrollHeight; });
-    const last = await page.locator('#logToggle').boundingBox();
+    const last = await page.locator('#connectToggleBtn').boundingBox(); // last visible option
     expect(last.y).toBeGreaterThanOrEqual(0);
     expect(last.y + last.height).toBeLessThanOrEqual(size.height);
     // The top (close button, Memory) is still reachable
@@ -97,3 +97,33 @@ for (const size of [{ width: 384, height: 720 }, { width: 375, height: 667 }, { 
     await new Promise((r) => server.close(r));
   });
 }
+
+test('Settings sheet: title bar with close, then Devices, Brew and History; device settings hidden', async ({ page }) => {
+  const { server, port } = await createStaticServer(path.resolve(__dirname, '..'), 0);
+  await page.setViewportSize({ width: 384, height: 720 });
+  await page.goto(`http://localhost:${port}/index.html`);
+  await page.click('#settingsBtn');
+  const box = async (sel) => page.locator(sel).boundingBox();
+  const log = await box('#brewLogBtn');
+  const close = await box('#closeSettingsModal');
+  const connect = await box('#connectToggleBtn');
+  const title = await box('#settingsTitle');
+  const table = await box('#memoryTable');
+  const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  expect(overlaps(title, close)).toBe(false);
+  expect(Math.abs((title.y + title.height / 2) - (close.y + close.height / 2))).toBeLessThan(8); // same bar
+  expect(close.y).toBeLessThan(connect.y);
+  expect(connect.y).toBeLessThan(table.y); // Devices, then Brew
+  expect(table.y + table.height).toBeLessThanOrEqual(log.y); // then History (Brew log)
+  expect(overlaps(log, close)).toBe(false);
+  expect(await page.locator('.settings-group').allTextContents()).toEqual(['Devices', 'Brew', 'History']);
+  // Buttons use the app font, not the browser default
+  const fonts = await page.evaluate(() => [getComputedStyle(document.body).fontFamily, getComputedStyle(document.querySelector('#connectToggleBtn')).fontFamily]);
+  expect(fonts[1]).toBe(fonts[0]);
+  // Hidden for now, but still in the page
+  await expect(page.locator('#moreSettings')).toBeHidden();
+  await expect(page.locator('#driveScaleTimer')).toBeAttached();
+  await expect(page.locator('#logToggle')).toBeAttached();
+  server.closeAllConnections();
+  await new Promise((r) => server.close(r));
+});
