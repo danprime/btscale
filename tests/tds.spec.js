@@ -380,8 +380,12 @@ test('after Stop the chart becomes a carousel: estimate (hollow), tap for labels
   const slide = page.locator('#extractionSlide');
   const dots = page.locator('#chartDots');
   const track = page.locator('#chartTrack');
-  await expect(slide).toBeHidden(); // while brewing: brew chart only
-  await expect(dots).toBeHidden();
+  // While brewing: the carousel is there but stays on the brew chart; the live path waits for live TDS
+  await expect(slide).toBeAttached();
+  await expect(dots).toBeVisible();
+  expect(await track.evaluate((t) => t.scrollLeft)).toBe(0);
+  await expect(page.locator('.ey-hint')).toHaveText('Live path from 0:30');
+  await expect(page.locator('.ey-brew')).toHaveCount(0);
 
   await page.evaluate(() => triStateTimer()); // stop
   await expect(slide).toBeAttached();
@@ -451,7 +455,8 @@ test('default k_v 0.005 is used and marked uncalibrated until a k_v is saved', a
   await expect(page.locator('.ey-brew')).toHaveCount(1); // plotted with the default
   await page.evaluate(() => window.__emitScale(window.__mock, 336, 2000));
   await page.click('#tareBeanBtn');
-  await expect(page.locator('#ftTds')).toHaveText('1.10 % · uncalibrated');
+  await expect(page.locator('#ftTds')).toHaveText('1.10 %uncalibrated'); // marker on its own small line
+  await expect(page.locator('#ftTds .kv-uncalibrated')).toBeVisible();
   await page.click('#ftNextBtn');
   await expect(page.locator('#tdsLabel')).toHaveText('TDS (uncal.)');
   await expect(page.locator('#tdsValue')).toHaveText('1.10 %');
@@ -499,4 +504,98 @@ test('target card: "in → out" subscripts with two cards, plain "20g → 300g" 
   // Reset: back to two cards with subscripts
   await page.evaluate(() => triStateTimer());
   await expect(target.locator('sub').first()).toBeVisible();
+});
+
+test('live extraction path while brewing: hollow dot and trail, final dot only after Next', async ({ page }) => {
+  await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 20 }, carafe: { weight: 186 } } });
+  await page.evaluate(async () => {
+    await window.__connect(['scale', 'portal']);
+    window.__test_setTdsDelay(0);
+    await window.__brew();
+  });
+  const track = page.locator('#chartTrack');
+  // Two live estimates: (100 g, CIY 220) then (200 g, CIY 330) -> 8.25 % extraction, 1.03 % TDS now
+  await expect(page.locator('.ey-trail')).toHaveCount(1);
+  expect((await page.locator('.ey-trail').getAttribute('points')).trim().split(' ')).toHaveLength(2);
+  await expect(page.locator('.ey-brew.ey-brew-estimate')).toHaveCount(1);
+  await expect(page.locator('.ey-brew-label')).toHaveText('≈ 8.3 %, 1.03 %');
+  await expect(page.locator('#extractionChart')).toHaveAttribute('aria-label', /live estimate: extraction 8\.3 %, TDS 1\.03 %/);
+  expect(await track.evaluate((t) => t.scrollLeft)).toBe(0); // no automatic switch while brewing
+
+  // The dot moves with each EC reading: 300 g, CIY 330 + 0.5 x 100 = 380 -> 9.5 %, 0.73 %
+  await page.evaluate(async () => {
+    await window.__emitScale(window.__mock, 300, 3000);
+    window.__mock.emitPortal({ ec: 0.5, temp: 80 });
+  });
+  await expect(page.locator('.ey-brew-label')).toHaveText('≈ 9.5 %, 0.73 %');
+  expect((await page.locator('.ey-trail').getAttribute('points')).trim().split(' ')).toHaveLength(3);
+
+  // Stop: the trail stays with the hollow estimate
+  await page.evaluate(() => triStateTimer());
+  await expect(page.locator('.ey-trail')).toHaveCount(1);
+  await expect(page.locator('.ey-brew-estimate')).toHaveCount(1);
+
+  // Next: only the solid final dot
+  await page.evaluate(() => window.__emitScale(window.__mock, 436, 3000));
+  await page.click('#tareBeanBtn');
+  await page.click('#ftNextBtn');
+  await expect(page.locator('.ey-trail')).toHaveCount(0);
+  await expect(page.locator('.ey-brew-estimate')).toHaveCount(0);
+  await expect(page.locator('.ey-brew')).toHaveCount(1);
+
+  // Next brew starts a new path
+  await page.evaluate(() => triStateTimer()); // reset
+  await page.evaluate(() => window.__brew());
+  expect((await page.locator('.ey-trail').getAttribute('points')).trim().split(' ')).toHaveLength(2);
+});
+
+test('no live path with only the scale connected', async ({ page }) => {
+  await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 20 } } });
+  await page.evaluate(async () => {
+    await window.__connect(['scale']);
+    await triStateTimer();
+  });
+  await expect(page.locator('#extractionSlide')).toBeHidden();
+  await expect(page.locator('#chartDots')).toBeHidden();
+});
+
+test('final TDS calculator fits a narrow phone with large text: Tare next to Scale, no sideways scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await withStorage(page, { scaleMemoryV1: { beans: { weight: 20 }, carafe: { weight: 135 } } }); // uncalibrated: longest TDS text
+  await page.addStyleTag({ content: 'body { font-size: 20px !important; }' }); // large phone text setting
+  await page.evaluate(async () => {
+    await window.__connect(['scale', 'portal']);
+    await window.__brew();
+    await triStateTimer();
+  });
+  await page.click('#tareBeanBtn');
+  const r = await page.evaluate(() => {
+    const content = document.querySelector('#finalTdsModal .modal-content');
+    const box = content.getBoundingClientRect();
+    const tare = document.querySelector('#ftTareBtn').getBoundingClientRect();
+    const scaleRow = document.querySelector('#ftTareBtn').closest('tr').firstElementChild;
+    return {
+      sideways: content.scrollWidth - content.clientWidth,
+      tareInside: tare.left >= box.left && tare.right <= box.right,
+      tareInLabelCell: scaleRow.contains(document.querySelector('#ftTareBtn')),
+      columns: document.querySelector('#finalTdsModal tr').children.length,
+    };
+  });
+  expect(r.sideways).toBeLessThanOrEqual(0);
+  expect(r.tareInside).toBe(true);
+  expect(r.tareInLabelCell).toBe(true);
+  expect(r.columns).toBe(2);
+  // Tare is to the right of "Scale" (same line), and labels only wrap between words
+  const layout = await page.evaluate(() => {
+    const tare = document.querySelector('#ftTareBtn').getBoundingClientRect();
+    const range = document.createRange();
+    const label = document.querySelector('#ftTareBtn').parentElement.firstChild; // "Scale " text
+    range.selectNodeContents(label);
+    const text = range.getBoundingClientRect();
+    const carafe = document.querySelector('#ftCarafe').previousElementSibling;
+    const lines = Math.round(carafe.getBoundingClientRect().height / parseFloat(getComputedStyle(carafe).lineHeight || 24));
+    return { tareRightOfScale: tare.left >= text.right && tare.top < text.bottom && tare.bottom > text.top, carafeText: carafe.innerText };
+  });
+  expect(layout.tareRightOfScale).toBe(true);
+  expect(layout.carafeText.replace(/\s+/g, ' ')).toBe('Carafe (memory)'); // no mid-word break
 });

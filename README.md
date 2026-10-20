@@ -169,8 +169,9 @@ TDS (scale and EC meter both connected)
 - Stored in localStorage: `tdsKvV1`, `kvHistoryV1`, `bedAbsorptionV1`, `lastBrewV1`.
 
 TDS vs extraction chart (after a TDS brew)
-- After Stop the chart area becomes a two-slide carousel: swipe, or tap the dots in its header. Slide 2 plots TDS % (left) against extraction yield % (bottom; 14-26 %, TDS 0.8-1.6 %), with the gold cup zone (18-22 %, 1.15-1.35 %) shaded.
-- Extraction yield % = yield (g) × TDS % / bean dose (g). Right after Stop the brew is a hollow dot from the estimated yield and TDS; after the calculator's Next it turns solid (measured yield and final TDS) and the carousel switches to this chart. A brew outside the axes is pinned to the edge; its label shows the real values.
+- During a brew with the scale and EC meter connected, and after one is stopped, the chart area is a two-slide carousel: swipe, or tap the dots in its header. It stays on the brew chart unless you swipe. Slide 2 plots TDS % (left) against extraction yield % (bottom; 14-26 %, TDS 0.8-1.6 %), with the gold cup zone (18-22 %, 1.15-1.35 %) shaded.
+- While brewing (from 30 s, like the live TDS) the TDS vs extraction slide shows a live hollow dot (where the cup would land if you stopped now) and a trail of the path so far, clipped at the chart edges. Live extraction = 100 × k_v × CIY / dose, so it only moves right; TDS usually falls as weaker liquid is added.
+- Extraction yield % = yield (g) × TDS % / bean dose (g). Right after Stop the brew is a hollow dot from the estimated yield and TDS; after the calculator's Next it turns solid (measured yield and final TDS), the trail is removed and the carousel switches to this chart. A brew outside the axes is pinned to the edge; its label shows the real values.
 - Tap the chart to show or hide the four region labels (Strong & Sour, Strong & Bitter, Weak & Under-extracted, Weak & Over-extracted). Reset returns to the brew chart alone.
 
 Recording

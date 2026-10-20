@@ -234,11 +234,12 @@
                 <h3 id="finalTdsTitle">Weigh the coffee</h3>
                 <table class="memory-table tds-table">
                   <tbody>
-                    <tr><td>Scale</td><td id="ftScale">-- g</td><td><button id="ftTareBtn" class="ritual-btn memory-overwrite" onclick="sendTareCommand()">Tare</button></td></tr>
-                    <tr><td>Carafe (memory)</td><td id="ftCarafe">--</td><td></td></tr>
-                    <tr class="tds-strong"><td><label for="ftYield">Yield</label></td><td><input type="number" id="ftYield" min="0" step="any" inputmode="decimal"> g</td><td></td></tr>
-                    <tr><td>CIY</td><td id="ftCiy">--</td><td></td></tr>
-                    <tr class="tds-strong"><td>TDS</td><td id="ftTds">-- %</td><td></td></tr>
+                    <!-- Two columns so the table fits narrow phones with large text; Tare sits next to its label -->
+                    <tr><td class="tare-cell">Scale <button id="ftTareBtn" class="ritual-btn memory-overwrite tare-inline" onclick="sendTareCommand()">Tare</button></td><td id="ftScale">-- g</td></tr>
+                    <tr><td>Carafe (memory)</td><td id="ftCarafe">--</td></tr>
+                    <tr class="tds-strong"><td><label for="ftYield">Yield</label></td><td><input type="number" id="ftYield" min="0" step="any" inputmode="decimal"> g</td></tr>
+                    <tr><td>CIY</td><td id="ftCiy">--</td></tr>
+                    <tr class="tds-strong"><td>TDS</td><td id="ftTds">-- %</td></tr>
                   </tbody>
                 </table>
                 <div id="ftError" class="field-error" role="alert" hidden></div>
