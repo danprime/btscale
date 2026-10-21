@@ -1668,15 +1668,15 @@ button, input, select {
 }
 
 /* --- Text colours: brew numbers dark, card values brown (WCAG AA on the cream cards) --- */
-/* Weight, time and ratio: near-black brown, the first thing you read */
+/* Weight, time and ratio: dark "roast" brown (9.9:1 on white), the first thing you read */
 .hero-weight,
 .hero-meta .hero-stat,
 .hero-meta .progress-timer,
 .hero-meta .progress-ratio-value {
-    color: #2b1a0e;
+    color: #5c3a1e;
 }
 .hero-weight .progress-weight-value {
-    color: #2b1a0e;
+    color: #5c3a1e;
 }
 /* No weight yet ("--"): muted, it isn't a reading */
 .hero-weight .progress-weight-value.is-placeholder {
