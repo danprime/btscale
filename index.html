@@ -6,7 +6,7 @@
     <title>Brew Tool</title>
     <!-- Installable web app: Chrome's "Install app" opens it in its own window, always in Chrome -->
     <link rel="manifest" href="manifest.webmanifest">
-    <meta name="theme-color" content="#fff8e1">
+    <meta name="theme-color" content="#ffffff">
     <link rel="icon" href="icons/icon-192.png" type="image/png">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <link rel="stylesheet" href="style.css">
@@ -18,12 +18,13 @@
             <h1 class="ritual-title visually-hidden" id="scaleAppTitle">Scale</h1>
             <nav class="ritual-header-actions" aria-label="Main actions">
                 <div class="device-icons" aria-live="polite">
-                    <span id="scaleIcon" class="device-icon" role="img" aria-label="Scale connected" title="Scale connected" hidden>
+                    <!-- Always shown: faded = not connected (tap to connect), solid = connected -->
+                    <button type="button" id="scaleIcon" class="device-icon" data-connected="false" onclick="connectFromIcon('scale')" aria-label="Scale: not connected. Tap to connect" title="Scale not connected">
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="5" r="2.5"/><path d="M6.6 8.5h10.8a1.5 1.5 0 0 1 1.46 1.16l2.05 9a1.5 1.5 0 0 1-1.46 1.84H4.55a1.5 1.5 0 0 1-1.46-1.84l2.05-9A1.5 1.5 0 0 1 6.6 8.5z"/></svg>
-                    </span>
-                    <span id="portalIcon" class="device-icon" role="img" aria-label="EC meter connected" title="EC meter connected" hidden>
+                    </button>
+                    <button type="button" id="portalIcon" class="device-icon" data-connected="false" onclick="connectFromIcon('portal')" aria-label="EC meter: not connected. Tap to connect" title="EC meter not connected">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>
-                    </span>
+                    </button>
                 </div>
                 <button id="settingsBtn" class="ritual-btn ritual-settings" aria-label="Open settings">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings w-5 h-5 text-amber-700" aria-hidden="true" focusable="false"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
@@ -57,6 +58,8 @@
                 <div class="chart-slide">
                     <div class="brew-chart-label" id="brewChartLabel">EC · mS/cm</div>
                     <canvas id="brewChartCanvas" role="img" aria-label="Brew chart, no data yet"></canvas>
+                    <!-- Nothing connected: connect from here instead of Settings -->
+                    <button type="button" id="chartConnectBtn" class="chart-connect" onclick="connectFromChart()" hidden>Connect</button>
                 </div>
                 <div class="chart-slide" id="extractionSlide" hidden>
                     <div class="brew-chart-label">TDS · %</div>

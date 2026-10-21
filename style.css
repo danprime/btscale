@@ -1597,3 +1597,101 @@ button, input, select {
     fill: #b77b2b;
     font-size: 10.5px;
 }
+
+/* ===== Main screen polish ===== */
+/* Connect button in the empty chart (nothing connected) */
+.chart-connect {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 132px;
+    min-height: 44px;
+    padding: 0 22px;
+    border: 0;
+    border-radius: 22px;
+    background: #b45309;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(180, 83, 9, 0.25);
+    cursor: pointer;
+}
+.chart-connect:disabled {
+    opacity: 0.75;
+    cursor: progress;
+}
+
+/* Header device icons: always shown; faded = not connected (tap to connect) */
+.device-icon {
+    border: 0;
+    padding: 0;
+    color: inherit;
+    cursor: pointer;
+    transition: opacity 0.15s, background 0.15s;
+}
+.device-icon[data-connected="false"] {
+    background: transparent;
+    color: #c9b49a;
+    box-shadow: inset 0 0 0 1.5px #ead9c2;
+}
+.device-icon[data-connected="true"] {
+    background: #fff3e0;
+    color: #b77b2b;
+    cursor: default;
+}
+
+/* Main buttons when they can't be used (e.g. nothing connected): clearly greyed out */
+.ritual-btn.main-action:disabled,
+.ritual-btn.timer-action:disabled {
+    background: #efebe5 !important;
+    color: #c4b8a8 !important;
+    opacity: 1;
+    box-shadow: none !important;
+}
+
+/* Phones: full-bleed, like a native app (no floating card or beige border) */
+@media (max-width: 600px) {
+    html, body {
+        background: #fff;
+    }
+    .ritual-container {
+        max-width: none;
+        width: 100%;
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+        background: #fff;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+}
+
+/* --- Text colours: brew numbers dark, card values brown (WCAG AA on the cream cards) --- */
+/* Weight, time and ratio: dark "roast" brown (9.9:1 on white), the first thing you read */
+.hero-weight,
+.hero-meta .hero-stat,
+.hero-meta .progress-timer,
+.hero-meta .progress-ratio-value {
+    color: #5c3a1e;
+}
+.hero-weight .progress-weight-value {
+    color: #5c3a1e;
+}
+/* No weight yet ("--"): muted, it isn't a reading */
+.hero-weight .progress-weight-value.is-placeholder {
+    color: #c9a46c;
+}
+.hero-icon {
+    opacity: 0.45;
+}
+/* Card values: brown, 6.9:1 on #fffbe8 */
+.ritual-info-value {
+    color: #8a4510;
+    font-weight: 600;
+}
+/* Card labels: darker brown at regular weight, 5.7:1 */
+.ritual-info-label {
+    color: #8a5a1c;
+    font-weight: 400;
+}

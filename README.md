@@ -144,7 +144,7 @@ Connecting
 - One Connect button (Settings). Browsers allow only one device picker per tap, so the first time you press it once per device: the picker lists both device types, and the next press offers whichever is still missing.
 - Devices you have connected before are reconnected without a picker where the browser supports `navigator.bluetooth.getDevices()`, so one press connects both.
 - With both connected the button becomes Disconnect (both). With only one connected, a separate Disconnect button is shown.
-- Header icons show what is connected: a weight for the scale, a lightning bolt for the EC meter (hover for battery %). The status line under the header is only shown for connection errors.
+- Header icons are always shown: a weight for the scale, a lightning bolt for the EC meter. Faded outline = not connected (tap to connect the missing device); solid = connected (hover for battery %). With nothing connected, the empty chart has a Connect button and the main buttons are greyed out. The status line under the header is only shown for connection errors.
 
 Timer
 - Settings > "Start/Stop also controls" (hidden for now, with the other device and display settings below Connect; saved values still apply) chooses which connected devices the Start/Stop button drives (scale timer, EC meter timer + beep). Only connected devices are sent commands.
