@@ -1695,3 +1695,76 @@ button, input, select {
     color: #8a5a1c;
     font-weight: 400;
 }
+
+/* ===== Consistency fixes ===== */
+/* Disconnect: a quiet outline button (it was brown-filled with a green border) */
+#settingsModal #connectToggleBtn[aria-pressed="true"],
+#settingsModal #disconnectAllBtn {
+    background: #fff;
+    color: #b45309;
+    border: 1.5px solid #e0b98a;
+    box-shadow: none;
+}
+
+/* Focus: one brown ring everywhere (replaces the old green rings) */
+:focus-visible {
+    outline: 2px solid #b45309;
+    outline-offset: 2px;
+}
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible {
+    outline: none;
+    border-color: #b45309 !important;
+    box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.18) !important;
+}
+.ritual-btn:focus-visible,
+.ritual-btn.main-action:focus-visible,
+.ritual-header .ritual-settings:focus-visible,
+#timerToggleBtn:focus-visible,
+#closeRatioSliderBtn:focus-visible {
+    outline: 2px solid #b45309 !important;
+    outline-offset: 2px;
+    box-shadow: none !important;
+}
+.ritual-btn:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* Brew log: white like Settings; summary numbers in the same roast brown as the main screen's time and ratio */
+.brew-log .modal-content {
+    background: #fff;
+}
+.log-summary-value {
+    color: #5c3a1e;
+}
+
+/* Connect in the chart: rounded rectangle like the other text buttons */
+.chart-connect {
+    border-radius: 8px;
+}
+
+/* Number inputs: no spinner arrows (Android shows none; keep desktop the same) */
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Settings: an edited value stays on one line ("1: [15]", "[2.0] g/g") */
+.settings-table td:nth-child(2) {
+    white-space: nowrap;
+}
+#ratioSettingCell input[type="number"],
+#absorptionSettingCell input[type="number"],
+#memoryTable input.memory-input {
+    width: 3.6em;
+    margin: 0 0 0 2px;
+    padding: 4px 6px;
+    vertical-align: middle;
+}
