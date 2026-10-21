@@ -111,6 +111,7 @@ function openSettingsModal() {
 }
 function closeSettingsModal() {
     document.getElementById('settingsModal').style.display = 'none';
+    refreshChart(); // the canvas may have been discarded while covered
 }
 function setFlowSymbol(symbol) {
     document.getElementById('flowSymbol').textContent = symbol;
@@ -297,7 +298,11 @@ function renderConnectionState(errorText) {
     renderDeviceIcon('portalIcon', 'EC meter', portalOn);
     // Nothing connected and nothing recorded: a Connect button in the empty chart
     const chartConnect = document.getElementById('chartConnectBtn');
-    if (chartConnect) chartConnect.hidden = any || (!chartCleared && recorder.hasData());
+    const hasBrew = !chartCleared && recorder.hasData();
+    if (chartConnect) chartConnect.hidden = any || hasBrew;
+    // A stopped brew is on screen (chart kept): Connect goes under the chart instead of over it
+    const stripConnect = document.getElementById('stripConnectBtn');
+    if (stripConnect) stripConnect.hidden = any || !hasBrew;
     const portalInfo = document.getElementById('portalInfo');
     // Keep the frozen Temp/Peak EC cards after Stop even if the EC meter has gone
     if (portalInfo) portalInfo.style.display = portalOn || finalSnapshot?.peakEc != null ? '' : 'none';
@@ -315,7 +320,8 @@ function renderConnectionState(errorText) {
 
     // The timer works with either device (the app keeps its own clock as a fallback).
     const timerBtn = document.getElementById('timerToggleBtn');
-    if (timerBtn) timerBtn.disabled = !any;
+    // Reset needs no device (it clears the app); Start/Stop does
+    if (timerBtn) timerBtn.disabled = !any && timerState !== 'reset-required';
     if (!any && timerState === 'running') {
         // Everything dropped mid-brew: stop locally and keep what was recorded.
         appTimer.stop();
@@ -352,9 +358,9 @@ async function connectFromIcon(type) {
     try { await connectDevices(); } finally { connectingFromScreen = false; }
 }
 
-/** The Connect button in the empty chart. */
-async function connectFromChart() {
-    const btn = document.getElementById('chartConnectBtn');
+/** The Connect buttons in the empty chart and under a stopped brew's chart. */
+async function connectFromChart(id = 'chartConnectBtn') {
+    const btn = document.getElementById(id);
     if (connectingFromScreen) return;
     connectingFromScreen = true;
     if (btn) { btn.disabled = true; btn.textContent = 'Connecting…'; }
@@ -665,6 +671,8 @@ devices.addEventListener('change', ({ type, connected }) => {
 });
 
 function resetPortalDisplay() {
+    // After Stop the cards hold the brew's final values (temp at stop, CIY / peak EC): keep them
+    if (finalSnapshot) { renderFinal(); return; }
     const tempEl = document.getElementById('tempValue');
     if (tempEl) tempEl.textContent = '-- °C';
     const ecEl = document.getElementById('ecValue');
@@ -813,11 +821,12 @@ async function resetBrew() {
     clearFinal();
     renderTimerIcon();
     renderElapsed(0);
+    renderConnectionState(); // e.g. nothing connected: Start greyed out, Connect back in the empty chart
     await sendToDevices('reset', timerTargets());
 }
 
 async function triStateTimer() {
-    if (!isConnected) {
+    if (!isConnected && timerState !== 'reset-required') {
         log('Not connected');
         return;
     }
@@ -1900,6 +1909,7 @@ async function openBrewLog() {
 
 function closeBrewLog() {
     logNav++;
+    refreshChart();
     const modal = byId('brewLogModal');
     if (modal) modal.style.display = 'none';
     openLogBrew = null;
