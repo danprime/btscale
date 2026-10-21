@@ -1666,3 +1666,32 @@ button, input, select {
         min-height: 100dvh;
     }
 }
+
+/* --- Text colours: brew numbers dark, card values brown (WCAG AA on the cream cards) --- */
+/* Weight, time and ratio: near-black brown, the first thing you read */
+.hero-weight,
+.hero-meta .hero-stat,
+.hero-meta .progress-timer,
+.hero-meta .progress-ratio-value {
+    color: #2b1a0e;
+}
+.hero-weight .progress-weight-value {
+    color: #2b1a0e;
+}
+/* No weight yet ("--"): muted, it isn't a reading */
+.hero-weight .progress-weight-value.is-placeholder {
+    color: #c9a46c;
+}
+.hero-icon {
+    opacity: 0.45;
+}
+/* Card values: brown, 6.9:1 on #fffbe8 */
+.ritual-info-value {
+    color: #8a4510;
+    font-weight: 600;
+}
+/* Card labels: darker brown at regular weight, 5.7:1 */
+.ritual-info-label {
+    color: #8a5a1c;
+    font-weight: 400;
+}
