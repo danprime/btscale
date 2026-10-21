@@ -433,7 +433,7 @@ test('after Stop the main readouts freeze on final values and live readings move
   await expect(text('weightUnitLabel')).toBeHidden(); // live weight: no "grams" label
   await expect(text('weightDisplay')).toHaveText('80.3');
   await expect(text('weightUnit')).toHaveText('g');
-  await expect(text('flowRateLabel')).toHaveText('Flow Rate');
+  await expect(text('flowRateLabel')).toHaveText('Flow rate');
   await expect(text('tempValue')).toHaveText('88.0 °C');
   await expect(text('ecLabel')).toHaveText('EC');
   await expect(text('ecValue')).toHaveText('0.92 mS/cm');

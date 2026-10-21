@@ -603,7 +603,7 @@ function clearFinal() {
     finalSnapshot = null;
     finalTds = null;
     closeFinalTds();
-    setText('flowRateLabel', 'Flow Rate');
+    setText('flowRateLabel', 'Flow rate');
     setText('tempLabel', 'Temperature');
     setText('ecLabel', 'EC');
     if (lastScaleData && deviceConnected('scale')) updateDisplay(lastScaleData);
@@ -1279,6 +1279,11 @@ function activeKv() { return kv ?? DEFAULT_KV; }
 let absorption = (() => { const v = loadJson(ABSORPTION_KEY); return typeof v === 'number' && v >= 0 && v <= MAX_ABSORPTION ? v : DEFAULT_ABSORPTION; })();
 
 /** 4 significant digits, no trailing zeros ("0.005", "0.005086") */
+/** "Oct 20, 09:56 a.m." (date, comma, time), used wherever a brew's time is shown */
+function formatShortDateTime(at) {
+    const d = new Date(at);
+    return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ${d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+}
 function formatKv(v) { return v > 0 ? String(Number(v.toPrecision(4))) : '--'; }
 function formatCiy(v) { return v != null ? v.toFixed(1) : '--'; }
 /** "2.0", "2.15" (at least one decimal) */
@@ -1521,8 +1526,7 @@ function openCalibration() {
         return;
     }
     calBrew = brew;
-    const at = new Date(brew.at);
-    setText('calBrewTime', `${at.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${at.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`);
+    setText('calBrewTime', formatShortDateTime(brew.at));
     setText('calCiy', formatCiy(brew.ciy));
     const y = brew.yield ?? brew.estYield;
     byId('calYield').value = y > 0 ? y.toFixed(1) : '';
@@ -1822,10 +1826,7 @@ let logChartData = null;
 let logNav = 0; // bumped on every navigation, so a slow load can't reopen a view you've left
 
 function fmtGrams(v) { return String(Number(v.toFixed(1))); } // 20, 18.5
-function logDefaultName(at) {
-    const d = new Date(at);
-    return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}, ${d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
-}
+function logDefaultName(at) { return formatShortDateTime(at); }
 function logName(brew) { return brew.name || logDefaultName(brew.at); }
 
 /** Snapshot of the stopped brew for the log (null if nothing was recorded). */

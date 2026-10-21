@@ -77,11 +77,11 @@
         <!-- Info Panels -->
         <section class="ritual-info" aria-label="Scale info panels">
             <div class="ritual-info-item">
-                <div class="ritual-info-label" id="flowRateLabel">Flow Rate</div>
+                <div class="ritual-info-label" id="flowRateLabel">Flow rate</div>
                 <div class="ritual-info-value" id="flowRate" aria-live="polite">0.0 g/s</div>
             </div>
             <div class="ritual-info-item">
-                <div class="ritual-info-label" id="targetWeightLabel">Target Weight</div>
+                <div class="ritual-info-label" id="targetWeightLabel">In → out</div>
                 <div class="ritual-info-value" id="targetWeight" aria-live="polite">-- g</div>
             </div>
             <!-- Measured yield, after the final TDS calculator -->
@@ -262,7 +262,7 @@
                 </table>
                 <div id="ftError" class="field-error" role="alert" hidden></div>
                 <div class="tds-formula">
-                    <math display="block"><mrow><mtext>TDS %</mtext><mo>=</mo><mfrac><mrow><msub><mi>k</mi><mi>v</mi></msub><mo lspace="0.25em" rspace="0.25em">×</mo><mtext>CIY</mtext></mrow><mtext>Yield (g)</mtext></mfrac><mo lspace="0.25em" rspace="0.25em">×</mo><mn>100</mn></mrow></math>
+                    <math display="block"><mrow><mtext>TDS %</mtext><mo>=</mo><mfrac><mrow><msub><mi>k</mi><mi>v</mi></msub><mspace width="0.25em"/><mo lspace="0" rspace="0">×</mo><mspace width="0.25em"/><mtext>CIY</mtext></mrow><mtext>Yield (g)</mtext></mfrac><mspace width="0.25em"/><mo lspace="0" rspace="0">×</mo><mspace width="0.25em"/><mn>100</mn></mrow></math>
                 </div>
                 <div class="dialog-actions">
                     <button class="ritual-btn btn-secondary" onclick="closeFinalTds()">Cancel</button>
@@ -295,7 +295,7 @@
                     </table>
                     <div id="calError" class="field-error" role="alert" hidden></div>
                     <div class="tds-formula">
-                        <math display="block"><mrow><msub><mi>k</mi><mi>v</mi></msub><mo>=</mo><mfrac><mrow><mtext>TDS %</mtext><mo lspace="0.25em" rspace="0.25em">×</mo><mtext>Yield (g)</mtext></mrow><mrow><mn>100</mn><mo lspace="0.25em" rspace="0.25em">×</mo><mtext>CIY</mtext></mrow></mfrac></mrow></math>
+                        <math display="block"><mrow><msub><mi>k</mi><mi>v</mi></msub><mo>=</mo><mfrac><mrow><mtext>TDS %</mtext><mspace width="0.25em"/><mo lspace="0" rspace="0">×</mo><mspace width="0.25em"/><mtext>Yield (g)</mtext></mrow><mrow><mn>100</mn><mspace width="0.25em"/><mo lspace="0" rspace="0">×</mo><mspace width="0.25em"/><mtext>CIY</mtext></mrow></mfrac></mrow></math>
                     </div>
                     <div class="dialog-actions">
                         <button class="ritual-btn btn-secondary" onclick="closeCalibration()">Cancel</button>
