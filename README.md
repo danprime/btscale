@@ -124,6 +124,10 @@ Notes
 - The parsed `data` object shape comes from `scale-utils.js`'s `parseWeightData()` and includes `weight` (grams), `flowRate` (g/s), `batteryPercent`, and timing fields.
 - If you need a CommonJS/UMD bundle or TypeScript types, I can add a build step and `.d.ts` file.
 
+## Install as an app (Brew Tool)
+
+The page is an installable web app (`manifest.webmanifest`, icons in `icons/`). On Android, open https://danprime.github.io/btscale/ in Chrome, tap ⋮ > Install app (or Add to Home screen). "Brew Tool" then opens from the home screen in its own window, always in Chrome (needed for Web Bluetooth), even if another browser is the default. There's no service worker: every launch loads the current version from GitHub Pages (which lets browsers cache files for up to 10 minutes). The icons are rendered from `icons/icon.svg` and `icons/icon-maskable.svg`.
+
 ## EC meter support (Belka PORTAL)
 
 The app can also connect to a Belka PORTAL EC meter alongside the scale. Weight stays the main reading; with the EC meter connected, Temperature (°C) and EC (mS/cm) cards appear under the scale panels.

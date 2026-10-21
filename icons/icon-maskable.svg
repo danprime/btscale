@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Maskable version: full-bleed background, glyph inside the central safe zone (Android crops the edges) -->
+  <rect width="512" height="512" fill="#fff8e1"/>
+  <circle cx="256" cy="256" r="160" fill="#ffe0b2"/>
+  <g transform="translate(256 262) scale(10) translate(-12 -12)" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="5" r="2.5"/>
+    <path d="M6.6 8.5h10.8a1.5 1.5 0 0 1 1.46 1.16l2.05 9a1.5 1.5 0 0 1-1.46 1.84H4.55a1.5 1.5 0 0 1-1.46-1.84l2.05-9A1.5 1.5 0 0 1 6.6 8.5z"/>
+  </g>
+</svg>
