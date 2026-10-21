@@ -77,19 +77,19 @@ test('parsePortalPacket decodes the 13-byte stream packet', async ({ page }) => 
 test('single connect button connects both devices, then disconnects both', async ({ page }) => {
   await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['scale', 'portal'] }); });
   const connectBtn = page.locator('#connectToggleBtn');
-  await expect(page.locator('#scaleIcon')).toBeHidden();
-  await expect(page.locator('#portalIcon')).toBeHidden();
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'false');
+  await expect(page.locator('#portalIcon')).toHaveAttribute('data-connected', 'false');
   await expect(page.locator('#portalInfo')).toBeHidden();
 
   // First press: picker offers both types; the mock "user" picks the scale.
   await page.evaluate(() => toggleConnect());
-  await expect(page.locator('#scaleIcon')).toBeVisible();
-  await expect(page.locator('#portalIcon')).toBeHidden();
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'true');
+  await expect(page.locator('#portalIcon')).toHaveAttribute('data-connected', 'false');
   await expect(connectBtn).toHaveText('Connect EC meter');
 
   // Second press: picker only offers the missing EC meter.
   await page.evaluate(() => toggleConnect());
-  await expect(page.locator('#portalIcon')).toBeVisible();
+  await expect(page.locator('#portalIcon')).toHaveAttribute('data-connected', 'true');
   await expect(page.locator('#portalInfo')).toBeVisible();
   await expect(connectBtn).toHaveText('Disconnect');
   const filters = await page.evaluate(() => window.__mock.mock.requests.map((r) => r.filters));
@@ -105,8 +105,8 @@ test('single connect button connects both devices, then disconnects both', async
 
   // Third press disconnects both.
   await page.evaluate(() => toggleConnect());
-  await expect(page.locator('#scaleIcon')).toBeHidden();
-  await expect(page.locator('#portalIcon')).toBeHidden();
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'false');
+  await expect(page.locator('#portalIcon')).toHaveAttribute('data-connected', 'false');
   await expect(page.locator('#portalInfo')).toBeHidden();
   await expect(connectBtn).toHaveText('Connect');
 });
@@ -117,23 +117,23 @@ test('remembered devices reconnect with one press and no picker', async ({ page 
     window.__mock = window.__test_installMultiBLEMock({ devices: ['scale', 'portal'], permitted: ['scale', 'portal'] });
   });
   await page.evaluate(() => toggleConnect());
-  await expect(page.locator('#scaleIcon')).toBeVisible();
-  await expect(page.locator('#portalIcon')).toBeVisible();
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'true');
+  await expect(page.locator('#portalIcon')).toHaveAttribute('data-connected', 'true');
   expect(await page.evaluate(() => window.__mock.mock.requests.length)).toBe(0);
 });
 
 test('scale-only user: cancelled EC picker keeps scale connected and Disconnect works', async ({ page }) => {
   await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['scale'] }); });
   await page.evaluate(() => toggleConnect());
-  await expect(page.locator('#scaleIcon')).toBeVisible();
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'true');
   // Pressing again finds no EC meter (picker cancelled) - nothing breaks.
   await page.evaluate(() => toggleConnect());
-  await expect(page.locator('#scaleIcon')).toBeVisible();
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'true');
   await expect(page.locator('#connectToggleBtn')).toHaveText('Connect EC meter');
   // Separate Disconnect button disconnects the scale.
   await page.click('#settingsBtn');
   await page.click('#disconnectAllBtn');
-  await expect(page.locator('#scaleIcon')).toBeHidden();
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'false');
   await expect(page.locator('#disconnectAllBtn')).toBeHidden();
 });
 
@@ -143,7 +143,7 @@ test('timer drives the devices selected in settings', async ({ page }) => {
     await toggleConnect();
     await toggleConnect();
   });
-  await expect(page.locator('#portalIcon')).toBeVisible();
+  await expect(page.locator('#portalIcon')).toHaveAttribute('data-connected', 'true');
 
   await page.evaluate(() => triStateTimer()); // start
   await page.evaluate(() => triStateTimer()); // stop
@@ -167,7 +167,7 @@ test('timer drives the devices selected in settings', async ({ page }) => {
 test('EC meter only: elapsed time comes from the app timer', async ({ page }) => {
   await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['portal'] }); });
   await page.evaluate(() => toggleConnect());
-  await expect(page.locator('#portalIcon')).toBeVisible();
+  await expect(page.locator('#portalIcon')).toHaveAttribute('data-connected', 'true');
   await expect(page.locator('#timerToggleBtn')).toBeEnabled();
   await expect(page.locator('#tareBtn')).toBeDisabled();
   await page.evaluate(() => triStateTimer());
@@ -211,9 +211,9 @@ test('EC meter dropping out mid-brew hides its cards and keeps the scale running
   });
   await page.evaluate(() => triStateTimer());
   await page.evaluate(() => window.__mock.device('portal').gatt.disconnect());
-  await expect(page.locator('#portalIcon')).toBeHidden();
+  await expect(page.locator('#portalIcon')).toHaveAttribute('data-connected', 'false');
   await expect(page.locator('#portalInfo')).toBeHidden();
-  await expect(page.locator('#scaleIcon')).toBeVisible();
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'true');
   await expect(page.locator('#connectToggleBtn')).toHaveText('Connect EC meter');
   // Timer is still running (stop icon) and the scale still updates.
   await expect(page.locator('#timerBtnIcon .lucide-square')).toBeVisible();
@@ -256,15 +256,15 @@ test('remembered device out of range: reconnect times out, is forgotten, next pr
     window.__devices.reconnectTimeoutMs = 300;
   });
   await page.evaluate(() => toggleConnect());
-  await expect(page.locator('#portalIcon')).toBeVisible();
-  await expect(page.locator('#scaleIcon')).toBeHidden();
+  await expect(page.locator('#portalIcon')).toHaveAttribute('data-connected', 'true');
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'false');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('bleDeviceIdsV1')))).toEqual({ portal: 'mock-portal-id' });
   expect(await page.evaluate(() => window.__mock.mock.requests.length)).toBe(0);
 
   // Scale back in range: the next press opens the picker for the scale only.
   await page.evaluate(() => { window.__mock.device('scale').gatt.hang = false; });
   await page.evaluate(() => toggleConnect());
-  await expect(page.locator('#scaleIcon')).toBeVisible();
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'true');
   const requests = await page.evaluate(() => window.__mock.mock.requests.map((r) => r.filters));
   expect(requests).toEqual([[{ services: [0x0ffe] }]]);
 });
@@ -337,14 +337,45 @@ test('parsePortalPacket reads a DataView that starts at an offset', async ({ pag
   expect(parsed).toEqual({ ec: 2.5, internalTemp: 30.5, temp: 91.25, battery: 55 });
 });
 
-test('chart hint asks to connect until a device is connected', async ({ page }) => {
+test('nothing connected: a Connect button in the empty chart and faded device icons, both tap to connect', async ({ page }) => {
   const chart = page.locator('#brewChartCanvas');
-  await expect(chart).toHaveAttribute('aria-label', 'Weight chart, no data yet. Please connect device and press start');
-  await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['scale'] }); });
-  await page.evaluate(() => toggleConnect());
+  const connectBtn = page.locator('#chartConnectBtn');
+  await expect(connectBtn).toBeVisible();
+  await expect(chart).toHaveAttribute('aria-label', 'Weight chart, no data yet');
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('aria-label', 'Scale: not connected. Tap to connect');
+  await expect(page.locator('#tareBtn')).toBeDisabled();
+  await expect(page.locator('#timerToggleBtn')).toBeDisabled();
+
+  // The chart's Connect button opens the picker (the mock "user" picks the scale)
+  await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['scale', 'portal'] }); });
+  await connectBtn.click();
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'true');
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('aria-label', 'Scale connected');
+  await expect(connectBtn).toBeHidden();
   await expect(chart).toHaveAttribute('aria-label', 'Weight chart, no data yet. Press Start');
+  await expect(page.locator('#timerToggleBtn')).toBeEnabled();
+
+  // The faded EC meter icon connects the missing device
+  await expect(page.locator('#portalIcon')).toHaveAttribute('data-connected', 'false');
+  await page.click('#portalIcon');
+  await expect(page.locator('#portalIcon')).toHaveAttribute('data-connected', 'true');
+  const filters = await page.evaluate(() => window.__mock.mock.requests.map((r) => r.filters));
+  expect(filters[1]).toEqual([{ name: 'BelkaPortal' }]); // only the missing one
+
   await page.evaluate(() => disconnect());
-  await expect(chart).toHaveAttribute('aria-label', 'Weight chart, no data yet. Please connect device and press start');
+  await expect(connectBtn).toBeVisible();
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'false');
+});
+
+test('phone layout is full-bleed: no card border, page fills the screen', async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 720 });
+  await page.reload();
+  const r = await page.evaluate(() => {
+    const c = document.querySelector('.ritual-container').getBoundingClientRect();
+    return { left: c.left, right: innerWidth - c.right, top: c.top, height: c.height, doc: document.documentElement.scrollHeight, view: innerHeight, radius: getComputedStyle(document.querySelector('.ritual-container')).borderTopLeftRadius };
+  });
+  expect(r).toMatchObject({ left: 0, right: 0, top: 0, radius: '0px' });
+  expect(r.doc).toBe(r.view);
 });
 
 for (const size of [{ width: 375, height: 812 }, { width: 375, height: 667 }]) {

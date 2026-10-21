@@ -9,7 +9,7 @@
  *
  * The chart pulls its data from a callback on every draw:
  *   () => ({ mode: 'ec'|'weight', points: [{t, v}], weightPoints?: [{t, v}], elapsed, target, running, hint? })
- * `hint` overrides the text shown while there's no data.
+ * `hint` overrides the text shown while there's no data ('' shows none).
  */
 
 const EC_AXIS_MAX = 5;
@@ -170,7 +170,11 @@ export class BrewChart {
     }
 
     if (!points.length) {
-      const text = hint || (MODES[mode] || MODES.ec).hint;
+      const text = hint ?? (MODES[mode] || MODES.ec).hint;
+      if (!text) {
+        this._label(mode, null, dual ? weightPoints[weightPoints.length - 1] : null, null);
+        return;
+      }
       // Shrink the hint (down to 11px) so long messages fit narrow phones
       let size = 13;
       ctx.font = `${size}px ui-sans-serif, system-ui, sans-serif`;

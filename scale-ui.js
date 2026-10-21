@@ -159,7 +159,8 @@ function chartData() {
     const weightPoints = mode === 'ec' && (deviceConnected('scale') || scaleRows.length)
         ? scaleRows.map((r) => ({ t: r.t, v: r.weight }))
         : null;
-    const hint = deviceConnected('scale') || deviceConnected('portal') ? 'Press Start' : 'Please connect device and press start.';
+    // Nothing connected: no hint text, the Connect button sits in the empty chart instead
+    const hint = deviceConnected('scale') || deviceConnected('portal') ? 'Press Start' : '';
     return { mode, points, weightPoints, elapsed: chartCleared ? 0 : recorder.elapsed(), target: targetWeight, running: recorder.running, hint };
 }
 
@@ -291,10 +292,12 @@ function renderConnectionState(errorText) {
     const disconnectAllBtn = document.getElementById('disconnectAllBtn');
     if (disconnectAllBtn) disconnectAllBtn.hidden = !(any && !all);
 
-    const scaleIcon = document.getElementById('scaleIcon');
-    if (scaleIcon) scaleIcon.hidden = !scaleOn;
-    const portalIcon = document.getElementById('portalIcon');
-    if (portalIcon) portalIcon.hidden = !portalOn;
+    // Header icons are always shown: solid when connected, faded (tap to connect) when not
+    renderDeviceIcon('scaleIcon', 'Scale', scaleOn);
+    renderDeviceIcon('portalIcon', 'EC meter', portalOn);
+    // Nothing connected and nothing recorded: a Connect button in the empty chart
+    const chartConnect = document.getElementById('chartConnectBtn');
+    if (chartConnect) chartConnect.hidden = any || (!chartCleared && recorder.hasData());
     const portalInfo = document.getElementById('portalInfo');
     // Keep the frozen Temp/Peak EC cards after Stop even if the EC meter has gone
     if (portalInfo) portalInfo.style.display = portalOn || finalSnapshot?.peakEc != null ? '' : 'none';
@@ -325,6 +328,41 @@ function renderConnectionState(errorText) {
     renderTimerIcon();
     updateExportButton();
     refreshChart();
+}
+
+function renderDeviceIcon(id, name, connected) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const was = el.dataset.connected === 'true';
+    el.dataset.connected = String(connected);
+    if (connected && !was) {
+        el.setAttribute('aria-label', `${name} connected`);
+        el.title = `${name} connected`; // battery % is added when readings arrive
+    } else if (!connected) {
+        el.setAttribute('aria-label', `${name}: not connected. Tap to connect`);
+        el.title = `${name} not connected`;
+    }
+}
+
+let connectingFromScreen = false;
+/** Tap on a faded header icon: connect whatever is missing (one picker). */
+async function connectFromIcon(type) {
+    if (deviceConnected(type) || connectingFromScreen) return;
+    connectingFromScreen = true;
+    try { await connectDevices(); } finally { connectingFromScreen = false; }
+}
+
+/** The Connect button in the empty chart. */
+async function connectFromChart() {
+    const btn = document.getElementById('chartConnectBtn');
+    if (connectingFromScreen) return;
+    connectingFromScreen = true;
+    if (btn) { btn.disabled = true; btn.textContent = 'Connecting…'; }
+    try { await connectDevices(); } finally {
+        connectingFromScreen = false;
+        if (btn) { btn.disabled = false; btn.textContent = 'Connect'; }
+        renderConnectionState();
+    }
 }
 
 // Backwards-compatible wrapper (older code/tests call updateStatus).
@@ -2110,6 +2148,8 @@ window.tareBean = tareBean;
 window.disconnect = disconnect;
 window.triStateTimer = triStateTimer;
 window.toggleConnect = toggleConnect;
+window.connectFromIcon = connectFromIcon;
+window.connectFromChart = connectFromChart;
 window.exportBrewCsv = exportBrewCsv;
 window.startRatioEdit = startRatioEdit;
 window.beanButton = beanButton;

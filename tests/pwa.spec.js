@@ -42,7 +42,7 @@ test.afterEach(async () => {
 
 test('installable as "Brew Tool": manifest, icons and theme colour', async ({ page }) => {
   await expect(page).toHaveTitle('Brew Tool');
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#fff8e1');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#ffffff');
 
   const manifest = await page.evaluate(async () => {
     const href = document.querySelector('link[rel="manifest"]').href;
