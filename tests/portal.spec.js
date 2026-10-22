@@ -557,6 +557,26 @@ test('phone layout: chart and readings have 16px side margins; legend swatches m
   expect(result.weightSwatch).toBe('rgb(92, 58, 30)'); // #5c3a1e, the weight line
 });
 
+test('readings: two (weight only) split the row evenly; with the EC meter they sit three to a row', async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 720 });
+  await page.reload();
+  const widths = () => page.evaluate(() => {
+    const row = document.getElementById('readings').getBoundingClientRect().width;
+    return [...document.querySelectorAll('#readings .ritual-info-item')]
+      .filter((el) => el.offsetParent !== null)
+      .map((el) => Math.round((el.getBoundingClientRect().width / row) * 100));
+  });
+  // Nothing connected (weight-only default): Flow and In → out, half each (minus the gap)
+  expect(await widths()).toEqual([48, 48]);
+  await page.evaluate(async () => {
+    window.__mock = window.__test_installMultiBLEMock({ devices: ['scale', 'portal'] });
+    await toggleConnect();
+    await toggleConnect();
+  });
+  // Flow, In → out, Temp, TDS, EC: every one a third of the row (minus the gaps)
+  await expect.poll(async () => { const w = await widths(); return w.length >= 4 && w.every((x) => x === 31); }).toBe(true);
+});
+
 test('chart axes: weight stays on the left; EC on the right with a scale, on the left without', async ({ page }) => {
   const label = page.locator('#brewChartLabel');
   await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['portal'] }); });

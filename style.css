@@ -371,7 +371,8 @@ button, input, select {
 .readings,
 .log-cards {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* Up to three columns; unused ones collapse, so two readings share the row evenly */
+    grid-template-columns: repeat(auto-fit, minmax(calc((100% - 24px) / 3), 1fr));
     gap: 12px;
 }
 .readings {
