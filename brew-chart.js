@@ -55,6 +55,11 @@ export class BrewChart {
     if (typeof ResizeObserver !== 'undefined') {
       new ResizeObserver(() => this.requestDraw()).observe(canvas);
     }
+    // Android Chrome can discard a canvas while the app is in the background or covered;
+    // redraw when it comes back, since a stopped brew gets no new readings to trigger one
+    canvas.addEventListener('contextrestored', () => this.requestDraw());
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') this.requestDraw(); });
+    window.addEventListener('pageshow', () => this.requestDraw());
   }
 
   /** Coalesce redraws into the next animation frame. */

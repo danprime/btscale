@@ -613,3 +613,61 @@ test('final TDS calculator fits a narrow phone with large text: Tare next to Sca
   expect(layout.tareRightOfScale).toBe(true);
   expect(layout.carafeText.replace(/\s+/g, ' ')).toBe('Carafe'); // no mid-word break
 });
+
+test('devices disconnect after Stop: final values kept, chart redrawn, Connect under the chart, Reset still works', async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 720 });
+  await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 20 }, carafe: { weight: 186 } } });
+  await page.evaluate(async () => {
+    await window.__connect(['scale', 'portal']);
+    await window.__brew();
+    await triStateTimer(); // stop
+  });
+  await expect(page.locator('#tempValue')).toHaveText('80.0 °C');
+  await expect(page.locator('#ecValue')).toHaveText('330.0');
+
+  // Review the brew log, devices drop meanwhile, back to the main screen
+  await page.click('#settingsBtn');
+  await page.click('#brewLogBtn');
+  await page.evaluate(() => disconnect());
+  await page.evaluate(() => { closeBrewLog(); closeSettingsModal(); });
+
+  // The frozen final values survive the EC meter disconnecting
+  await expect(page.locator('#tempLabel')).toHaveText('Temp at stop');
+  await expect(page.locator('#tempValue')).toHaveText('80.0 °C');
+  await expect(page.locator('#ecLabel')).toHaveText('CIY');
+  await expect(page.locator('#ecValue')).toHaveText('330.0');
+  await expect(page.locator('#weightDisplay')).toHaveText('200.0');
+
+  // Connect sits under the chart (not over the brew), the chart's own Connect stays hidden
+  await expect(page.locator('#stripConnectBtn')).toBeVisible();
+  await expect(page.locator('#chartConnectBtn')).toBeHidden();
+  const noScroll = await page.evaluate(() => document.documentElement.scrollHeight === innerHeight);
+  expect(noScroll).toBe(true);
+
+  // Android discarding the canvas: once it's restored, the brew chart is drawn again
+  const painted = () => page.evaluate(() => {
+    const c = document.querySelector('#brewChartCanvas');
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    for (let i = 3; i < d.length; i += 4) if (d[i]) return true;
+    return false;
+  });
+  await page.evaluate(() => { const c = document.querySelector('#brewChartCanvas'); c.getContext('2d').clearRect(0, 0, c.width, c.height); });
+  expect(await painted()).toBe(false);
+  await page.evaluate(() => document.querySelector('#brewChartCanvas').dispatchEvent(new Event('contextrestored')));
+  await expect.poll(painted).toBe(true);
+
+  // Reset works with nothing connected and brings back the empty chart with its Connect button
+  await expect(page.locator('#timerToggleBtn')).toBeEnabled();
+  await page.click('#timerToggleBtn');
+  await expect(page.locator('#chartConnectBtn')).toBeVisible();
+  await expect(page.locator('#stripConnectBtn')).toBeHidden();
+  await expect(page.locator('#timerToggleBtn')).toBeDisabled(); // Start needs a device
+
+  // The Connect under the chart reconnects
+  await page.evaluate(async () => {
+    window.__mock.uninstall();
+    window.__mock = window.__test_installMultiBLEMock({ devices: ['scale', 'portal'] });
+  });
+  await page.click('#chartConnectBtn');
+  await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'true');
+});

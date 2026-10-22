@@ -74,6 +74,8 @@
         </section>
         <!-- After Stop: the big values are frozen, live readings show here -->
         <div class="live-strip" id="liveStrip" aria-live="polite" hidden></div>
+        <!-- After Stop with nothing connected: connect again without covering the brew's chart -->
+        <div class="strip-connect-row"><button type="button" id="stripConnectBtn" class="chart-connect strip-connect" onclick="connectFromChart('stripConnectBtn')" hidden>Connect</button></div>
         <!-- Info Panels -->
         <section class="ritual-info" aria-label="Scale info panels">
             <div class="ritual-info-item">
