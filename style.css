@@ -1,1838 +1,127 @@
-/* Calculated ratio (next to the timer) */
-.progress-ratio-value {
-    font-size: 1.25rem;
-    color: #b77b2b;
-    font-weight: 500;
-    background: none;
-    border: none;
-    margin-top: 6px;
-    padding: 0 18px;
-    border-radius: 999px;
-    text-align: center;
-    min-height: 1.7em;
-    letter-spacing: 0.01em;
+/* Brew Tool styles. Phone first; the desktop card is at the end.
+   Sections: tokens · base · header · hero · chart · readings · controls ·
+   sheets and buttons · Settings · dialogs · brew log · extraction chart · desktop */
+
+/* ===== Tokens ===== */
+:root {
+    --ink: #2f2118;          /* headings, body text */
+    --roast: #5c3a1e;        /* weight, time, ratio, weight line */
+    --brown: #8a4510;        /* reading values, filled buttons */
+    --accent: #b45309;       /* EC line, active tab, text buttons, focus */
+    --muted: #8f7a66;        /* labels, axis text, secondary text */
+    --faint: #c4b4a2;        /* placeholders, disconnected, disabled */
+    --line: #eee4d6;         /* hairlines, gridlines */
+    --edge: #e0b98a;         /* outline button borders */
+    --cream: #fbf5ea;        /* soft fills: icon circles, result boxes */
+    --cream-dark: #f4e8d6;   /* pressed / hovered soft fills */
+    --disabled: #f4efe8;     /* fill of a disabled button */
+    --ok: #3f8f4f;           /* connected */
+    --danger: #b3261e;       /* errors, delete */
+    --radius: 8px;
+    --label: 11px;           /* small uppercase labels */
 }
-/* Thicker lines for Start, Stop, and Reset icons in timer action buttons */
-.ritual-btn.timer-action svg,
-.ritual-btn .timer-action svg,
-#timerToggleBtn svg {
-    stroke-width: 2.5 !important;
-}
-/* Beans button: an "M" like the "T", with a subscript "B" (beans) */
-#tareBeanBtn .key {
-    display: inline-flex;
-    align-items: baseline;
-    line-height: 1;
-    /* between centring the "M" alone (0.32em) and centring "M"+"B" (0) */
-    margin-left: 0.24em;
-}
-#tareBeanBtn .key-sub {
-    font-size: 0.45em;          /* subscript "B" (beans) */
-    margin-left: 0.06em;
-    position: relative;
-    top: 0.3em;
-}
-/* Memory Table Styles */
-.memory-table {
-  border-collapse: collapse;
-  width: 100%;
-  margin-bottom: 1em;
-  font-size: 1.05em;
-}
-.memory-table th, .memory-table td {
-  border-bottom: 1px solid #e0c9a6;
-  padding: 0.4em 0.5em;
-}
-.memory-table th {
-  color: #b77b2b;
-  font-weight: 500;
-  background: #fff8ed;
-}
-.memory-table td {
-  color: #5e361c;
-}
-.memory-overwrite {
-  background: #ffe0b2;
-  color: #b77b2b;
-  border: 1px solid #e0c9a6;
-  font-size: 0.98em;
-  padding: 0.2em 0.9em;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.memory-overwrite:hover, .memory-overwrite:focus {
-  background: #ffcc80;
-}
-/* Stored weights: Overwrite turns the value into an input */
-#memoryTable input.memory-input {
-  width: 5em;
-  margin: 0;
-  padding: 4px 6px;
-  text-align: right;
-}
-.memory-confirm-btn {
-  background: #b77b2b;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 0.3em 1.2em;
-  font-size: 1em;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.memory-confirm-btn:hover, .memory-confirm-btn:focus {
-  background: #8d5c1a;
-}
-body {
-    font-family: ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-    background: linear-gradient(to bottom, #fff8e1 0%, #ffe0b2 100%);
-    margin: 0;
-    padding: 0;
-    min-height: 100vh;
-    /* Visible viewport on phones (100vh includes the hidden address bar) */
-    min-height: 100dvh;
-    /* Contain the container's margins so they don't add to the page height */
-    display: flow-root;
-}
-/* No pull-to-refresh / bounce: a stray swipe mid-brew would reload and drop Bluetooth */
+
+/* ===== Base ===== */
 html, body {
+    /* No pull-to-refresh / bounce: a stray swipe mid-brew would reload and drop Bluetooth */
     overscroll-behavior-y: none;
 }
-.ritual-container {
-    max-width: 420px;
-    margin: 40px auto;
-    background: rgba(255,255,255,0.95);
-    border-radius: 24px;
-    box-shadow: 0 4px 32px 0 rgba(0,0,0,0.07);
-    padding: 0 0 32px 0;
-    position: relative;
-}
-.ritual-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 24px 0 24px;
-}
-.ritual-title {
-    font-size: 1.15rem;
-    font-weight: 300;
-    margin-bottom: 0;
-}
-.ritual-header-actions {
-    display: flex;
-    gap: 20px;
-}
-
-/* --- Uniform Button Sizing --- */
-.ritual-btn,
-.ritual-btn.main-action,
-.ritual-btn.timer-action,
-.ritual-connect,
-.ritual-settings {
-    width: 80px;
-    height: 80px;
-    min-width: 80px;
-    min-height: 80px;
-    max-width: 80px;
-    max-height: 80px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.15rem;
-    font-weight: 500;
-    border: none;
-    outline: none;
-    background: #fff3e0;
-    color: #b45309;
-    box-shadow: 0 2px 8px 0 rgba(255,193,7,0.08);
-    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-    cursor: pointer;
-    padding: 0;
-}
-.ritual-btn:hover, .ritual-btn:focus, .ritual-btn.main-action:hover, .ritual-btn.main-action:focus, .ritual-btn.timer-action:hover, .ritual-btn.timer-action:focus, .ritual-connect:hover, .ritual-connect:focus, .ritual-settings:hover, .ritual-settings:focus {
-    background: #ffd180;
-    color: #a15c00;
-    box-shadow: 0 4px 16px 0 rgba(255,193,7,0.13);
-}
-.ritual-connect {
-    background: #256029;
-    color: #fff;
-    border: 2px solid #256029;
-}
-.ritual-connect:hover, .ritual-connect:focus {
-    background: #388e3c;
-    color: #fff;
-    border-color: #388e3c;
-}
-.ritual-settings {
-    background: #b77b2b;
-    color: #fff;
-    border: 2px solid #b77b2b;
-}
-.ritual-settings:hover, .ritual-settings:focus {
-    background: #a15c00;
-    color: #fff;
-    border-color: #a15c00;
-}
-.ritual-status {
-    text-align: right;
-    padding: 0 32px 0 0;
-    font-size: 1em;
-    background: none;
-    border: none;
-    margin-bottom: 0;
-    margin-top: -10px;
-}
-.ritual-hero-weight {
-    text-align: center;
-    font-size: 6.5rem;
-    font-weight: 300;
-    color: #b45309;
-    margin: 48px 0 6px 0;
-    letter-spacing: -0.04em;
-    line-height: -2.4px;
-}
-.ritual-hero-unit {
-    text-align: center;
-    font-size: 1.35rem;
-    font-weight: 300;
-    color: #b77b2b;
-    margin-top: -4px;
-    margin-bottom: 32px;
-    letter-spacing: 0.01em;
-}
-.ritual-timer-row {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 36px;
-}
-.ritual-timer {
-    font-size: 2.8rem;
-    font-weight: 300;
-    color: #b77b2b;
-    letter-spacing: 0.01em;
-    text-align: center;
-    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-    margin-top: 0;
-    margin-bottom: 0;
-    line-height: 1.1;
-}
-.ritual-controls {
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    margin: 0 0 32px 0;
-}
-.ritual-ratio-controls {
-    margin-bottom: 36px;
-    gap: 12px;
-}
-.ritual-info {
-    display: flex;
-    justify-content: space-between;
-    gap: 18px;
-    margin: 0 32px 0 32px;
-    margin-bottom: 36px;
-}
-.ritual-info-item {
-    flex: 1;
-    background: #fffbe8;
-    border-radius: 16px;
-    padding: 18px 0 12px 0;
-    text-align: center;
-    box-shadow: 0 1px 4px 0 rgba(255,193,7,0.04);
-}
-.ritual-info-label {
-    font-size: 0.82em;
-    color: #b77b2b;
-    margin-bottom: 2px;
-    font-weight: 300;
-}
-.ritual-info-value {
-    font-size: 1.22em;
-    font-weight: 600;
-    color: #b45309;
-}
-input[type="number"] {
-    border: 1.5px solid #ffe0b2;
-    border-radius: 8px;
-    padding: 7px 10px;
-    font-size: 1em;
-    width: 70px;
-    margin: 0 8px;
-    background: #fffde7;
-    color: #b45309;
-    outline: none;
-    transition: border 0.2s;
-}
-input[type="number"]:focus {
-    border: 1.5px solid #ffb300;
-}
-label {
-    color: #b77b2b;
-    font-size: 1em;
-    margin-right: 6px;
-    font-weight: 500;
-}
-.log {
-    margin: 32px 32px 0 32px;
-    max-height: 180px;
-    overflow-y: auto;
-    background: #fff8e1;
-    padding: 12px;
-    border-radius: 10px;
-    font-family: 'JetBrains Mono', 'Menlo', monospace;
-    font-size: 0.98em;
-    color: #b45309;
-    box-shadow: 0 1px 4px 0 rgba(255,193,7,0.04);
-}
-.modal {
-    position: fixed;
-    z-index: 1000;
-    left: 0; top: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.18);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.modal-content {
-    background: #fff;
-    border-radius: 18px;
-    padding: 44px 28px 36px 28px;
-    min-width: 320px;
-    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.13);
-}
-/* Compact rectangular buttons inside modals so labels fit */
-.modal .ritual-btn {
-    width: auto;
-    height: auto;
-    min-width: 88px;
-    min-height: 36px;
-    border-radius: 8px;
-    padding: 0.45em 0.85em;
-    font-size: 0.95rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: none;
-}
-.modal .memory-overwrite {
-    font-size: 0.95rem;
-    padding: 0.35em 0.9em;
-    border-radius: 6px;
-}
-.close {
-    position: absolute;
-    right: 24px;
-    top: 18px;
-    font-size: 2.2em;
-    color: #b77b2b;
-    cursor: pointer;
-}
-.modal-controls label {
-    color: #b77b2b;
-    font-size: 1em;
-    font-weight: 500;
-}
-.modal-controls input[type="range"] {
-    width: 120px;
-    margin: 0 8px;
-}
-.modal-controls input[type="checkbox"] {
-    accent-color: #ffb300;
-}
-.log-warning {
-    color: #b77b2b;
-}
-/* --- Harmonize Start Timer button color with primary accent --- */
-#timerToggleBtn {
-    background: #b45309;
-    color: #fff;
-    box-shadow: 0 2px 8px 0 rgba(180,83,9,0.13);
-    font-weight: 500;
-    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-}
-#timerToggleBtn:hover {
-    background: #8a3906;
-    color: #fff;
-    box-shadow: 0 4px 16px 0 rgba(180,83,9,0.18);
-}
-/* --- Accessibility improvements for WCAG 2.1 AA compliance --- */
-:focus {
-    outline: 3px solid #256029;
-    outline-offset: 2px;
-}
-.ritual-btn:focus, .ritual-btn:active, input:focus, select:focus {
-    outline: 3px solid #256029;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 3px #c8e6c9;
-}
-.ritual-btn[aria-pressed="true"] {
-    background: #a15c00;
-    color: #fff;
-}
-.ritual-btn, .ritual-connect, .ritual-settings {
-    /* Ensure sufficient contrast for all buttons */
-    color: #fff;
-    background: #b45309;
-    border: 2px solid #b45309;
-}
-.ritual-btn:hover, .ritual-btn:focus {
-    background: #8a3906;
-    color: #fff;
-    border-color: #8a3906;
-}
-.ritual-connect {
-    background: #256029;
-    color: #fff;
-    border: 2px solid #256029;
-}
-.ritual-connect:hover, .ritual-connect:focus {
-    background: #388e3c;
-    color: #fff;
-    border-color: #388e3c;
-}
-.ritual-settings {
-    background: #b77b2b;
-    color: #fff;
-    border: 2px solid #b77b2b;
-}
-.ritual-settings:hover, .ritual-settings:focus {
-    background: #a15c00;
-    color: #fff;
-    border-color: #a15c00;
-}
-.ritual-info-label, label, .modal-controls label {
-    color: #3d2c13;
-}
-.ritual-info-value {
-    color: #222;
-}
-.ritual-hero-weight, .ritual-hero-unit {
-    color: #222;
-}
-.ritual-timer {
-    color: #3d2c13;
-}
-input[type="number"], input[type="range"], select {
-    border: 2px solid #b77b2b;
-    color: #222;
-    background: #fff;
-}
-input[type="number"]:focus, input[type="range"]:focus, select:focus {
-    border: 2px solid #256029;
-}
-.modal {
-    background: rgba(0,0,0,0.30);
-}
-.modal-content {
-    color: #222;
-}
-/* --- Weight hero, timer and ratio --- */
-.progress-weight-value {
-    font-size: 3.6rem;
-    font-weight: 400;
-    color: #b77b2b;
-    line-height: 1.05;
-    letter-spacing: -0.04em;
-}
-.progress-weight-unit {
-    font-size: 1.15rem;
-    color: #b77b2b;
-    opacity: 0.7;
-    margin-bottom: 2px;
-}
-.progress-timer {
-    font-size: 2.2rem;
-    font-weight: 400;
-    color: #b77b2b;
-    margin-bottom: 4px;
-    pointer-events: auto;
-}
-.progress-ratio-btn {
-    background: #fffbe8;
-    color: #b77b2b;
-    border: none;
-    border-radius: 999px;
-    font-size: 1.1rem;
-    font-weight: 500;
-    padding: 7px 22px;
-    margin-top: 6px;
-    box-shadow: 0 2px 8px 0 rgba(255,193,7,0.08);
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-    pointer-events: auto;
-}
-.progress-ratio-btn:focus {
-    outline: 3px solid #256029;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 3px #c8e6c9;
-}
-.progress-ratio-btn:hover {
-    background: #ffd180;
-    color: #a15c00;
-}
-
-/* --- Main Action Button Group --- */
-.ritual-main-actions {
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    margin: 0 0 32px 0;
-}
-
-/* Remove transform on hover for uniformity */
-.ritual-btn.main-action:hover, .ritual-btn.main-action:focus {
-    background: #ffd180;
-    color: #a15c00;
-    /* No transform */
-}
-.ritual-btn.main-action:focus {
-    outline: 3px solid #256029;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 3px #c8e6c9;
-}
-.ritual-btn.main-action:disabled, .ritual-btn.timer-action:disabled, .ritual-connect:disabled, .ritual-settings:disabled {
-    background: #e0c08a !important;
-    color: #fff !important;
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-.timer-action svg {
-    display: block;
-    margin: 0 auto;
-}
-
-/* --- Ratio Slider Overlay --- */
-.ratio-slider-overlay {
-    position: fixed;
-    z-index: 2000;
-    left: 0; top: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.ratio-slider-content {
-    background: #fffbe8;
-    border-radius: 28px;
-    padding: 36px 18px 24px 18px;
-    min-width: 320px;
-    max-width: 95vw;
-    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.13);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-.ratio-slider-content h3 {
-    color: #b77b2b;
-    font-size: 1.3rem;
-    font-weight: 500;
-    margin-bottom: 18px;
-}
-.ratio-slider-track {
-    position: relative;
-    width: 100%;
-    height: 320px;
-    overflow: hidden;
-    margin-bottom: 24px;
-    background: none;
-    user-select: none;
-    touch-action: none;
-    cursor: grab;
-}
-.ratio-slider-option {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 70px;
-    font-size: 2rem;
-    color: #b77b2b;
-    font-weight: 400;
-    border-radius: 18px;
-    margin: 6px 0;
-    transition: background 0.18s, color 0.18s, font-weight 0.18s, transform 0.18s;
-    cursor: pointer;
-    outline: none;
-    border: none;
-    background: none;
-}
-.ratio-slider-option.selected {
-    background: #ffd180;
-    color: #a15c00;
-    font-weight: 600;
-    transform: scale(1.12);
-    box-shadow: 0 2px 12px 0 rgba(255,193,7,0.10);
-}
-.ratio-slider-option:focus {
-    outline: 3px solid #256029;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 3px #c8e6c9;
-}
-#closeRatioSliderBtn {
-    margin-top: 8px;
-    background: #b77b2b;
-    color: #fff;
-    border-radius: 999px;
-    padding: 10px 32px;
-    font-size: 1.1rem;
-    font-weight: 500;
-    border: none;
-    box-shadow: 0 2px 8px 0 rgba(255,193,7,0.08);
-    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-}
-#closeRatioSliderBtn:hover {
-    background: #a15c00;
-    color: #fff;
-}
-#closeRatioSliderBtn:focus {
-    outline: 3px solid #256029;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 3px #c8e6c9;
-}
-
-@media (max-width: 600px) {
-    .ritual-container {
-        max-width: 98vw;
-        padding: 0 0 16px 0;
-        margin: 16px auto;
-    }
-    .ritual-header {
-        padding: 10px 10px 0 10px;
-    }
-    .ritual-hero-weight {
-        font-size: 16vw;
-        /* fallback for older browsers */
-        margin: 24px 0 4px 0;
-    }
-    .ritual-hero-unit {
-        font-size: 6vw;
-        margin-bottom: 18px;
-    }
-    .ritual-timer {
-        font-size: 1.7rem;
-    }
-    .ritual-controls {
-        gap: 10px;
-        margin-bottom: 18px;
-    }
-    .ritual-info {
-        gap: 6px;
-        margin-bottom: 18px;
-    }
-    .ritual-info-item {
-        padding: 10px 0 7px 0;
-        border-radius: 10px;
-    }
-    .modal-content {
-        padding: 24px 8px 18px 8px;
-    }
-    .ratio-slider-content {
-        min-width: 90vw;
-        padding: 18px 2vw 12px 2vw;
-    }
-    .ratio-slider-track {
-        height: 220px;
-    }
-}
-
-/* --- Connected device indicators (header) --- */
-[hidden] {
-    display: none !important;
-}
-.ritual-header-actions {
-    align-items: center;
-}
-.device-icons {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #b77b2b;
-}
-.device-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: #fff3e0;
-}
-
-/* --- EC meter panels sit directly under the scale panels --- */
-#portalInfo {
-    margin-top: -18px;
-}
-
-/* --- Connect / disconnect controls in settings --- */
-.connect-controls {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-.modal .connect-controls .ritual-btn {
-    max-width: none;
-    max-height: none;
-    white-space: nowrap;
-}
-.ritual-disconnect {
-    background: #fff3e0;
-    color: #8a3b12;
-    border: 2px solid #e0c08a;
-    font-size: 0.95rem;
-}
-.setting-heading {
-    display: block;
-    color: #b77b2b;
-    font-weight: 500;
-    margin-bottom: 4px;
-}
-
-@media (max-width: 600px) {
-    #portalInfo {
-        margin-top: -10px;
-    }
-}
-
-/* --- Settings button: subtle header chip (matches the device icons) --- */
-.ritual-header .ritual-settings {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
-    max-width: 40px;
-    max-height: 40px;
-    background: #fff3e0;
-    color: #b77b2b;
-    border: none;
-    box-shadow: none;
-}
-.ritual-header .ritual-settings svg {
-    width: 22px;
-    height: 22px;
-}
-.ritual-header .ritual-settings:hover,
-.ritual-header .ritual-settings:focus {
-    background: #ffd180;
-    color: #a15c00;
-    border: none;
-}
-.ritual-header .ritual-settings:focus-visible {
-    outline: 3px solid #256029;
-    outline-offset: 2px;
-}
-
-/* --- Weight hero with time + ratio row (replaces the progress ring) --- */
-.ritual-hero {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 28px 0 14px 0;
-}
-.hero-meta {
-    display: flex;
-    justify-content: center;
-    align-items: baseline;
-    gap: 28px;
-    margin-top: 10px;
-}
-.hero-meta .progress-timer {
-    margin-bottom: 0;
-}
-.hero-meta .progress-ratio-value {
-    margin-top: 0;
-    padding: 0;
-    min-height: 0;
-}
-.hero-meta .progress-ratio-value:empty {
-    display: none;
-}
-
-/* --- Live brew chart --- */
-.brew-chart {
-    margin: 0 32px 18px 32px;
-    background: #fffbe8;
-    border-radius: 16px;
-    padding: 8px 8px 4px 4px;
-}
-.brew-chart-label {
-    font-size: 0.82em;
-    font-weight: 300;
-    color: #b77b2b;
-    padding-left: 10px;
-}
-.brew-chart canvas {
-    display: block;
-    width: 100%;
-    height: 170px;
-}
-
-@media (max-width: 600px) {
-    .ritual-hero {
-        margin: 18px 0 10px 0;
-    }
-    .brew-chart {
-        margin-bottom: 12px;
-        border-radius: 10px;
-    }
-    .brew-chart canvas {
-        height: 150px;
-    }
-}
-.brew-chart-label-weight {
-    color: #8d6e63;
-}
-.brew-chart-label-ec {
-    float: right;
-    color: #b45309;
-    padding-right: 4px;
-}
-
-/* --- Header without a visible title: keep the icons on the right --- */
-.ritual-header {
-    justify-content: flex-end;
-}
-.visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-    border: 0;
-}
-
-/* --- Phones: card fills the screen, main buttons sit at the bottom (thumb reach) --- */
-@media (max-width: 600px) {
-    .ritual-container {
-        box-sizing: border-box;
-        margin: 6px auto 2px auto;
-        min-height: calc(100vh - 8px);
-        min-height: calc(100dvh - 8px);
-        display: flex;
-        flex-direction: column;
-        padding-bottom: 10px;
-    }
-    .ritual-main-actions {
-        margin-top: auto;
-        margin-bottom: 0;
-    }
-}
-
-/* --- Focus ring for keyboard users only; nothing lingers after a tap --- */
-.ritual-btn:focus:not(:focus-visible),
-.ritual-btn.main-action:focus:not(:focus-visible) {
-    outline: none;
-    box-shadow: none;
-}
-/* Touch screens keep :hover after a tap, so restore each button's resting colours */
-@media (hover: none) {
-    .ritual-btn:hover, .ritual-btn.main-action:hover,
-    .ritual-btn:focus:not(:focus-visible), .ritual-btn.main-action:focus:not(:focus-visible) {
-        background: #fff3e0;
-        color: #b45309;
-    }
-    #timerToggleBtn:hover, #timerToggleBtn:focus:not(:focus-visible) {
-        background: #b45309;
-        color: #fff;
-    }
-    .ritual-btn.ritual-connect:hover, .ritual-btn.ritual-connect:focus:not(:focus-visible) {
-        background: #256029;
-        color: #fff;
-        border-color: #256029;
-    }
-    .ritual-btn.ritual-disconnect:hover, .ritual-btn.ritual-disconnect:focus:not(:focus-visible) {
-        background: #fff3e0;
-        color: #8a3b12;
-    }
-    .ritual-header .ritual-settings:hover, .ritual-header .ritual-settings:focus:not(:focus-visible) {
-        background: #fff3e0;
-        color: #b77b2b;
-    }
-}
-
-/* --- Stopped view: live readings under the frozen chart --- */
-.live-strip {
-    margin: -10px 32px 14px 32px;
-    font-size: 0.85em;
-    color: #8a5a1c;
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-}
-@media (max-width: 600px) {
-    .live-strip {
-        margin: -6px 32px 8px 32px;
-    }
-}
-
-/* --- Weight readout: the decimal point stays at the horizontal centre --- */
-.hero-weight {
-    display: flex;
-    align-items: baseline;
-    width: 100%;
-    color: #b77b2b;
-}
-.hero-weight .progress-weight-value {
-    display: contents;          /* its .w-int / .w-frac children join the row */
-    font-variant-numeric: tabular-nums;
-}
-.hero-weight .w-int,
-.hero-weight .w-frac {
-    font-size: 3.6rem;
-    font-weight: 400;
-    line-height: 1.05;
-    letter-spacing: 0;
-    font-variant-numeric: tabular-nums;
-}
-.hero-weight .w-int {
-    /* Whole grams fill the left half (right-aligned), minus half the point's
-       width, so the point sits on the midline with normal spacing; then the
-       whole readout is shifted one digit (1ch) to the right */
-    flex: 0 0 calc(50% - 0.13em + 1ch);
-    text-align: right;
-}
-.hero-weight .progress-weight-value.is-placeholder {
-    display: block;
-    width: 100%;
-    text-align: center;
-}
-.hero-weight-unit {
-    font-size: 1.5rem;
-    font-weight: 400;
-    margin-left: 0.3rem;
-    opacity: 0.8;
-}
-
-/* --- Timer and ratio: same size, each with an icon --- */
-.hero-meta .hero-stat {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    color: #b77b2b;
-}
-.hero-meta .progress-timer,
-.hero-meta .progress-ratio-value {
-    font-size: 2rem;
-    font-weight: 400;
-    color: #b77b2b;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.1;
-}
-.hero-icon {
-    width: 0.95em;
-    height: 0.95em;
-    font-size: 1.6rem;
-    flex: none;
-    opacity: 0.6;               /* lighter tint of the number colour */
-}
-/* Balance icon: a line drawing, so it needs a little more size, thinner
-   strokes and a lighter tint to look as open as the solid stopwatch */
-.hero-icon.hero-icon-ratio {
-    width: 1.03em;              /* 23px on phones */
-    height: 1.03em;
-    opacity: 0.5;
-}
-/* Ratio: normal letter spacing and proportional digits, so "1:15.0" isn't spread out
-   (the timer keeps tabular digits because it ticks every second) */
-.hero-meta .progress-ratio-value {
-    letter-spacing: normal;
-    font-variant-numeric: proportional-nums;
-}
-.hero-meta .hero-ratio:has(.progress-ratio-value:empty) {
-    display: none;
-}
-@media (max-width: 600px) {
-    .hero-meta .progress-timer,
-    .hero-meta .progress-ratio-value {
-        font-size: 1.8rem;
-    }
-    .hero-icon {
-        font-size: 1.4rem;
-    }
-}
-
-/* --- Chart header labels in the colour of their lines --- */
-.brew-chart-label {
-    color: #b45309;             /* EC line (or the weight line in weight-only mode) */
-}
-.brew-chart-label .brew-chart-label-weight {
-    color: #8d6e63;             /* weight line on the EC chart */
-}
-
-/* --- Phones: chart, cards and live strip use most of the width (12px sides) --- */
-@media (max-width: 600px) {
-    .brew-chart,
-    .ritual-info {
-        margin-left: 12px;
-        margin-right: 12px;
-    }
-    .live-strip {
-        margin-left: 12px;
-        margin-right: 12px;
-    }
-}
-
-/* --- Settings: ratio row --- */
-#ratioSettingCell input[type="number"] {
-    width: 4.5em;
-    margin: 0 0 0 2px;
-    padding: 4px 6px;
-    text-align: right;
-}
-.field-error {
-    color: #b3261e;
-    font-size: 0.9em;
-    margin: 0 0 0.5em;
-    text-align: right;
-}
-.memory-table tbody.ratio-group td {
-    border-top: 2px solid #ffe0b2;   /* separate the ratio from the stored weights */
-}
-
-/* --- TDS dialogs: final TDS calculator and k_v calibration --- */
-.modal.tds-dialog {
-    z-index: 1002;                   /* above Settings */
-}
-.tds-dialog .modal-content {
-    position: relative;
-    width: min(360px, calc(100vw - 32px));
-    min-width: 0;
-    box-sizing: border-box;
-    max-height: calc(100dvh - 32px);
-    overflow-y: auto;
-    padding: 22px 20px 18px;
-    background: #fff8ed;
-    border-radius: 14px;
-}
-.tds-dialog h3 {
-    margin: 0 0 0.6em;
-    color: #5e361c;
-}
-.dialog-step {
-    margin: 0 0 2px;
-    color: #b77b2b;
-    font-size: 0.85em;
-}
-.dialog-note {
-    color: #5e361c;
-    line-height: 1.5;
-}
-.tds-table {
-    margin-bottom: 0.6em;
-}
-.tds-table td:nth-child(2) {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}
-.tds-table tr.tds-strong td {
-    font-weight: 600;
-}
-.tds-table label {
-    color: inherit;
-    font-size: inherit;
-    font-weight: inherit;
+body {
     margin: 0;
-}
-.tds-table input[type="number"] {
-    width: 4em;
-    margin: 0 2px 0 0;
-    padding: 4px 6px;
-    text-align: right;
-}
-.tds-formula {
-    margin: 0.4em 0 1em;
-    padding: 10px 6px;
-    background: #fffbe8;
-    border-radius: 10px;
-    color: #5e361c;
-    font-size: 1.05em;
-}
-.tds-formula math {
-    font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", serif;
-}
-.dialog-actions {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-}
-.dialog-actions:has(> :only-child) {
-    justify-content: flex-end;
-}
-#absorptionSettingCell input[type="number"] {
-    width: 4.5em;
-    margin: 0 2px 0 0;
-    padding: 4px 6px;
-    text-align: right;
-}
-/* Labels may wrap; values and the yield input stay on one line */
-.tds-table td:nth-child(2) {
-    white-space: nowrap;
-}
-.tds-table td {
-    padding-left: 0.35em;
-    padding-right: 0.35em;
-}
-.tds-table td.tare-cell {
-    white-space: nowrap;             /* "Scale [Tare]" stays together */
-}
-.tds-dialog .modal-content {
-    overflow-x: hidden;              /* never scroll sideways */
-}
-.modal .ritual-btn.tare-inline {
-    min-width: 0;
-    min-height: 32px;
-    margin-left: 6px;
-    padding: 0.2em 0.6em;
-    font-size: 0.8em;
-    vertical-align: middle;
-}
-/* Memory table: fixed columns so the buttons line up */
-#memoryTable {
-    table-layout: fixed;
-}
-#memoryTable :is(th, td):nth-child(2) {
-    width: 30%;
-}
-#memoryTable :is(th, td):nth-child(3) {
-    width: 96px;
-}
-.dialog-actions .ritual-btn {
-    white-space: nowrap;
-}
-
-/* --- Chart carousel (after a TDS brew): brew chart, then TDS vs extraction --- */
-.brew-chart {
-    position: relative;
-}
-.chart-track {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    overscroll-behavior-x: contain;
-}
-.chart-track::-webkit-scrollbar {
-    display: none;
-}
-.chart-slide {
-    flex: 0 0 100%;
-    min-width: 0;
-    scroll-snap-align: start;
-}
-.chart-label-right {
-    float: right;
-    padding-right: 4px;
-}
-/* Slide dots sit in the header line, between the two labels */
-.chart-dots {
-    position: absolute;
-    top: 6px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 2px;
-}
-.chart-dot {
-    width: 22px;                     /* tap target; the visible dot is drawn inside */
-    height: 16px;
-    padding: 0;
-    border: 0;
-    background: none;
-    cursor: pointer;
-}
-.chart-dot::after {
-    content: "";
-    display: block;
-    width: 7px;
-    height: 7px;
-    margin: auto;
-    border-radius: 50%;
-    background: #e0c9a6;
-}
-.chart-dot[aria-current="true"]::after {
-    background: #b45309;
-}
-.extraction-chart {
-    display: block;
-    width: 100%;
-    height: 170px;
-    cursor: pointer;
-    font-family: inherit;
-}
-@media (max-width: 600px) {
-    .extraction-chart {
-        height: 150px;
-    }
-}
-.extraction-chart:focus:not(:focus-visible) {
-    outline: none;
-}
-.ey-grid {
-    stroke: #f3e2c4;
-    stroke-width: 1;
-}
-.ey-tick {
-    fill: #b77b2b;
-    font-size: 10px;
-}
-.ey-gold {
-    fill: rgba(183, 123, 43, 0.18);
-}
-.ey-ref {
-    fill: #c9a46c;
-}
-.ey-label {
-    fill: #8a5a1c;
-    font-size: 9px;
-}
-.ey-brew {
-    fill: #b45309;
-    stroke: #fffbe8;
-    stroke-width: 1.5;
-}
-.ey-brew.ey-brew-estimate {
-    fill: #fffbe8;
-    stroke: #b45309;
-    stroke-width: 2;
-}
-.ey-brew-label {
-    fill: #b45309;
-    font-size: 10.5px;
-    font-weight: 600;
-}
-.ey-hint {
-    fill: #c9a46c;
-    font-size: 12px;
-}
-/* Default k_v in use until the first calibration */
-.kv-uncalibrated {
-    display: block;
-    font-size: 0.75em;
-    color: #8a5a1c;
-}
-
-/* Popups taller than the screen (Settings on a phone) scroll inside the overlay */
-.modal {
-    overflow-y: auto;
-    overscroll-behavior: contain;
-}
-
-/* Target card: "20g(in) → 300g(out)" on one line (scale-ui.js shrinks it to fit) */
-#targetWeight {
-    white-space: nowrap;
-    overflow: hidden;
-}
-#targetWeight sub {
-    line-height: 0;                  /* subscripts must not make the line taller */
-    font-size: 0.6em;
-    font-weight: 500;
-    vertical-align: baseline;
-    position: relative;
-    top: 0.25em;
-    margin-left: 1px;
-}
-#targetWeight.compact sub {
-    display: none;                   /* three cards in the row: "20g → 300g" */
-}
-.ey-trail {
-    fill: none;
-    stroke: #b45309;
-    stroke-width: 1.5;
-    stroke-opacity: 0.45;
-    stroke-linejoin: round;
-}
-/* Narrow phones: a little more room for the dialog tables */
-@media (max-width: 400px) {
-    .tds-dialog .modal-content {
-        width: calc(100vw - 20px);
-        padding-left: 14px;
-        padding-right: 14px;
-    }
-}
-
-/* --- Brew log (Settings > Brew log): list of saved brews, then one brew --- */
-.modal .ritual-btn.brew-log-btn {
-    display: flex;
-    width: 100%;
-    max-width: none;
-    margin: 0.2em 0 0.9em;
-}
-.modal.brew-log {
-    z-index: 1003;                   /* above Settings */
-    align-items: flex-start;
-}
-.brew-log .modal-content {
-    position: relative;
-    box-sizing: border-box;
-    width: min(480px, 100vw);
-    min-width: 0;
-    min-height: 100dvh;
-    padding: 12px 14px 24px;
-    border-radius: 0;
-    background: #fffdf6;
-}
-.log-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
-}
-.log-header h3 {
-    margin: 0;
-    flex: 1;
-    color: #5e361c;
-}
-.log-spacer {
-    flex: 1;
-}
-.log-back {
-    width: 40px;
-    height: 40px;
-    border: 0;
-    border-radius: 50%;
-    background: #fff3e0;
-    color: #b77b2b;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
-.log-count {
-    color: #b77b2b;
-    font-size: 0.85em;
-}
-.log-list {
-    list-style: none;
-    margin: 0 0 0.6em;
-    padding: 0;
-}
-.log-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 2px;
-    border: 0;
-    border-bottom: 1px solid #f0dfc0;
-    background: none;
-    color: #5e361c;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-}
-.log-item-name {
-    font-weight: 600;
-}
-.log-item-sub {
-    color: #8a5a1c;
-    font-size: 0.85em;
-}
-.log-item-right {
-    text-align: right;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-}
-#logName {
-    margin: 4px 0 0;
-    color: #5e361c;
-}
-.log-name-input {
-    width: 100%;
-    box-sizing: border-box;
-    font: inherit;
-    padding: 4px 8px;
-    border: 1.5px solid #e0c9a6;
-    border-radius: 8px;
-    color: #5e361c;
+    min-height: 100vh;
+    min-height: 100dvh;      /* visible viewport on phones */
+    display: flow-root;      /* contain the container's margins */
     background: #fff;
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
 }
-.log-chart {
-    margin: 8px 0;
-    padding: 8px 8px 4px 4px;
-    background: #fffbe8;
-    border-radius: 10px;
-}
-.log-chart canvas {
-    display: block;
-    width: 100%;
-    height: 150px;
-}
-.log-cards {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-    margin: 8px 0 14px;
-}
-.log-cards .ritual-info-item {
-    padding: 8px 2px 6px;
-    border-radius: 10px;
-    min-width: 0;
-}
-.log-cards .ritual-info-value {
-    font-size: 1.05em;
-    overflow-wrap: anywhere;
-}
-.modal .ritual-btn.log-delete {
-    white-space: nowrap;
-    max-width: none;
-    padding: 0.45em 1.1em;
-    background: #fff;
-    color: #b3261e;
-    border: 1.5px solid #e6b3ad;
-}
-.log-delete-confirm p {
-    color: #5e361c;
-    margin: 0 0 0.6em;
-}
-.log-ey-chart {
-    cursor: default;
-}
-
-/* ===== Design tidy-up ===== */
-/* Buttons and inputs use the app font (they defaulted to the browser's, e.g. Arial) */
 button, input, select {
     font-family: inherit;
 }
-
-/* --- Settings: a full-height sheet with a title bar, three groups --- */
-#settingsModal .modal-content.settings-sheet {
-    position: relative;
-    box-sizing: border-box;
-    width: min(480px, 100%);
-    min-width: 0;
-    min-height: 100%;
-    margin: 0 auto;
-    padding: 0 16px 28px;
-    border-radius: 0;
-    box-shadow: none;
+[hidden] {
+    display: none !important;
 }
-.settings-bar {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 0 10px;
-    background: #fff;
-    border-bottom: 1px solid #f0dfc0;
-}
-.settings-bar h2 {
-    margin: 0;
-    font-size: 1.3rem;
-    color: #5e361c;
-}
-.close.round-close {
-    position: static;
-    width: 40px;
-    height: 40px;
-    border: 0;
-    border-radius: 50%;
-    background: #fff3e0;
-    color: #b77b2b;
-    font-size: 1.6rem;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-.settings-group {
-    margin: 18px 0 6px;
-    color: #b77b2b;
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-}
-.settings-table td {
-    border-bottom: 1px solid #f0dfc0;
-    padding: 0.45em 0.25em;
-}
-.settings-table td:nth-child(2) {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}
-/* Quiet text buttons (Edit / Save / Calibrate) instead of filled ones */
-#settingsModal .memory-overwrite {
-    width: 100%;
-    min-height: 36px;
-    padding: 6px 4px;
-    border: 0;
-    border-radius: 6px;
-    background: none;
-    color: #b45309;
-    font-size: 0.95rem;
-    font-weight: 600;
-    text-align: right;
-    cursor: pointer;
-}
-#settingsModal .memory-overwrite:hover,
-#settingsModal .memory-overwrite:focus-visible {
-    background: #fff3e0;
-}
-/* Brew log: a row that opens the log */
-.settings-row-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 12px 4px;
-    border: 0;
-    border-bottom: 1px solid #f0dfc0;
-    background: none;
-    color: #5e361c;
-    font-size: 1.05em;
-    text-align: left;
-    cursor: pointer;
-}
-.settings-row-btn > span:first-child {
-    flex: 1;
-}
-.settings-row-meta {
-    color: #8a5a1c;
-    font-size: 0.9em;
-}
-.settings-row-btn svg {
-    color: #b77b2b;
-}
-
-/* --- Dialogs: one filled button per screen --- */
-.modal .ritual-btn.btn-secondary {
-    min-width: 0;
-    background: transparent;
-    color: #b45309;
-    border: 0;
-    box-shadow: none;
-    padding-left: 0.5em;
-    padding-right: 0.5em;
-}
-.modal .ritual-btn.btn-secondary:hover,
-.modal .ritual-btn.btn-secondary:focus-visible {
-    background: #fff3e0;
-}
-.modal .ritual-btn.btn-outline {
-    background: #fff;
-    color: #b45309;
-    border: 1.5px solid #e0b98a;
-    box-shadow: none;
-}
-.modal .ritual-btn.log-delete-now {
-    background: #b3261e;
-    color: #fff;
-    border: 0;
-}
-
-/* --- Brew log detail: name with a pencil, summary row, grouped cards --- */
-.log-header #logName {
-    flex: 1;
-    min-width: 0;
-    margin: 0;
-    overflow-wrap: anywhere;
-}
-.log-rename {
-    flex: none;
-    min-width: 40px;
-    height: 40px;
-    padding: 0 8px;
-    border: 0;
-    border-radius: 20px;
-    background: #fff3e0;
-    color: #b77b2b;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    cursor: pointer;
-}
-.log-rename.is-saving {
-    background: #b45309;
-    color: #fff;
-    padding: 0 14px;
-}
-#logDate {
-    margin: 2px 0 8px 48px;          /* lines up with the name, past the back button */
-}
-.log-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-    gap: 6px;
-    margin: 4px 0 8px;
-}
-.log-summary > div {
-    background: #fffbe8;
-    border-radius: 10px;
-    padding: 8px 4px;
-    text-align: center;
-}
-.log-summary-value {
-    display: block;
-    color: #b45309;
-    font-size: 1.3em;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-}
-.log-summary-label {
-    color: #8a5a1c;
-    font-size: 0.8em;
-}
-.log-group {
-    margin: 12px 0 4px;
-}
-#logCards .log-cards {
-    margin: 0;
-}
-.log-delete-area {
-    margin-top: 16px;
-}
-
-/* TDS vs extraction: x-axis title under the tick numbers, bottom right */
-.ey-axis-title {
-    fill: #b77b2b;
-    font-size: 10.5px;
-}
-
-/* ===== Main screen polish ===== */
-/* Connect button in the empty chart (nothing connected) */
-.chart-connect {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    min-width: 132px;
-    min-height: 44px;
-    padding: 0 22px;
-    border: 0;
-    border-radius: 22px;
-    background: #b45309;
-    color: #fff;
-    font-size: 1rem;
-    font-weight: 600;
-    box-shadow: 0 2px 10px rgba(180, 83, 9, 0.25);
-    cursor: pointer;
-}
-.chart-connect:disabled {
-    opacity: 0.75;
-    cursor: progress;
-}
-
-/* Header device icons: always shown; faded = not connected (tap to connect) */
-.device-icon {
-    border: 0;
-    padding: 0;
-    color: inherit;
-    cursor: pointer;
-    transition: opacity 0.15s, background 0.15s;
-}
-.device-icon[data-connected="false"] {
-    background: transparent;
-    color: #c9b49a;
-    box-shadow: inset 0 0 0 1.5px #ead9c2;
-}
-.device-icon[data-connected="true"] {
-    background: #fff3e0;
-    color: #b77b2b;
-    cursor: default;
-}
-
-/* Main buttons when they can't be used (e.g. nothing connected): clearly greyed out */
-.ritual-btn.main-action:disabled,
-.ritual-btn.timer-action:disabled {
-    background: #efebe5 !important;
-    color: #c4b8a8 !important;
-    opacity: 1;
-    box-shadow: none !important;
-}
-
-/* Phones: full-bleed, like a native app (no floating card or beige border) */
-@media (max-width: 600px) {
-    html, body {
-        background: #fff;
-    }
-    .ritual-container {
-        max-width: none;
-        width: 100%;
-        margin: 0;
-        border-radius: 0;
-        box-shadow: none;
-        background: #fff;
-        min-height: 100vh;
-        min-height: 100dvh;
-    }
-}
-
-/* --- Text colours: brew numbers dark, card values brown (WCAG AA on the cream cards) --- */
-/* Weight, time and ratio: dark "roast" brown (9.9:1 on white), the first thing you read */
-.hero-weight,
-.hero-meta .hero-stat,
-.hero-meta .progress-timer,
-.hero-meta .progress-ratio-value {
-    color: #5c3a1e;
-}
-.hero-weight .progress-weight-value {
-    color: #5c3a1e;
-}
-/* No weight yet ("--"): muted, it isn't a reading */
-.hero-weight .progress-weight-value.is-placeholder {
-    color: #c9a46c;
-}
-.hero-icon {
-    opacity: 0.45;
-}
-/* Card values: brown, 6.9:1 on #fffbe8 */
-.ritual-info-value {
-    color: #8a4510;
-    font-weight: 600;
-}
-/* Card labels: darker brown at regular weight, 5.7:1 */
-.ritual-info-label {
-    color: #8a5a1c;
-    font-weight: 400;
-}
-
-/* ===== Consistency fixes ===== */
-/* Disconnect: a quiet outline button (it was brown-filled with a green border) */
-#settingsModal #connectToggleBtn[aria-pressed="true"],
-#settingsModal #disconnectAllBtn {
-    background: #fff;
-    color: #b45309;
-    border: 1.5px solid #e0b98a;
-    box-shadow: none;
-}
-
-/* Focus: one brown ring everywhere (replaces the old green rings) */
+/* One focus ring, for keyboard users only */
 :focus-visible {
-    outline: 2px solid #b45309;
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
-input:focus,
-input:focus-visible,
-select:focus,
-select:focus-visible {
-    outline: none;
-    border-color: #b45309 !important;
-    box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.18) !important;
-}
-.ritual-btn:focus-visible,
-.ritual-btn.main-action:focus-visible,
-.ritual-header .ritual-settings:focus-visible,
-#timerToggleBtn:focus-visible,
-#closeRatioSliderBtn:focus-visible {
-    outline: 2px solid #b45309 !important;
-    outline-offset: 2px;
-    box-shadow: none !important;
-}
-.ritual-btn:focus:not(:focus-visible) {
-    outline: none;
+/* Small uppercase labels share one look */
+.progress-weight-unit,
+.hero-stat-label,
+.readings .ritual-info-label,
+.log-cards .ritual-info-label,
+.log-summary-label,
+.result-box > span,
+.result-box > label,
+.dialog-step,
+.settings-group {
+    font-size: var(--label);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
 }
 
-/* Brew log: white like Settings; summary numbers in the same roast brown as the main screen's time and ratio */
-.brew-log .modal-content {
+/* ===== Main screen: full-bleed column, buttons at the bottom ===== */
+.ritual-container {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 0 0 10px;
     background: #fff;
 }
-.log-summary-value {
-    color: #5c3a1e;
-}
 
-/* Connect in the chart: rounded rectangle like the other text buttons */
-.chart-connect {
-    border-radius: 8px;
-}
-
-/* Number inputs: no spinner arrows (Android shows none; keep desktop the same) */
-input[type="number"] {
-    -moz-appearance: textfield;
-    appearance: textfield;
-}
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-/* Settings: an edited value stays on one line ("1: [15]", "[2.0] g/g") */
-.settings-table td:nth-child(2) {
-    white-space: nowrap;
-}
-#ratioSettingCell input[type="number"],
-#absorptionSettingCell input[type="number"],
-#memoryTable input.memory-input {
-    width: 3.6em;
-    margin: 0 0 0 2px;
-    padding: 4px 6px;
-    vertical-align: middle;
-}
-
-/* Connect under a stopped brew's chart (nothing connected): in the live strip's place */
-.strip-connect-row {
-    display: flex;
-    justify-content: center;
-    margin: -6px 12px 8px;
-}
-.strip-connect-row:has(> [hidden]) {
-    display: none;
-}
-.chart-connect.strip-connect {
-    position: static;
-    transform: none;
-    min-height: 36px;
-    min-width: 116px;
-    font-size: 0.95rem;
-    box-shadow: none;
-}
-
-/* ===================== Redesign (main screen, Settings rows, bottom sheets) ===================== */
-:root {
-    --ink: #2f2118;      /* headings, body text */
-    --roast: #5c3a1e;    /* weight, time, ratio, weight line */
-    --brown: #8a4510;    /* reading values, primary button */
-    --accent: #b45309;   /* EC line, active tab, links, focus */
-    --muted: #8f7a66;    /* labels, axis text */
-    --line: #eee4d6;     /* hairlines, gridlines */
-    --cream: #fbf5ea;    /* soft fills */
-    --ok: #3f8f4f;       /* connected */
-    --radius: 8px;
-}
-
-/* Header: app name on the left, small matching icons on the right */
+/* ===== Header: app name left, device icons and settings right ===== */
 .ritual-header {
-    padding: 8px 16px 0;
-    height: 56px;
     box-sizing: border-box;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    padding: 8px 16px 0;
 }
 .app-title {
+    flex: 1;
     margin: 0;
     font-size: 17px;
     font-weight: 600;
-    color: var(--roast);
     letter-spacing: -0.01em;
+    color: var(--roast);
 }
-.ritual-header-actions {
-    gap: 2px;
-}
+.ritual-header-actions,
 .device-icons {
+    display: flex;
+    align-items: center;
     gap: 2px;
 }
 .device-icon,
-.device-icon[data-connected="true"],
-.device-icon[data-connected="false"] {
+.ritual-header .ritual-settings {
     position: relative;
     width: 36px;
     height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
     background: none;
-    box-shadow: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.device-icon svg,
+.ritual-header .ritual-settings svg {
+    width: 20px;
+    height: 20px;
+}
+/* Faded = not connected (tap to connect); solid with a green dot = connected */
+.device-icon[data-connected="false"] {
+    color: var(--faint);
 }
 .device-icon[data-connected="true"] {
     color: var(--brown);
-}
-.device-icon[data-connected="false"] {
-    color: #c4b4a2;
+    cursor: default;
 }
 .device-icon[data-connected="true"]::after {
     content: "";
@@ -1845,67 +134,107 @@ input[type="number"]::-webkit-outer-spin-button {
     background: var(--ok);
     box-shadow: 0 0 0 2px #fff;
 }
-.device-icon svg {
-    width: 20px;
-    height: 20px;
-}
-.ritual-header .ritual-settings,
-.ritual-header .ritual-settings:hover {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
-    background: none;
+.ritual-header .ritual-settings {
     color: var(--muted);
-    box-shadow: none;
 }
-.ritual-header .ritual-settings svg {
-    width: 20px;
-    height: 20px;
+/* Connection errors */
+.ritual-status {
+    margin: 0 16px;
+    text-align: right;
+    font-size: 0.85em;
+    color: var(--danger);
 }
 
-/* Hero: the weight, then time and ratio as labelled numbers */
+/* ===== Hero: weight, then time and ratio ===== */
+.ritual-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 18px 0 10px;
+}
 .progress-weight-unit {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-    opacity: 1;
+    margin-bottom: 2px;
+}
+.hero-weight {
+    display: flex;
+    align-items: baseline;
+    width: 100%;
+    color: var(--roast);
+}
+.progress-weight-value {
+    font-size: 3.6rem;
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+}
+.hero-weight .progress-weight-value {
+    display: contents;           /* its .w-int / .w-frac children join the row */
+    font-variant-numeric: tabular-nums;
+}
+.hero-weight .w-int,
+.hero-weight .w-frac {
+    font-size: 3.6rem;
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+}
+/* The decimal point stays on the midline: whole grams fill the left half
+   (right-aligned) minus half the point's width, then the readout shifts one digit right */
+.hero-weight .w-int {
+    flex: 0 0 calc(50% - 0.13em + 1ch);
+    text-align: right;
+}
+/* No weight yet ("--"): centred and faint, it isn't a reading */
+.hero-weight .progress-weight-value.is-placeholder {
+    display: block;
+    width: 100%;
+    text-align: center;
+    color: var(--faint);
+}
+.hero-weight-unit {
+    margin-left: 0.3rem;
+    font-size: 1.5rem;
+    opacity: 0.8;
 }
 .hero-meta {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
     gap: 40px;
     margin-top: 8px;
 }
-.hero-meta .hero-stat {
-    flex-direction: column;
-    gap: 0;
-}
-.hero-meta .progress-timer,
-.hero-meta .progress-ratio-value {
-    font-size: 24px;
-    line-height: 1.2;
-}
-.hero-stat-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-}
-/* Ratio is always shown: a dash until there is one */
-.hero-meta .hero-ratio:has(.progress-ratio-value:empty) {
+.hero-stat {
     display: inline-flex;
+    flex-direction: column;
+    align-items: center;
 }
-.hero-meta .progress-ratio-value:empty::before {
+.progress-timer,
+.progress-ratio-value {
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--roast);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+/* Ratio: proportional digits so "1:15.0" isn't spread out (the timer ticks, so it keeps tabular) */
+.progress-ratio-value {
+    font-variant-numeric: proportional-nums;
+}
+/* A dash until there is a ratio */
+.progress-ratio-value:empty::before {
     content: "\2014";
     color: var(--muted);
 }
 
-/* Chart: tabs and legend above, drawn straight on white */
-.brew-chart,
-.ritual-container .brew-chart {
-    background: none;
-    border-radius: 0;
-    padding: 0;
+/* ===== Chart: tabs and legend above, drawn straight on white; fills the free height ===== */
+.brew-chart {
+    position: relative;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     margin: 14px 16px 6px;
 }
 .chart-head {
@@ -1915,41 +244,31 @@ input[type="number"]::-webkit-outer-spin-button {
     min-height: 26px;
 }
 .chart-dots {
-    position: static;
-    transform: none;
     display: flex;
     gap: 16px;
 }
 .chart-dot {
-    width: auto;
-    height: auto;
     padding: 2px 0 5px;
-    border-radius: 0;
+    border: 0;
+    background: none;
     font-size: 13px;
     color: var(--muted);
-}
-.chart-dot::after {
-    display: none;
+    cursor: pointer;
 }
 .chart-dot[aria-current="true"] {
     color: var(--ink);
     font-weight: 600;
     box-shadow: inset 0 -2px 0 var(--accent);
 }
-.chart-legend {
-    margin-left: auto;
-    padding: 0;
-    font-size: 11px;
-    color: var(--muted);
+/* Legend / axis titles: a short line swatch before each series */
+.brew-chart-label {
     display: flex;
     gap: 12px;
-}
-.chart-legend .brew-chart-label-weight,
-.chart-legend .brew-chart-label-ec,
-.brew-chart-label .brew-chart-label-weight {
-    float: none;
-    padding: 0;
+    font-size: var(--label);
     color: var(--muted);
+}
+.chart-legend {
+    margin-left: auto;
 }
 .brew-chart-label-weight::before,
 .brew-chart-label-ec::before {
@@ -1959,52 +278,124 @@ input[type="number"]::-webkit-outer-spin-button {
     height: 2.5px;
     margin-right: 5px;
     vertical-align: middle;
-    background: var(--roast);
     border-radius: 2px;
+    background: var(--roast);
 }
 .brew-chart-label-ec::before {
     height: 1.5px;
     background: var(--accent);
 }
 #extractionSlide .brew-chart-label {
-    font-size: 10px;
-    color: var(--muted);
     padding-left: 4px;
 }
+/* Carousel after a TDS brew: brew chart, then TDS vs extraction */
+.chart-track {
+    flex: 1 1 0;
+    min-height: 150px;
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+}
+.chart-track::-webkit-scrollbar {
+    display: none;
+}
+.chart-slide {
+    position: relative;
+    flex: 0 0 100%;
+    min-width: 0;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    scroll-snap-align: start;
+}
+/* The canvas fills its slide; its own pixel size must not feed back into the layout */
+.chart-slide canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+.chart-slide .extraction-chart {
+    flex: 1 1 0;
+    height: 0;
+    min-height: 0;
+}
+/* Nothing connected: Connect in the empty chart, or under a stopped brew's chart */
+.chart-connect {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 132px;
+    min-height: 44px;
+    padding: 0 22px;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--brown);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.chart-connect:disabled {
+    opacity: 0.75;
+    cursor: progress;
+}
+.strip-connect-row {
+    display: flex;
+    justify-content: center;
+    margin: -6px 16px 8px;
+}
+.strip-connect-row:has(> [hidden]) {
+    display: none;
+}
+.chart-connect.strip-connect {
+    position: static;
+    transform: none;
+    min-width: 116px;
+    min-height: 36px;
+    font-size: 0.95rem;
+}
+/* After Stop: live readings under the frozen chart */
+.live-strip {
+    margin: 0 16px 2px;
+    font-size: var(--label);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
 
-/* Readings: a spec sheet, labels above values, no boxes or lines */
-.readings {
+/* ===== Readings: a spec sheet, labels above values, no boxes ===== */
+.readings,
+.log-cards {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px 12px;
+    gap: 12px;
+}
+.readings {
     margin: 8px 16px 0;
 }
-.readings .ritual-info,
-.readings #portalInfo {
-    display: contents;
+.readings .ritual-info {
+    display: contents;           /* both sections share one grid */
 }
-.readings .ritual-info-item {
-    background: none;
-    box-shadow: none;
-    border-radius: 0;
-    padding: 0;
-    text-align: left;
+.ritual-info-item {
     min-width: 0;
 }
-.readings .ritual-info-label {
-    font-size: 11px;
-    text-transform: uppercase;
+.readings .ritual-info-label,
+.log-cards .ritual-info-label {
     letter-spacing: 0.06em;
-    color: var(--muted);
-    font-weight: 400;
-    margin: 0;
 }
-.readings .ritual-info-value {
+.readings .ritual-info-value,
+.log-cards .ritual-info-value {
+    margin-top: 1px;
     font-size: 20px;
     font-weight: 500;
     color: var(--brown);
+}
+.readings .ritual-info-value {
     white-space: nowrap;
-    margin-top: 1px;
 }
 .readings .ritual-info-value em {
     font-style: normal;
@@ -2012,36 +403,35 @@ input[type="number"]::-webkit-outer-spin-button {
     font-weight: 400;
     color: var(--muted);
 }
-.live-strip,
-.ritual-container .live-strip {
-    text-align: left;
-    margin: 0 16px 2px;
-    font-size: 11px;
-    color: var(--muted);
+/* In → out on one line (scale-ui.js shrinks it to fit) */
+#targetWeight {
+    white-space: nowrap;
+    overflow: hidden;
 }
 
-/* Controls: one big main button, icon + label buttons either side */
+/* ===== Controls: one big main button, icon + label buttons either side ===== */
 .ritual-main-actions {
+    display: flex;
     justify-content: space-around;
     align-items: center;
+    gap: 10px;
+    margin: 12px 0 6px;
     padding: 0 8px;
 }
-.ritual-btn.main-action.side-action {
+.side-action {
     width: 76px;
-    height: auto;
-    min-width: 76px;
-    max-width: 76px;
-    min-height: 0;
-    max-height: none;
-    border-radius: 0;
-    background: none !important;
-    box-shadow: none !important;
+    padding: 0;
+    border: 0;
+    background: none;
+    display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 4px;
     color: var(--brown);
-    opacity: 1;
+    cursor: pointer;
 }
-.side-action .side-icon {
+.side-icon {
     width: 50px;
     height: 50px;
     border-radius: 50%;
@@ -2050,50 +440,254 @@ input[type="number"]::-webkit-outer-spin-button {
     align-items: center;
     justify-content: center;
 }
-.side-action .side-icon svg {
+.side-icon svg {
     width: 23px;
     height: 23px;
 }
-.side-action .side-label {
-    font-size: 11px;
+.side-label {
+    font-size: var(--label);
     font-weight: 500;
 }
-.ritual-btn.main-action.side-action:disabled {
-    color: #c4b4a2 !important;
-}
-.side-action:disabled .side-icon {
-    background: #f4efe8;
-}
-.ritual-btn.main-action.timer-action {
-    order: 2;
+.timer-action {
     width: 80px;
     height: 80px;
-    min-width: 80px;
-    min-height: 80px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
     background: var(--brown);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
 }
+.timer-action svg {
+    display: block;
+    margin: 0 auto;
+    stroke-width: 2.5;
+}
+.side-action:disabled,
+.timer-action:disabled {
+    color: var(--faint);
+    cursor: not-allowed;
+}
+.side-action:disabled .side-icon,
+.timer-action:disabled {
+    background: var(--disabled);
+}
+/* Order: Tare | Start/Stop/Reset | Beans or CSV; after Stop: Final TDS | Reset | CSV */
 #tareBtn { order: 1; }
-#tareBeanBtn { order: 3; }
+#timerToggleBtn { order: 2; }
+#tareBeanBtn,
 #exportCsvBtn { order: 3; }
-/* After Stop: Final TDS / Beans | Reset | CSV (Tare is in the calculator) */
 .ritual-main-actions.is-stopped #tareBtn { display: none; }
 .ritual-main-actions.is-stopped #tareBeanBtn { order: 1; }
 
-/* Settings: a row per device */
+/* ===== Sheets (Settings, brew log, dialogs) ===== */
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;            /* sheets taller than the screen scroll inside the overlay */
+    overscroll-behavior: contain;
+    background: rgba(0, 0, 0, 0.3);
+}
+.modal-content {
+    position: relative;
+    box-sizing: border-box;
+    width: min(480px, 100%);
+    margin: 0 auto;
+    background: #fff;
+}
+.modal h2,
+.modal h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink);
+}
+/* Round icon buttons: close, back, rename */
+.round-close,
+.log-back,
+.log-rename {
+    flex: none;
+    min-width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: 20px;
+    background: var(--cream);
+    color: var(--brown);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.round-close {
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+/* ===== Buttons in sheets: filled (one per screen), outline, text ===== */
+.modal .ritual-btn {
+    min-width: 88px;
+    min-height: 36px;
+    padding: 0.45em 0.85em;
+    border: 2px solid transparent;
+    border-radius: var(--radius);
+    background: var(--brown);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.modal .ritual-btn:disabled {
+    background: var(--disabled);
+    color: var(--faint);
+    cursor: not-allowed;
+}
+/* Outline: Disconnect, Tare in the calculator */
+.modal .ritual-btn.btn-outline,
+.modal .ritual-btn.ritual-disconnect,
+.modal .ritual-btn.ritual-connect[aria-pressed="true"] {
+    border: 1.5px solid var(--edge);
+    background: #fff;
+    color: var(--accent);
+}
+/* Text: Cancel, Keep current */
+.modal .ritual-btn.btn-secondary {
+    min-width: 0;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    border: 0;
+    background: transparent;
+    color: var(--accent);
+}
+/* Delete: outline, then filled to confirm */
+.modal .ritual-btn.log-delete {
+    padding: 0.45em 1.1em;
+    border: 1.5px solid #e6b3ad;
+    background: #fff;
+    color: var(--danger);
+}
+.modal .ritual-btn.log-delete-now {
+    border: 0;
+    background: var(--danger);
+}
+.modal .ritual-btn.tare-inline {
+    min-width: 0;
+    min-height: 32px;
+    margin-left: 6px;
+    padding: 0.2em 0.6em;
+    font-size: 0.8em;
+    vertical-align: middle;
+}
+.dialog-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+.dialog-actions:has(> :only-child) {
+    justify-content: flex-end;
+}
+
+/* ===== Inputs ===== */
+input[type="number"],
+.log-name-input {
+    box-sizing: content-box;
+    padding: 4px 6px;
+    border: 2px solid var(--muted);
+    border-radius: var(--radius);
+    background: #fff;
+    color: var(--ink);
+    font-size: 1em;
+    outline: none;
+}
+input[type="number"]:focus,
+.log-name-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.18);
+}
+/* No spinner arrows (Android shows none; keep desktop the same) */
+input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+    text-align: right;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.field-error {
+    margin: 0 0 0.5em;
+    text-align: right;
+    font-size: 0.9em;
+    color: var(--danger);
+}
+
+/* ===== Tables: Settings values, calculator rows ===== */
+.memory-table {
+    width: 100%;
+    margin-bottom: 1em;
+    border-collapse: collapse;
+    font-size: 1.05em;
+}
+.memory-table td {
+    padding: 0.4em 0.35em;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+}
+.memory-table td:nth-child(2) {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.memory-table label {
+    font: inherit;
+    color: inherit;
+}
+
+/* ===== Settings: a full-height sheet with a title bar and three groups ===== */
+#settingsModal .settings-sheet {
+    min-height: 100%;
+    padding: 0 16px 28px;
+}
+.settings-bar {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0 10px;
+    border-bottom: 1px solid var(--line);
+    background: #fff;
+}
+.settings-group {
+    margin: 18px 0 6px;
+    font-weight: 500;
+}
 .device-row {
     display: flex;
     align-items: center;
     min-height: 48px;
     border-bottom: 1px solid var(--line);
     font-size: 1.05em;
-    color: var(--ink);
 }
 .device-name {
     flex: 1;
 }
 .device-name small {
     display: block;
-    font-size: 11px;
+    font-size: var(--label);
     color: var(--muted);
 }
 .device-state {
@@ -2103,55 +697,122 @@ input[type="number"]::-webkit-outer-spin-button {
 .device-state.is-on {
     color: var(--ok);
 }
-.settings-group {
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--muted);
-}
-#settingsModal .connect-controls {
+.connect-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
     margin-top: 12px;
 }
+/* Value table: fixed columns so the Edit buttons line up */
+.settings-table {
+    table-layout: fixed;
+}
+.settings-table td {
+    padding: 0.45em 0.25em;
+}
+.settings-table td:nth-child(2) {
+    width: 30%;
+}
+.settings-table td:nth-child(3) {
+    width: 96px;
+}
+/* Editing: the value becomes a small input on the same line ("1: [15]", "[2.0] g/g") */
+.settings-table input[type="number"] {
+    width: 3.6em;
+    margin: 0 0 0 2px;
+    vertical-align: middle;
+}
+/* Quiet text buttons: Edit / Save / Calibrate */
+.memory-overwrite {
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 4px;
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--accent);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: right;
+    cursor: pointer;
+}
+/* Default k_v in use until the first calibration */
+.kv-uncalibrated {
+    display: block;
+    font-size: 0.75em;
+    color: var(--muted);
+}
+/* A row that opens the brew log */
+.settings-row-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 4px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: none;
+    color: var(--ink);
+    font-size: 1.05em;
+    text-align: left;
+    cursor: pointer;
+}
+.settings-row-btn > span:first-child {
+    flex: 1;
+}
+.settings-row-meta {
+    font-size: 0.9em;
+    color: var(--muted);
+}
+.settings-row-btn svg {
+    color: var(--muted);
+}
 
-/* Final TDS and calibration: sheets that slide up from the bottom */
+/* ===== Final TDS and calibration: sheets that slide up from the bottom ===== */
 .modal.tds-dialog {
+    z-index: 1002;               /* above Settings */
     align-items: flex-end;
 }
 .tds-dialog .modal-content {
-    width: min(480px, 100%);
     max-height: 92dvh;
-    margin: 0 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: 8px 16px 20px;
     border-radius: 16px 16px 0 0;
-    background: #fff;
     box-shadow: 0 -4px 24px rgba(47, 33, 24, 0.12);
 }
-@media (max-width: 400px) {
-    .tds-dialog .modal-content {
-        width: 100%;
-        padding-left: 16px;
-        padding-right: 16px;
-    }
-}
+/* Grab handle */
 .tds-dialog .modal-content::before {
     content: "";
     display: block;
     width: 36px;
     height: 4px;
+    margin: 0 auto 10px;
     border-radius: 2px;
     background: #e4d8c8;
-    margin: 0 auto 10px;
-}
-.dialog-step {
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 11px;
-    color: var(--muted);
 }
 .tds-dialog h3 {
-    font-size: 20px;
-    color: var(--ink);
+    margin-bottom: 0.6em;
+}
+.dialog-step {
+    margin: 0 0 2px;
+}
+.dialog-note {
+    line-height: 1.5;
+}
+.tds-table {
+    margin-bottom: 0.6em;
+}
+.tds-table tr.tds-strong td {
+    font-weight: 600;
+}
+.tds-table td.tare-cell {
+    white-space: nowrap;         /* "Scale [Tare]" stays together */
+}
+.tds-table input[type="number"] {
+    width: 4em;
+    margin: 0 2px 0 0;
 }
 .result-pair {
     display: grid;
@@ -2163,20 +824,16 @@ input[type="number"]::-webkit-outer-spin-button {
     grid-template-columns: 1fr;
 }
 .result-box {
-    background: var(--cream);
-    border-radius: var(--radius);
-    padding: 10px 12px;
     min-width: 0;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    background: var(--cream);
 }
 .result-box > span,
 .result-box > label {
     display: block;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted);
     margin: 0;
-    font-weight: 400;
+    letter-spacing: 0.06em;
 }
 .result-box > b {
     display: block;
@@ -2193,64 +850,266 @@ input[type="number"]::-webkit-outer-spin-button {
     text-align: left;
 }
 .tds-formula {
-    background: var(--cream);
     margin: 12px 0 14px;
+    padding: 10px 6px;
+    border-radius: var(--radius);
+    background: var(--cream);
+    font-size: 1.05em;
+}
+.tds-formula math {
+    font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", serif;
 }
 
-/* Redesign fixes: title on the left, ratio dash, chart fills the free height */
-.ritual-header .app-title {
+/* ===== Brew log (Settings > Brew log): saved brews, then one brew ===== */
+.modal.brew-log {
+    z-index: 1003;               /* above Settings */
+    align-items: flex-start;
+}
+.brew-log .modal-content {
+    min-height: 100dvh;
+    padding: 12px 16px 24px;
+}
+.log-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.log-header h3 {
     flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
-.hero-meta .progress-ratio-value:empty {
-    display: block;
+.log-count {
+    font-size: 0.85em;
+    color: var(--muted);
 }
-.ritual-container .brew-chart {
-    flex: 1 1 auto;
+.log-list {
+    list-style: none;
+    margin: 0 0 0.6em;
+    padding: 0;
+}
+.log-item {
     display: flex;
-    flex-direction: column;
-    min-height: 0;
-}
-.brew-chart .chart-track {
-    flex: 1 1 0;
-    min-height: 150px;
-}
-.brew-chart .chart-slide {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    min-height: 150px;
-}
-/* The canvas fills its slide; its own pixel size must not feed back into the layout */
-.brew-chart .chart-slide canvas {
-    position: absolute;
-    inset: 0;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
     width: 100%;
-    height: 100%;
+    padding: 10px 2px;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
 }
-.brew-chart .chart-slide .extraction-chart {
-    flex: 1 1 0;
-    height: 0;
-    min-height: 0;
+.log-item-name {
+    font-weight: 600;
 }
-.ritual-main-actions {
-    margin-top: 12px;
-    margin-bottom: 6px;
+.log-item-sub {
+    font-size: 0.85em;
+    color: var(--muted);
+}
+.log-item-right {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+/* Rename: the name becomes an input, the pencil a Save button */
+.log-name-input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 4px 8px;
+    font: inherit;
+}
+.log-rename {
+    padding: 0 8px;
+    font-weight: 600;
+}
+.log-rename.is-saving {
+    padding: 0 14px;
+    background: var(--brown);
+    color: #fff;
+}
+#logDate {
+    margin: 2px 0 8px 48px;      /* lines up with the name, past the back button */
+}
+/* Summary: time, ratio and TDS like the main screen's time and ratio */
+.log-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 6px;
+    margin: 8px 0 12px;
+    text-align: center;
+}
+.log-summary > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.log-summary-value {
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--roast);
+    font-variant-numeric: tabular-nums;
+}
+.log-chart {
+    margin: 8px 0;
+}
+.log-chart .brew-chart-label {
+    margin-bottom: 4px;
+}
+#logBrewChartLabel {
+    justify-content: flex-end;   /* the legend sits right, as on the main screen */
+}
+.log-chart canvas {
+    display: block;
+    width: 100%;
+    height: 150px;
+}
+.log-group {
+    margin: 12px 0 4px;
+}
+.log-cards .ritual-info-value {
+    font-size: 18px;
+    overflow-wrap: anywhere;
+}
+.log-delete-area {
+    margin-top: 16px;
+}
+.log-delete-confirm p {
+    margin: 0 0 0.6em;
 }
 
-/* One primary colour for filled buttons: the mockup's brown */
-#timerToggleBtn,
-#timerToggleBtn:hover,
-.ritual-btn.main-action.timer-action {
-    background: var(--brown);
-    box-shadow: none;
+/* ===== TDS vs extraction chart (SVG drawn by tds.js) ===== */
+.extraction-chart {
+    display: block;
+    width: 100%;
+    height: 150px;
+    font-family: inherit;
+    cursor: pointer;
 }
-.modal .ritual-btn.memory-confirm-btn,
-.memory-confirm-btn,
-.chart-connect {
-    background: var(--brown);
+.extraction-chart:focus:not(:focus-visible) {
+    outline: none;               /* tapping it toggles the labels; no ring */
 }
-.modal .ritual-btn.memory-confirm-btn:hover,
-.memory-confirm-btn:hover,
-.chart-connect:hover {
-    background: var(--roast);
+.log-ey-chart {
+    cursor: default;
+}
+.ey-grid {
+    stroke: var(--line);
+    stroke-width: 1;
+}
+.ey-tick,
+.ey-axis-title {
+    fill: var(--muted);
+    font-size: 10px;
+}
+.ey-axis-title {
+    font-size: 10.5px;
+}
+.ey-gold {
+    fill: rgba(180, 83, 9, 0.14);
+}
+.ey-ref {
+    fill: #c9a46c;
+}
+.ey-label {
+    fill: var(--muted);
+    font-size: 9px;
+}
+.ey-hint {
+    fill: var(--muted);
+    font-size: 12px;
+}
+.ey-brew {
+    fill: var(--accent);
+    stroke: #fff;
+    stroke-width: 1.5;
+}
+.ey-brew.ey-brew-estimate {
+    fill: #fff;
+    stroke: var(--accent);
+    stroke-width: 2;
+}
+.ey-brew-label {
+    fill: var(--accent);
+    font-size: 10.5px;
+    font-weight: 600;
+}
+.ey-trail {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    stroke-opacity: 0.45;
+    stroke-linejoin: round;
+}
+
+/* ===== Debug log (Settings > Enable logging, hidden for now) ===== */
+.log {
+    max-height: 180px;
+    margin: 16px;
+    padding: 12px;
+    overflow-y: auto;
+    border-radius: var(--radius);
+    background: var(--cream);
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 0.85em;
+}
+
+/* ===== Hover (mouse only: touch screens keep :hover after a tap) ===== */
+@media (hover: hover) {
+    .timer-action:hover:enabled,
+    .chart-connect:hover:enabled,
+    .modal .ritual-btn:hover:enabled {
+        background: var(--roast);
+    }
+    .side-action:hover:enabled .side-icon,
+    .device-icon[data-connected="false"]:hover,
+    .ritual-header .ritual-settings:hover,
+    .round-close:hover,
+    .log-back:hover,
+    .log-rename:not(.is-saving):hover,
+    .memory-overwrite:hover,
+    .settings-row-btn:hover,
+    .log-item:hover {
+        background: var(--cream-dark);
+    }
+    .modal .ritual-btn.btn-outline:hover:enabled,
+    .modal .ritual-btn.ritual-disconnect:hover:enabled,
+    .modal .ritual-btn.ritual-connect[aria-pressed="true"]:hover:enabled,
+    .modal .ritual-btn.btn-secondary:hover:enabled,
+    .modal .ritual-btn.log-delete:hover:enabled {
+        background: var(--cream);
+    }
+    .modal .ritual-btn.log-delete-now:hover:enabled {
+        background: #8c1d17;
+    }
+}
+
+/* ===== Desktop and tablets: a floating card on a warm background ===== */
+@media (min-width: 601px) {
+    body {
+        background: linear-gradient(to bottom, #fff8e1 0%, #ffe0b2 100%);
+    }
+    .ritual-container {
+        display: block;
+        max-width: 420px;
+        min-height: 0;
+        margin: 40px auto;
+        padding-bottom: 32px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 4px 32px rgba(0, 0, 0, 0.07);
+    }
+    .ritual-hero {
+        margin: 28px 0 14px;
+    }
+    .ritual-main-actions {
+        gap: 24px;
+    }
+    .log-ey-chart {
+        height: 170px;
+    }
 }
