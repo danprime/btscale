@@ -433,7 +433,7 @@ test('after Stop the main readouts freeze on final values and live readings move
   await expect(text('weightUnitLabel')).toBeHidden(); // live weight: no "grams" label
   await expect(text('weightDisplay')).toHaveText('80.3');
   await expect(text('weightUnit')).toHaveText('g');
-  await expect(text('flowRateLabel')).toHaveText('Flow rate');
+  await expect(text('flowRateLabel')).toHaveText('Flow');
   await expect(text('tempValue')).toHaveText('88.0 °C');
   await expect(text('ecLabel')).toHaveText('EC');
   await expect(text('ecValue')).toHaveText('0.92 mS/cm');
@@ -483,8 +483,8 @@ test('ratio setting: default 1:15, Edit changes it, target weight = bean dose x 
 
   // Target follows the stored bean dose without pressing the beans button
   await page.evaluate(() => window.__test_setMemory({ beans: { weight: 20 } }));
-  await expect(target).toHaveText('20gin → 300gout'); // bean dose in -> target out
-  await expect(target.locator('sub')).toHaveText(['in', 'out']);
+  await expect(target).toHaveText('20 → 300 g'); // bean dose in -> target out
+  await expect(target.locator('em')).toHaveText(' g'); // the unit is set smaller
   await expect(target).toHaveAttribute('aria-label', '20 grams in, 300 grams out');
 
   await page.click('#settingsBtn');
@@ -502,14 +502,14 @@ test('ratio setting: default 1:15, Edit changes it, target weight = bean dose x 
   await input.press('Enter');
   await expect(page.locator('#ratioSettingCell')).toHaveText('1:16.5');
   await expect(page.locator('#ratioEditBtn')).toHaveText('Edit');
-  await expect(target).toHaveText('20gin → 330gout');
+  await expect(target).toHaveText('20 → 330 g');
   expect(await page.evaluate(() => localStorage.getItem('brewRatioV1'))).toBe('16.5');
 
   // Persists across reloads; the target is computed on load
   await page.evaluate(() => localStorage.setItem('scaleMemoryV1', JSON.stringify({ beans: { weight: 18 } })));
   await page.reload();
   await expect(page.locator('#ratioSettingCell')).toHaveText('1:16.5');
-  await expect(target).toHaveText('18gin → 297gout');
+  await expect(target).toHaveText('18 → 297 g');
 
   // Escape cancels an edit without saving or closing Settings
   await page.click('#settingsBtn');
@@ -524,12 +524,12 @@ test('target weight stays when the scale disconnects', async ({ page }) => {
   await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['scale'] }); });
   await page.evaluate(() => toggleConnect());
   await page.evaluate(() => window.__test_setMemory({ beans: { weight: 15 } }));
-  await expect(page.locator('#targetWeight')).toHaveText('15gin → 225gout');
+  await expect(page.locator('#targetWeight')).toHaveText('15 → 225 g');
   await page.evaluate(() => disconnect());
-  await expect(page.locator('#targetWeight')).toHaveText('15gin → 225gout');
+  await expect(page.locator('#targetWeight')).toHaveText('15 → 225 g');
 });
 
-test('phone layout: chart and cards have 12px side margins; chart labels match their line colours', async ({ page }) => {
+test('phone layout: chart and readings have 16px side margins; legend swatches match their line colours', async ({ page }) => {
   await page.setViewportSize({ width: 384, height: 720 });
   await page.reload();
   await page.evaluate(async () => {
@@ -545,17 +545,16 @@ test('phone layout: chart and cards have 12px side margins; chart labels match t
     };
     return {
       chart: margins('.brew-chart'),
-      cards: margins('.ritual-info'),
-      portalCards: margins('#portalInfo'),
-      ecLabel: getComputedStyle(document.querySelector('.brew-chart-label-ec')).color,
-      weightLabel: getComputedStyle(document.querySelector('.brew-chart-label-weight')).color,
+      readings: margins('#readings'),
+      ecSwatch: getComputedStyle(document.querySelector('.brew-chart-label-ec'), '::before').backgroundColor,
+      weightSwatch: getComputedStyle(document.querySelector('.brew-chart-label-weight'), '::before').backgroundColor,
     };
   });
-  for (const m of [result.chart, result.cards, result.portalCards]) {
-    for (const side of m) expect(side).toBeLessThanOrEqual(15);
+  for (const m of [result.chart, result.readings]) {
+    for (const side of m) expect(side).toBe(16);
   }
-  expect(result.ecLabel).toBe('rgb(180, 83, 9)'); // #b45309, the EC line
-  expect(result.weightLabel).toBe('rgb(141, 110, 99)'); // #8d6e63, the weight line
+  expect(result.ecSwatch).toBe('rgb(180, 83, 9)'); // #b45309, the EC line
+  expect(result.weightSwatch).toBe('rgb(92, 58, 30)'); // #5c3a1e, the weight line
 });
 
 test('chart axes: weight stays on the left; EC on the right with a scale, on the left without', async ({ page }) => {

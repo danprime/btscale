@@ -1786,3 +1786,471 @@ input[type="number"]::-webkit-outer-spin-button {
     font-size: 0.95rem;
     box-shadow: none;
 }
+
+/* ===================== Redesign (main screen, Settings rows, bottom sheets) ===================== */
+:root {
+    --ink: #2f2118;      /* headings, body text */
+    --roast: #5c3a1e;    /* weight, time, ratio, weight line */
+    --brown: #8a4510;    /* reading values, primary button */
+    --accent: #b45309;   /* EC line, active tab, links, focus */
+    --muted: #8f7a66;    /* labels, axis text */
+    --line: #eee4d6;     /* hairlines, gridlines */
+    --cream: #fbf5ea;    /* soft fills */
+    --ok: #3f8f4f;       /* connected */
+    --radius: 8px;
+}
+
+/* Header: app name on the left, small matching icons on the right */
+.ritual-header {
+    padding: 8px 16px 0;
+    height: 56px;
+    box-sizing: border-box;
+}
+.app-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--roast);
+    letter-spacing: -0.01em;
+}
+.ritual-header-actions {
+    gap: 2px;
+}
+.device-icons {
+    gap: 2px;
+}
+.device-icon,
+.device-icon[data-connected="true"],
+.device-icon[data-connected="false"] {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    background: none;
+    box-shadow: none;
+}
+.device-icon[data-connected="true"] {
+    color: var(--brown);
+}
+.device-icon[data-connected="false"] {
+    color: #c4b4a2;
+}
+.device-icon[data-connected="true"]::after {
+    content: "";
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 2px #fff;
+}
+.device-icon svg {
+    width: 20px;
+    height: 20px;
+}
+.ritual-header .ritual-settings,
+.ritual-header .ritual-settings:hover {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    background: none;
+    color: var(--muted);
+    box-shadow: none;
+}
+.ritual-header .ritual-settings svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Hero: the weight, then time and ratio as labelled numbers */
+.progress-weight-unit {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    opacity: 1;
+}
+.hero-meta {
+    gap: 40px;
+    margin-top: 8px;
+}
+.hero-meta .hero-stat {
+    flex-direction: column;
+    gap: 0;
+}
+.hero-meta .progress-timer,
+.hero-meta .progress-ratio-value {
+    font-size: 24px;
+    line-height: 1.2;
+}
+.hero-stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+}
+/* Ratio is always shown: a dash until there is one */
+.hero-meta .hero-ratio:has(.progress-ratio-value:empty) {
+    display: inline-flex;
+}
+.hero-meta .progress-ratio-value:empty::before {
+    content: "\2014";
+    color: var(--muted);
+}
+
+/* Chart: tabs and legend above, drawn straight on white */
+.brew-chart,
+.ritual-container .brew-chart {
+    background: none;
+    border-radius: 0;
+    padding: 0;
+    margin: 14px 16px 6px;
+}
+.chart-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 26px;
+}
+.chart-dots {
+    position: static;
+    transform: none;
+    display: flex;
+    gap: 16px;
+}
+.chart-dot {
+    width: auto;
+    height: auto;
+    padding: 2px 0 5px;
+    border-radius: 0;
+    font-size: 13px;
+    color: var(--muted);
+}
+.chart-dot::after {
+    display: none;
+}
+.chart-dot[aria-current="true"] {
+    color: var(--ink);
+    font-weight: 600;
+    box-shadow: inset 0 -2px 0 var(--accent);
+}
+.chart-legend {
+    margin-left: auto;
+    padding: 0;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    gap: 12px;
+}
+.chart-legend .brew-chart-label-weight,
+.chart-legend .brew-chart-label-ec,
+.brew-chart-label .brew-chart-label-weight {
+    float: none;
+    padding: 0;
+    color: var(--muted);
+}
+.brew-chart-label-weight::before,
+.brew-chart-label-ec::before {
+    content: "";
+    display: inline-block;
+    width: 12px;
+    height: 2.5px;
+    margin-right: 5px;
+    vertical-align: middle;
+    background: var(--roast);
+    border-radius: 2px;
+}
+.brew-chart-label-ec::before {
+    height: 1.5px;
+    background: var(--accent);
+}
+#extractionSlide .brew-chart-label {
+    font-size: 10px;
+    color: var(--muted);
+    padding-left: 4px;
+}
+
+/* Readings: a spec sheet, labels above values, no boxes or lines */
+.readings {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 12px;
+    margin: 8px 16px 0;
+}
+.readings .ritual-info,
+.readings #portalInfo {
+    display: contents;
+}
+.readings .ritual-info-item {
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    text-align: left;
+    min-width: 0;
+}
+.readings .ritual-info-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 400;
+    margin: 0;
+}
+.readings .ritual-info-value {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--brown);
+    white-space: nowrap;
+    margin-top: 1px;
+}
+.readings .ritual-info-value em {
+    font-style: normal;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--muted);
+}
+.live-strip,
+.ritual-container .live-strip {
+    text-align: left;
+    margin: 0 16px 2px;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+/* Controls: one big main button, icon + label buttons either side */
+.ritual-main-actions {
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 8px;
+}
+.ritual-btn.main-action.side-action {
+    width: 76px;
+    height: auto;
+    min-width: 76px;
+    max-width: 76px;
+    min-height: 0;
+    max-height: none;
+    border-radius: 0;
+    background: none !important;
+    box-shadow: none !important;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--brown);
+    opacity: 1;
+}
+.side-action .side-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.side-action .side-icon svg {
+    width: 23px;
+    height: 23px;
+}
+.side-action .side-label {
+    font-size: 11px;
+    font-weight: 500;
+}
+.ritual-btn.main-action.side-action:disabled {
+    color: #c4b4a2 !important;
+}
+.side-action:disabled .side-icon {
+    background: #f4efe8;
+}
+.ritual-btn.main-action.timer-action {
+    order: 2;
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    min-height: 80px;
+    background: var(--brown);
+}
+#tareBtn { order: 1; }
+#tareBeanBtn { order: 3; }
+#exportCsvBtn { order: 3; }
+/* After Stop: Final TDS / Beans | Reset | CSV (Tare is in the calculator) */
+.ritual-main-actions.is-stopped #tareBtn { display: none; }
+.ritual-main-actions.is-stopped #tareBeanBtn { order: 1; }
+
+/* Settings: a row per device */
+.device-row {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    border-bottom: 1px solid var(--line);
+    font-size: 1.05em;
+    color: var(--ink);
+}
+.device-name {
+    flex: 1;
+}
+.device-name small {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+}
+.device-state {
+    font-size: 0.9em;
+    color: var(--muted);
+}
+.device-state.is-on {
+    color: var(--ok);
+}
+.settings-group {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+}
+#settingsModal .connect-controls {
+    margin-top: 12px;
+}
+
+/* Final TDS and calibration: sheets that slide up from the bottom */
+.modal.tds-dialog {
+    align-items: flex-end;
+}
+.tds-dialog .modal-content {
+    width: min(480px, 100%);
+    max-height: 92dvh;
+    margin: 0 auto;
+    padding: 8px 16px 20px;
+    border-radius: 16px 16px 0 0;
+    background: #fff;
+    box-shadow: 0 -4px 24px rgba(47, 33, 24, 0.12);
+}
+@media (max-width: 400px) {
+    .tds-dialog .modal-content {
+        width: 100%;
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+}
+.tds-dialog .modal-content::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: #e4d8c8;
+    margin: 0 auto 10px;
+}
+.dialog-step {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 11px;
+    color: var(--muted);
+}
+.tds-dialog h3 {
+    font-size: 20px;
+    color: var(--ink);
+}
+.result-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 12px 0 0;
+}
+.result-pair.one {
+    grid-template-columns: 1fr;
+}
+.result-box {
+    background: var(--cream);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    min-width: 0;
+}
+.result-box > span,
+.result-box > label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 0;
+    font-weight: 400;
+}
+.result-box > b {
+    display: block;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--brown);
+}
+.result-box input[type="number"] {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 2px 0 0;
+    font-size: 18px;
+    color: var(--brown);
+    text-align: left;
+}
+.tds-formula {
+    background: var(--cream);
+    margin: 12px 0 14px;
+}
+
+/* Redesign fixes: title on the left, ratio dash, chart fills the free height */
+.ritual-header .app-title {
+    flex: 1;
+}
+.hero-meta .progress-ratio-value:empty {
+    display: block;
+}
+.ritual-container .brew-chart {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.brew-chart .chart-track {
+    flex: 1 1 0;
+    min-height: 150px;
+}
+.brew-chart .chart-slide {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 150px;
+}
+/* The canvas fills its slide; its own pixel size must not feed back into the layout */
+.brew-chart .chart-slide canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+.brew-chart .chart-slide .extraction-chart {
+    flex: 1 1 0;
+    height: 0;
+    min-height: 0;
+}
+.ritual-main-actions {
+    margin-top: 12px;
+    margin-bottom: 6px;
+}
+
+/* One primary colour for filled buttons: the mockup's brown */
+#timerToggleBtn,
+#timerToggleBtn:hover,
+.ritual-btn.main-action.timer-action {
+    background: var(--brown);
+    box-shadow: none;
+}
+.modal .ritual-btn.memory-confirm-btn,
+.memory-confirm-btn,
+.chart-connect {
+    background: var(--brown);
+}
+.modal .ritual-btn.memory-confirm-btn:hover,
+.memory-confirm-btn:hover,
+.chart-connect:hover {
+    background: var(--roast);
+}

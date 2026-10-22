@@ -124,6 +124,15 @@ Notes
 - The parsed `data` object shape comes from `scale-utils.js`'s `parseWeightData()` and includes `weight` (grams), `flowRate` (g/s), `batteryPercent`, and timing fields.
 - If you need a CommonJS/UMD bundle or TypeScript types, I can add a build step and `.d.ts` file.
 
+## Main screen
+
+- Header: "Brew Tool", then the scale and EC meter icons (green dot = connected; tap a faded one to connect) and Settings.
+- The weight is the hero, with time and ratio as labelled numbers under it.
+- Chart: drawn on white with horizontal gridlines. Weight is the main line (thick, dark brown, with the target as a dashed line); EC is a thinner orange line. During and after a TDS brew, "Brew · Extraction" tabs switch between the brew chart and TDS vs extraction.
+- Readings: a spec sheet (small label above each value, units smaller), no boxes.
+- Buttons: one big Start / Stop / Reset in the middle; Tare and Beans either side. After Stop: Final TDS (or Beans), Reset and CSV (Tare is in the calculator).
+- The Final TDS calculator and k_v calibration open as sheets from the bottom.
+
 ## Install as an app (Brew Tool)
 
 The page is an installable web app (`manifest.webmanifest`, icons in `icons/`). On Android, open https://danprime.github.io/btscale/ in Chrome, tap ⋮ > Install app (or Add to Home screen). "Brew Tool" then opens from the home screen in its own window, always in Chrome (needed for Web Bluetooth), even if another browser is the default. There's no service worker: every launch loads the current version from GitHub Pages (which lets browsers cache files for up to 10 minutes). The icons are rendered from `icons/icon.svg` and `icons/icon-maskable.svg`.
