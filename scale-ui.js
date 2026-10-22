@@ -1716,10 +1716,10 @@ function renderExtractionChart() {
     let hint = null;
     if (!point && !(memory.beans?.weight > 0)) hint = 'Set the bean dose to plot this brew';
     else if (!point && !finalSnapshot && recorder.elapsed() < tdsMinSeconds) hint = `Live path from ${formatSeconds(tdsMinSeconds)}`;
-    // Live trail until the final dot (after Next) replaces it
+    // The live trail stays after Next, with the measured final dot drawn on top
     const desc = drawExtractionChart(svg, {
         point,
-        trail: finalTds ? [] : extractionTrail,
+        trail: extractionTrail,
         labelsShown: extractionLabelsShown,
         hint,
         estimateWord: finalSnapshot ? 'estimated' : 'live estimate:',
@@ -1872,7 +1872,8 @@ function buildLogEntry() {
             kvCalibrated: !!kv,
             absorption,
         },
-        series: { weight, ec },
+        // The live TDS vs extraction path (estimates while brewing), for the log's chart
+        series: { weight, ec, trail: downsample(extractionTrail) },
     };
 }
 
@@ -2001,7 +2002,8 @@ function renderBrewDetail() {
     if (tdsBrewLogged) {
         const svg = byId('logEyChart');
         const point = ey != null ? { ey, tds, final: s.tds != null } : null;
-        const desc = drawExtractionChart(svg, { point, hint: point ? null : 'No extraction for this brew' });
+        // Brews saved before the trail was stored have none: just the dot
+        const desc = drawExtractionChart(svg, { point, trail: brew.series.trail || [], hint: point ? null : 'No extraction for this brew' });
         svg.setAttribute('aria-label', `TDS versus extraction yield chart, ${desc}.`);
     }
 

@@ -518,7 +518,7 @@ test('target card: "in → out" subscripts with two cards, plain "20g → 300g" 
   await expect(target.locator('sub').first()).toBeVisible();
 });
 
-test('live extraction path while brewing: hollow dot and trail, final dot only after Next', async ({ page }) => {
+test('live extraction path while brewing: hollow dot and trail; after Next the trail stays with the final dot', async ({ page }) => {
   await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 20 }, carafe: { weight: 186 } } });
   await page.evaluate(async () => {
     await window.__connect(['scale', 'portal']);
@@ -547,11 +547,12 @@ test('live extraction path while brewing: hollow dot and trail, final dot only a
   await expect(page.locator('.ey-trail')).toHaveCount(1);
   await expect(page.locator('.ey-brew-estimate')).toHaveCount(1);
 
-  // Next: only the solid final dot
+  // Next: the live trail stays, with the solid final dot instead of the hollow estimate
   await page.evaluate(() => window.__emitScale(window.__mock, 436, 3000));
   await page.click('#tareBeanBtn');
   await page.click('#ftNextBtn');
-  await expect(page.locator('.ey-trail')).toHaveCount(0);
+  await expect(page.locator('.ey-trail')).toHaveCount(1);
+  expect((await page.locator('.ey-trail').getAttribute('points')).trim().split(' ')).toHaveLength(3);
   await expect(page.locator('.ey-brew-estimate')).toHaveCount(0);
   await expect(page.locator('.ey-brew')).toHaveCount(1);
 
