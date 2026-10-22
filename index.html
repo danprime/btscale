@@ -15,7 +15,7 @@
     <!-- Accessibility improvements: ARIA, labels, roles, focus, semantic structure -->
     <main class="ritual-container" role="main">
         <header class="ritual-header">
-            <h1 class="ritual-title visually-hidden" id="scaleAppTitle">Scale</h1>
+            <h1 class="ritual-title app-title" id="scaleAppTitle">Brew Tool</h1>
             <nav class="ritual-header-actions" aria-label="Main actions">
                 <div class="device-icons" aria-live="polite">
                     <!-- Always shown: faded = not connected (tap to connect), solid = connected -->
@@ -40,23 +40,31 @@
             <div class="hero-weight">
                 <span id="weightDisplay" class="progress-weight-value">--</span><span class="hero-weight-unit" id="weightUnit" hidden>g</span>
             </div>
+            <!-- Time and ratio as labelled numbers -->
             <div class="hero-meta">
                 <div class="hero-stat" title="Elapsed time">
-                    <svg class="hero-icon" viewBox="0 0 26 26" fill="currentColor" aria-hidden="true" focusable="false"><path d="M11 13a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"/><path d="M13.57 13.54c.39-.39 1.1-1.72.72-2.06 0 0-10.61-8.47-10.93-8.15s8.12 10.96 8.12 10.96c.35.38 1.7-.36 2.09-.75z"/><circle cx="13" cy="2" r="2"/><path d="M17.29 1.8c-.69 1.15.4 1.86.72 2.04a10.46 10.46 0 1 1-14.77 5.4c.06-.15.63-1.16-.48-1.86-.77-.48-1.51.06-1.66.4A13 13 0 1 0 18.75 1.36c-.09-.05-.98-.37-1.46.44z"/></svg>
                     <div class="progress-timer" id="timer" aria-live="polite" aria-atomic="true">0:00</div>
+                    <span class="hero-stat-label">Time</span>
                 </div>
                 <div class="hero-stat hero-ratio" title="Brew ratio (beans : water)">
-                    <svg class="hero-icon hero-icon-ratio" viewBox="2 2.2 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 21h-8V8m0 0a2 2 0 0 0 1.88-2.68M12 8a2 2 0 1 1 1.88-2.68M10.12 6.68 4.48 8.74M19.52 3.26l-5.64 2.06M6 21c1.51 0 2.76-.84 2.97-2.25.01-.09.02-.13.01-.23-.01-.07-.03-.19-.05-.26-.03-.09-.07-.16-.14-.29L6 13l-2.8 4.97c-.07.12-.1.18-.13.29a1.2 1.2 0 0 0-.04.58C3.3 19.86 4.53 21 6 21zm12-4c1.51 0 2.76-.84 2.97-2.25.01-.09.02-.13.01-.23-.01-.07-.03-.19-.05-.26-.03-.09-.07-.16-.14-.29L18 9l-2.8 4.97c-.07.12-.1.18-.13.29a1.2 1.2 0 0 0-.04.58C15.3 15.86 16.53 17 18 17z"/></svg>
                     <div id="calculatedRatioDisplay" class="progress-ratio-value" aria-live="polite"></div>
+                    <span class="hero-stat-label">Ratio</span>
                 </div>
             </div>
         </section>
         <!-- Live brew chart: EC when the EC meter is connected, otherwise weight -->
         <!-- After a TDS brew is stopped it becomes a two-slide carousel: brew chart, then TDS vs extraction -->
         <section class="brew-chart" aria-label="Brew chart">
+            <!-- Tabs (only after a TDS brew starts) and the brew chart's legend -->
+            <div class="chart-head">
+                <div class="chart-dots" id="chartDots" hidden>
+                    <button type="button" class="chart-dot" aria-label="Show brew chart" onclick="showChartSlide(0)">Brew</button>
+                    <button type="button" class="chart-dot" aria-label="Show TDS vs extraction chart" onclick="showChartSlide(1)">Extraction</button>
+                </div>
+                <div class="brew-chart-label chart-legend" id="brewChartLabel">EC · mS/cm</div>
+            </div>
             <div class="chart-track" id="chartTrack">
                 <div class="chart-slide">
-                    <div class="brew-chart-label" id="brewChartLabel">EC · mS/cm</div>
                     <canvas id="brewChartCanvas" role="img" aria-label="Brew chart, no data yet"></canvas>
                     <!-- Nothing connected: connect from here instead of Settings -->
                     <button type="button" id="chartConnectBtn" class="chart-connect" onclick="connectFromChart()" hidden>Connect</button>
@@ -67,19 +75,16 @@
                     <svg id="extractionChart" class="extraction-chart" role="img" tabindex="0" aria-label="TDS versus extraction yield"></svg>
                 </div>
             </div>
-            <div class="chart-dots" id="chartDots" hidden>
-                <button type="button" class="chart-dot" aria-label="Show brew chart" onclick="showChartSlide(0)"></button>
-                <button type="button" class="chart-dot" aria-label="Show TDS vs extraction chart" onclick="showChartSlide(1)"></button>
-            </div>
         </section>
         <!-- After Stop: the big values are frozen, live readings show here -->
         <div class="live-strip" id="liveStrip" aria-live="polite" hidden></div>
         <!-- After Stop with nothing connected: connect again without covering the brew's chart -->
         <div class="strip-connect-row"><button type="button" id="stripConnectBtn" class="chart-connect strip-connect" onclick="connectFromChart('stripConnectBtn')" hidden>Connect</button></div>
-        <!-- Info Panels -->
+        <!-- Readings: a spec-sheet grid (labels above values, no boxes) across both sections -->
+        <div class="readings" id="readings">
         <section class="ritual-info" aria-label="Scale info panels">
             <div class="ritual-info-item">
-                <div class="ritual-info-label" id="flowRateLabel">Flow rate</div>
+                <div class="ritual-info-label" id="flowRateLabel">Flow</div>
                 <div class="ritual-info-value" id="flowRate" aria-live="polite">0.0 g/s</div>
             </div>
             <div class="ritual-info-item">
@@ -103,7 +108,7 @@
         <!-- EC meter (Belka Portal) panels: shown only while it is connected -->
         <section class="ritual-info" id="portalInfo" aria-label="EC meter info panels" style="display:none;">
             <div class="ritual-info-item" id="tempPanel">
-                <div class="ritual-info-label" id="tempLabel">Temperature</div>
+                <div class="ritual-info-label" id="tempLabel">Temp</div>
                 <div class="ritual-info-value" id="tempValue" aria-live="polite">-- °C</div>
             </div>
             <!-- TDS: needs the scale and the EC meter -->
@@ -116,19 +121,18 @@
                 <div class="ritual-info-value" id="ecValue" aria-live="polite">-- mS/cm</div>
             </div>
         </section>
+        </div>
         <!-- Main Action Buttons -->
         <section class="ritual-controls ritual-main-actions" aria-label="Main actions">
-            <button id="tareBtn" class="ritual-btn main-action" onclick="sendTareCommand()" disabled aria-label="Tare">T</button>
+            <button id="tareBtn" class="ritual-btn main-action side-action" onclick="sendTareCommand()" disabled aria-label="Tare"><span class="side-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h16"/><path d="M6 16h12l-1.5-8h-9z"/><path d="M12 8V4"/></svg></span><span class="side-label">Tare</span></button>
             <!-- Set beans; after a TDS brew is stopped it becomes the final TDS calculator -->
-            <button id="tareBeanBtn" class="ritual-btn main-action" onclick="beanButton()" disabled aria-label="Set beans" title="Set beans: stores the bean (B) weight in memory (M)"><span class="key"><span class="key-letter">M</span><span class="key-sub" aria-hidden="true">B</span></span></button>
+            <button id="tareBeanBtn" class="ritual-btn main-action side-action" onclick="beanButton()" disabled aria-label="Set beans" title="Set beans: stores the bean weight as the dose"><span class="side-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><ellipse cx="12" cy="12" rx="6" ry="8" transform="rotate(30 12 12)"/><path d="M9 6c3 3 3 9 6 12"/></svg></span><span class="side-label">Beans</span></button>
             <button id="timerToggleBtn" class="ritual-btn main-action timer-action" onclick="triStateTimer()" aria-label="Start, Stop, or Reset Timer">
                 <span id="timerBtnIcon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play w-8 h-8 text-white ml-1"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
                 </span>
             </button>
-            <button id="exportCsvBtn" class="ritual-btn main-action" onclick="exportBrewCsv()" aria-label="Download brew data as CSV" title="Download brew data (CSV)" hidden>
-                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-            </button>
+            <button id="exportCsvBtn" class="ritual-btn main-action side-action" onclick="exportBrewCsv()" aria-label="Download brew data as CSV" title="Download brew data (CSV)" hidden><span class="side-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></span><span class="side-label">CSV</span></button>
         </section>
         <!-- Ratio Slider Overlay (hidden by default) -->
         <div id="ratioSliderOverlay" class="ratio-slider-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ratioSliderTitle">
@@ -150,6 +154,8 @@
                     <button class="close round-close" id="closeSettingsModal" onclick="closeSettingsModal()" aria-label="Close settings">&times;</button>
                 </div>
                 <p class="settings-group">Devices</p>
+                <div class="device-row"><div class="device-name">Scale<small id="scaleRowSub">BOOKOO</small></div><div class="device-state" id="scaleRowState">Not connected</div></div>
+                <div class="device-row"><div class="device-name">EC meter<small id="portalRowSub">Belka PORTAL</small></div><div class="device-state" id="portalRowState">Not connected</div></div>
                 <div class="modal-controls connect-controls">
                     <button id="connectToggleBtn" class="ritual-btn ritual-connect" onclick="toggleConnect()" aria-pressed="false">Connect</button>
                     <button id="disconnectAllBtn" class="ritual-btn ritual-disconnect" onclick="disconnect()" hidden>Disconnect</button>
@@ -258,10 +264,12 @@
                     <tr><td class="tare-cell">Scale <button id="ftTareBtn" class="ritual-btn btn-outline tare-inline" onclick="sendTareCommand()">Tare</button></td><td id="ftScale">-- g</td></tr>
                     <tr><td>Carafe</td><td id="ftCarafe">--</td></tr>
                     <tr class="tds-strong"><td><label for="ftYield">Yield</label></td><td><input type="number" id="ftYield" min="0" step="any" inputmode="decimal"> g</td></tr>
-                    <tr><td>CIY</td><td id="ftCiy">--</td></tr>
-                    <tr class="tds-strong"><td>TDS</td><td id="ftTds">-- %</td></tr>
                   </tbody>
                 </table>
+                <div class="result-pair">
+                    <div class="result-box"><span>CIY</span><b id="ftCiy">--</b></div>
+                    <div class="result-box"><span>TDS</span><b id="ftTds">-- %</b></div>
+                </div>
                 <div id="ftError" class="field-error" role="alert" hidden></div>
                 <div class="tds-formula">
                     <math display="block"><mrow><mtext>TDS %</mtext><mo>=</mo><mfrac><mrow><msub><mi>k</mi><mi>v</mi></msub><mspace width="0.25em"/><mo lspace="0" rspace="0">×</mo><mspace width="0.25em"/><mtext>CIY</mtext></mrow><mtext>Yield (g)</mtext></mfrac><mspace width="0.25em"/><mo lspace="0" rspace="0">×</mo><mspace width="0.25em"/><mn>100</mn></mrow></math>
@@ -292,9 +300,9 @@
                         <tr><td>CIY</td><td id="calCiy">--</td></tr>
                         <tr><td><label for="calYield">Yield</label></td><td><input type="number" id="calYield" min="0" step="any" inputmode="decimal"> g</td></tr>
                         <tr><td><label for="calTds">True TDS</label></td><td><input type="number" id="calTds" min="0" max="25" step="any" inputmode="decimal" placeholder="1.38"> %</td></tr>
-                        <tr class="tds-strong"><td>k<sub>v</sub></td><td id="calKv">--</td></tr>
                       </tbody>
                     </table>
+                    <div class="result-pair one"><div class="result-box"><span>k<sub>v</sub></span><b id="calKv">--</b></div></div>
                     <div id="calError" class="field-error" role="alert" hidden></div>
                     <div class="tds-formula">
                         <math display="block"><mrow><msub><mi>k</mi><mi>v</mi></msub><mo>=</mo><mfrac><mrow><mtext>TDS %</mtext><mspace width="0.25em"/><mo lspace="0" rspace="0">×</mo><mspace width="0.25em"/><mtext>Yield (g)</mtext></mrow><mrow><mn>100</mn><mspace width="0.25em"/><mo lspace="0" rspace="0">×</mo><mspace width="0.25em"/><mtext>CIY</mtext></mrow></mfrac></mrow></math>
@@ -307,12 +315,10 @@
                 <section id="calStep2" hidden>
                     <p class="dialog-step">Calibrate k<sub>v</sub> · 2 of 2</p>
                     <h3 id="calTitle2">Compare and save</h3>
-                    <table class="memory-table tds-table">
-                      <tbody>
-                        <tr><td>Current</td><td id="calCurrentKv">--</td></tr>
-                        <tr class="tds-strong"><td><label for="calNewKv">New</label></td><td><input type="number" id="calNewKv" min="0" step="any" inputmode="decimal"></td></tr>
-                      </tbody>
-                    </table>
+                    <div class="result-pair">
+                        <div class="result-box"><span>Current</span><b id="calCurrentKv">--</b></div>
+                        <div class="result-box"><label for="calNewKv">New</label><input type="number" id="calNewKv" min="0" step="any" inputmode="decimal"></div>
+                    </div>
                     <div id="calNewKvError" class="field-error" role="alert" hidden></div>
                     <div id="calHistory" hidden>
                         <p class="dialog-step">Last 3</p>

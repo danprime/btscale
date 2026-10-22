@@ -63,7 +63,7 @@ test('Bean Dose and Carafe/Server are typed in Settings, never taken from the sc
   await beans.press('Enter');
   await expect(page.locator('#memoryBeansWeight')).toHaveText('18.5 g');
   await expect(page.locator('#memoryBeansEditBtn')).toHaveText('Edit');
-  await expect(page.locator('#targetWeight')).toHaveText('18.5gin → 277.5gout'); // target follows the dose
+  await expect(page.locator('#targetWeight')).toHaveText('18.5 → 277.5 g'); // target follows the dose
 
   // Carafe/Server: Save button; editing again starts from the stored value
   await page.click('#memoryCarafeEditBtn');

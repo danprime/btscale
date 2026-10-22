@@ -171,15 +171,34 @@ function refreshChart() {
     const { mode, weightPoints } = chartData();
     // Weight's label stays on the left; with the EC meter, EC's is on the right
     const html = mode !== 'ec'
-        ? 'Weight · g'
+        ? '<span class="brew-chart-label-weight">Weight · g</span>'
         : weightPoints
             ? '<span class="brew-chart-label-weight">Weight · g</span><span class="brew-chart-label-ec">EC · mS/cm</span>'
-            : 'EC · mS/cm'; // EC only: its axis is the left one
+            : '<span class="brew-chart-label-ec">EC · mS/cm</span>'; // EC only: its axis is the left one
     if (label && label.innerHTML !== html) label.innerHTML = html;
     brewChart.requestDraw();
 }
 
+const READING_UNIT = /^(.*\S)( (?:g\/s|g|°C|%|mS\/cm))$/;
+function unitizeReading(el) {
+    if (el.querySelector('em')) return;
+    const m = el.textContent.match(READING_UNIT);
+    if (!m) return;
+    el.textContent = m[1];
+    el.append(Object.assign(document.createElement('em'), { textContent: m[2] }));
+}
+
 window.addEventListener('DOMContentLoaded', () => {
+    const readings = document.getElementById('readings');
+    if (readings) {
+        readings.querySelectorAll('.ritual-info-value').forEach(unitizeReading);
+        new MutationObserver((changes) => {
+            for (const c of changes) {
+                const el = c.target.nodeType === 1 ? c.target.closest('.ritual-info-value') : c.target.parentElement?.closest('.ritual-info-value');
+                if (el) unitizeReading(el);
+            }
+        }).observe(readings, { childList: true, characterData: true, subtree: true });
+    }
     const canvas = document.getElementById('brewChartCanvas');
     if (canvas) brewChart = new BrewChart(canvas, chartData);
     refreshChart();
@@ -265,6 +284,8 @@ function renderTimerIcon() {
     const timerIcon = document.getElementById('timerBtnIcon');
     if (!timerIcon) return;
     timerIcon.innerHTML = timerState === 'running' ? STOP_ICON : timerState === 'reset-required' ? RESET_ICON : PLAY_ICON;
+    // After Stop the controls become: Final TDS / Beans | Reset | CSV (Tare is in the calculator)
+    document.querySelector('.ritual-main-actions')?.classList.toggle('is-stopped', timerState === 'reset-required');
 }
 
 /** Refresh every connection-dependent piece of UI from the current device state. */
@@ -296,6 +317,7 @@ function renderConnectionState(errorText) {
     // Header icons are always shown: solid when connected, faded (tap to connect) when not
     renderDeviceIcon('scaleIcon', 'Scale', scaleOn);
     renderDeviceIcon('portalIcon', 'EC meter', portalOn);
+    renderDeviceRows();
     // Nothing connected and nothing recorded: a Connect button in the empty chart
     const chartConnect = document.getElementById('chartConnectBtn');
     const hasBrew = !chartCleared && recorder.hasData();
@@ -334,6 +356,22 @@ function renderConnectionState(errorText) {
     renderTimerIcon();
     updateExportButton();
     refreshChart();
+}
+
+/** Settings > Devices: one row per device with its state and battery. */
+function renderDeviceRows() {
+    const rows = [
+        ['scale', 'scaleRowState', 'scaleRowSub', 'BOOKOO', lastScaleData?.batteryPercent],
+        ['portal', 'portalRowState', 'portalRowSub', 'Belka PORTAL', lastPortalData?.battery],
+    ];
+    for (const [type, stateId, subId, model, battery] of rows) {
+        const on = deviceConnected(type);
+        const state = document.getElementById(stateId);
+        if (!state) continue;
+        setText(stateId, on ? 'Connected' : 'Not connected');
+        state.classList.toggle('is-on', on);
+        setText(subId, on && battery != null ? `${model} · battery ${battery} %` : model);
+    }
 }
 
 function renderDeviceIcon(id, name, connected) {
@@ -464,6 +502,7 @@ function updateDisplay(scaleData) {
     renderElapsed(scaleIsTimeSource() ? scaleData.milliseconds : appTimer.elapsed());
     const scaleIcon = document.getElementById('scaleIcon');
     if (scaleIcon && scaleData.batteryPercent != null) scaleIcon.title = `Scale connected · battery ${scaleData.batteryPercent}%`;
+    renderDeviceRows();
 }
 
 /** EC meter (Belka Portal) readings: temperature and EC cards. */
@@ -474,6 +513,7 @@ function updatePortalDisplay(portalData) {
     if (ecEl) ecEl.textContent = `${portalData.ec.toFixed(2)} mS/cm`;
     const portalIcon = document.getElementById('portalIcon');
     if (portalIcon) portalIcon.title = `EC meter connected · battery ${portalData.battery}%`;
+    renderDeviceRows();
 }
 
 function onScaleData(scaleData) {
@@ -609,8 +649,8 @@ function clearFinal() {
     finalSnapshot = null;
     finalTds = null;
     closeFinalTds();
-    setText('flowRateLabel', 'Flow rate');
-    setText('tempLabel', 'Temperature');
+    setText('flowRateLabel', 'Flow');
+    setText('tempLabel', 'Temp');
     setText('ecLabel', 'EC');
     if (lastScaleData && deviceConnected('scale')) updateDisplay(lastScaleData);
     else {
@@ -997,7 +1037,7 @@ function recomputeTarget() {
     if (twEl) {
         const g = (v) => String(Number(v.toFixed(1))); // 20, 18.5, 277.5
         if (targetWeight != null) {
-            twEl.innerHTML = `${g(dose)}g<sub>in</sub> → ${g(targetWeight)}g<sub>out</sub>`;
+            twEl.textContent = `${g(dose)} → ${g(targetWeight)} g`;
             twEl.setAttribute('aria-label', `${g(dose)} grams in, ${g(targetWeight)} grams out`);
         } else {
             twEl.textContent = '-- g';
@@ -1350,7 +1390,7 @@ function renderYieldPanel() {
 }
 
 // --- Bean button: "set beans", or the final TDS calculator after a TDS brew is stopped ---
-const CALC_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>`;
+const CALC_ICON = `<span class="side-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg></span><span class="side-label">Final TDS</span>`;
 let beanButtonHtml = null;
 
 function calculatorMode() {
@@ -1742,7 +1782,6 @@ function drawExtractionChart(svg, { point = null, trail = [], labelsShown = fals
 
     // Grid and ticks
     for (let v = EY_AXIS.min; v <= EY_AXIS.max + 1e-9; v += EY_AXIS.step) {
-        svg.append(svgEl('line', { x1: x(v), x2: x(v), y1: y(TDS_AXIS.max), y2: y(TDS_AXIS.min), class: 'ey-grid' }));
         svg.append(svgEl('text', { x: x(v), y: h - pad.b + 12, 'text-anchor': 'middle', class: 'ey-tick' }, String(v)));
     }
     // x-axis title, bottom right (the y-axis title "TDS · %" is in the card header)
@@ -1813,6 +1852,9 @@ function renderChartDots(i) {
     const track = byId('chartTrack');
     const active = i ?? (track && track.clientWidth ? Math.round(track.scrollLeft / track.clientWidth) : 0);
     document.querySelectorAll('#chartDots .chart-dot').forEach((d, n) => d.setAttribute('aria-current', String(n === active)));
+    // The legend belongs to the brew chart
+    const legend = document.getElementById('brewChartLabel');
+    if (legend) legend.style.visibility = active === 1 ? 'hidden' : '';
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -1988,8 +2030,8 @@ function renderBrewDetail() {
         target: s.target,
         running: false,
     };
-    byId('logBrewChartLabel').innerHTML = !s.hasEc ? 'Weight · g'
-        : dual ? '<span class="brew-chart-label-weight">Weight · g</span><span class="brew-chart-label-ec">EC · mS/cm</span>' : 'EC · mS/cm';
+    byId('logBrewChartLabel').innerHTML = !s.hasEc ? '<span class="brew-chart-label-weight">Weight · g</span>'
+        : dual ? '<span class="brew-chart-label-weight">Weight · g</span><span class="brew-chart-label-ec">EC · mS/cm</span>' : '<span class="brew-chart-label-ec">EC · mS/cm</span>';
     if (!logChart) logChart = new BrewChart(byId('logBrewChart'), () => logChartData);
     logChart.requestDraw();
 

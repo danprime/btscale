@@ -122,7 +122,7 @@ test('live TDS needs the scale and the EC meter, waits 30 s, then uses the live 
   await expect(page.locator('#tdsValue')).toHaveText('-- %');
   // Temperature, TDS, EC in one row
   const labels = await page.locator('#portalInfo .ritual-info-item:visible .ritual-info-label').allTextContents();
-  expect(labels).toEqual(['Temperature', 'TDS ≈ (uncal.)', 'EC']);
+  expect(labels).toEqual(['Temp', 'TDS ≈ (uncal.)', 'EC']);
 
   await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 20 } } });
   await page.evaluate(() => window.__connect(['scale', 'portal']));
@@ -484,21 +484,12 @@ test('default k_v 0.005 is used and marked uncalibrated until a k_v is saved', a
   await expect(page.locator('#tdsLabel')).toHaveText('TDS');
 });
 
-test('target card: "in → out" subscripts with two cards, plain "20g → 300g" with three', async ({ page }) => {
+test('In → out reads "20 → 300 g" and stays on one line, also next to Yield after the calculator', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 667 });
   await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 18.5 }, carafe: { weight: 186 } } });
   const target = page.locator('#targetWeight');
-  await expect(target).toHaveText('18.5gin → 277.5gout');
-  await expect(target.locator('sub').first()).toBeVisible(); // two cards: in/out subscripts
-  // Subscripts must not make the card taller than plain text would
-  const heights = await target.evaluate((el) => {
-    const withSubs = el.getBoundingClientRect().height;
-    el.classList.add('compact');
-    const plain = el.getBoundingClientRect().height;
-    el.classList.remove('compact');
-    return { withSubs, plain };
-  });
-  expect(heights.withSubs).toBe(heights.plain);
+  await expect(target).toHaveText('18.5 → 277.5 g');
+  await expect(target.locator('sub')).toHaveCount(0);
   await page.evaluate(async () => {
     await window.__connect(['scale', 'portal']);
     await window.__brew();
@@ -508,14 +499,7 @@ test('target card: "in → out" subscripts with two cards, plain "20g → 300g" 
   await page.click('#tareBeanBtn');
   await page.click('#ftNextBtn');
   await expect(page.locator('#yieldPanel')).toBeVisible();
-  // Three cards: plain "18.5g → 277.5g" on one line
-  await expect(target.locator('sub')).toHaveCount(2);
-  await expect(target.locator('sub').first()).toBeHidden();
-  expect(await target.evaluate((el) => el.innerText)).toBe('18.5g → 277.5g');
-  await expect.poll(() => target.evaluate((el) => el.scrollWidth <= el.clientWidth && el.getBoundingClientRect().height < 30)).toBe(true);
-  // Reset: back to two cards with subscripts
-  await page.evaluate(() => triStateTimer());
-  await expect(target.locator('sub').first()).toBeVisible();
+  await expect.poll(() => target.evaluate((el) => el.scrollWidth <= el.clientWidth && el.getBoundingClientRect().height < 32)).toBe(true);
 });
 
 test('live extraction path while brewing: hollow dot and trail; after Next the trail stays with the final dot', async ({ page }) => {
