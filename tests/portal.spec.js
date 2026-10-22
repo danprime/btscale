@@ -577,6 +577,24 @@ test('readings: two (weight only) split the row evenly; with the EC meter they s
   await expect.poll(async () => { const w = await widths(); return w.length >= 4 && w.every((x) => x === 31); }).toBe(true);
 });
 
+test('readings use a fixed line-height, so a fallback "→" (Android) cannot push In → out lower', async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 720 });
+  await page.reload();
+  const r = await page.evaluate(() => {
+    const cs = (id) => getComputedStyle(document.getElementById(id)).lineHeight;
+    const top = (id) => Math.round(document.getElementById(id).getBoundingClientRect().top);
+    return {
+      lineHeights: [cs('flowRateLabel'), cs('targetWeightLabel'), cs('flowRate'), cs('targetWeight')],
+      labels: [top('flowRateLabel'), top('targetWeightLabel')],
+      values: [top('flowRate'), top('targetWeight')],
+    };
+  });
+  // "normal" lets a fallback font's taller metrics stretch the line; a fixed value doesn't
+  for (const lh of r.lineHeights) expect(lh).toMatch(/px$/);
+  expect(r.labels[1]).toBe(r.labels[0]);
+  expect(r.values[1]).toBe(r.values[0]);
+});
+
 test('chart axes: weight stays on the left; EC on the right with a scale, on the left without', async ({ page }) => {
   const label = page.locator('#brewChartLabel');
   await page.evaluate(() => { window.__mock = window.__test_installMultiBLEMock({ devices: ['portal'] }); });

@@ -57,6 +57,7 @@ button, input, select {
 .dialog-step,
 .settings-group {
     font-size: var(--label);
+    line-height: 1.35;           /* fixed, so a fallback glyph (e.g. Android's "→") can't make the line taller */
     font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -392,6 +393,7 @@ button, input, select {
 .log-cards .ritual-info-value {
     margin-top: 1px;
     font-size: 20px;
+    line-height: 1.35;
     font-weight: 500;
     color: var(--brown);
 }
