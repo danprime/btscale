@@ -120,7 +120,7 @@ test('a stopped brew is saved; the calculator updates it; detail shows both char
   await expect(page.locator('#logEyChartBox')).toBeVisible();
   await expect(page.locator('#logEyChart .ey-brew')).toHaveCount(1);
   await expect(page.locator('#logEyChart .ey-brew-estimate')).toHaveCount(0); // final, solid
-  await expect(page.locator('#logEyChart .ey-trail')).toHaveCount(0);
+  await expect(page.locator('#logEyChart .ey-trail')).toHaveCount(0); // no live path in this brew (it starts 30 s in)
   // Summary row: time, ratio, TDS; then grouped cards
   expect(await summary(page)).toEqual([['Time', '0:02'], ['Ratio', '1:10.0'], ['TDS', '1.10 %']]);
   expect(await groups(page)).toEqual(['Brew', 'Extraction', 'EC meter']);
@@ -312,3 +312,46 @@ for (const size of [{ width: 384, height: 720 }, { width: 375, height: 667 }]) {
     expect(r.overflow).toEqual([]);
   });
 }
+
+test('the brew log keeps the live TDS vs extraction path and draws it with the final dot', async ({ page }) => {
+  await withStorage(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 20 }, carafe: { weight: 186 } } });
+  await page.evaluate(async () => {
+    await window.__connect(['scale', 'portal']);
+    window.__test_setTdsDelay(0); // the live path starts straight away
+    await window.__emitScale(window.__mock, 0, 0);
+    await triStateTimer();
+    for (const [w, ec] of [[100, 2.2], [200, 1.1], [300, 0.5]]) {
+      await window.__emitScale(window.__mock, w, w * 10);
+      window.__mock.emitPortal({ ec, temp: 80 });
+    }
+    await triStateTimer(); // stop
+  });
+  await expect.poll(() => page.evaluate(async () => (await window.__test_brewLog.list())[0]?.series.trail.length)).toBe(3);
+  const trail = await page.evaluate(async () => (await window.__test_brewLog.list())[0].series.trail);
+  expect(trail[2].ey).toBeCloseTo(9.5, 3); // 260 g x 0.7308 % / 20 g
+  expect(trail[2].tds).toBeCloseTo(0.7308, 3);
+
+  // Calculator Next: the final dot; the log shows trail + final dot
+  await page.evaluate(() => window.__emitScale(window.__mock, 436, 3000));
+  await page.click('#tareBeanBtn');
+  await page.click('#ftNextBtn');
+  await expect.poll(() => page.evaluate(async () => (await window.__test_brewLog.list())[0].summary.yield)).toBe(250);
+  await page.click('#settingsBtn');
+  await page.click('#brewLogBtn');
+  await page.click('.log-item');
+  await expect(page.locator('#logEyChart .ey-trail')).toHaveCount(1);
+  expect((await page.locator('#logEyChart .ey-trail').getAttribute('points')).trim().split(' ')).toHaveLength(3);
+  await expect(page.locator('#logEyChart .ey-brew')).toHaveCount(1);
+  await expect(page.locator('#logEyChart .ey-brew-estimate')).toHaveCount(0);
+
+  // A brew saved before trails were stored still shows just its dot
+  await page.evaluate(async () => {
+    const b = (await window.__test_brewLog.list())[0];
+    delete b.series.trail;
+    await window.__test_brewLog.save(b);
+  });
+  await page.locator('#logDetailView .log-back').click();
+  await page.click('.log-item');
+  await expect(page.locator('#logEyChart .ey-brew')).toHaveCount(1);
+  await expect(page.locator('#logEyChart .ey-trail')).toHaveCount(0);
+});
