@@ -145,7 +145,7 @@ Files
 - `belka-portal.js` - `BelkaPortal` driver: connects (service `0x7400`), parses the 13-byte stream packet (`parsePortalPacket()`), and sends start/stop timer commands. Protocol notes: `belka_portal_protocol.md`.
 - `device-manager.js` - `DeviceManager` owns both connections and implements the single Connect button.
 - `brew-recorder.js` - `BrewRecorder` records weight, flow, temperature and EC between Start and Stop and produces the CSV.
-- `tds.js` - TDS maths: EC at 25 °C, the Cumulative Ionic Yield (`CiyIntegrator`), live yield, TDS and the calibration constant k_v.
+- `tds.js` - TDS maths: the Cumulative Ionic Yield (`CiyIntegrator`, EC used as sent; the meter already compensates to 25 °C), live yield, TDS, the calibration constant k_v and extraction yield. All calculations, with worked examples: `tds_calculations.md`.
 - `emitter.js` - shared `SimpleEmitter` (multiple listeners per event).
 - `ble-mock.js` - `installMockBluetooth({ devices, permitted })`, a multi-device `navigator.bluetooth` mock used by the tests.
 
