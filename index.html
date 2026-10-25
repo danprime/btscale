@@ -213,6 +213,12 @@
                     <span id="brewLogCount" class="settings-row-meta"></span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6"/></svg>
                 </button>
+                <!-- Settings and brew log shared between devices through a brewlog server -->
+                <button id="syncBtn" class="settings-row-btn" onclick="openSync()">
+                    <span>Sync</span>
+                    <span id="syncRowMeta" class="settings-row-meta">Off</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
                 <!-- Device and display settings: hidden for now (not in use), kept so they
                      can be shown again. Saved values (e.g. Start/Stop timer drives) still apply. -->
                 <div id="moreSettings" hidden>
@@ -340,6 +346,27 @@
                         <button id="calSaveBtn" class="ritual-btn memory-confirm-btn" onclick="saveNewKv()"><span>Save new k<sub>v</sub></span></button>
                     </div>
                 </section>
+            </div>
+        </div>
+        <!-- Sync (from Settings): server address and token -->
+        <div id="syncModal" class="modal tds-dialog" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="syncTitle">
+            <div class="modal-content">
+                <p class="dialog-step">Sync</p>
+                <h3 id="syncTitle">Sync between devices</h3>
+                <p class="dialog-note">Keeps your settings and brew log the same on each device, through your brewlog server.</p>
+                <table class="memory-table tds-table sync-table">
+                  <tbody>
+                    <tr><td><label for="syncUrl">Server</label></td><td><input type="url" id="syncUrl" class="text-input" placeholder="https://brewlog.example.com" autocomplete="off" autocapitalize="off" spellcheck="false"></td></tr>
+                    <tr><td><label for="syncToken">Token</label></td><td><input type="password" id="syncToken" class="text-input" autocomplete="off" autocapitalize="off" spellcheck="false"></td></tr>
+                  </tbody>
+                </table>
+                <p id="syncStatus" class="dialog-step"></p>
+                <div id="syncError" class="field-error" role="alert" hidden></div>
+                <div class="dialog-actions">
+                    <button id="syncOffBtn" class="ritual-btn btn-secondary" onclick="turnSyncOff()" hidden>Turn off</button>
+                    <button class="ritual-btn btn-secondary" onclick="closeSync()">Close</button>
+                    <button id="syncSaveBtn" class="ritual-btn memory-confirm-btn" onclick="saveSync()">Save and sync</button>
+                </div>
             </div>
         </div>
         <!-- Brew log: saved brews (newest first), then one brew's charts and final data -->

@@ -17,6 +17,7 @@ function loadMemory() {
 function saveMemory() {
   localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
   updateMemoryTable();
+  sync?.schedule();
 }
 
 // Settings rows for the stored weights (typed in; the scale is not used here)
@@ -103,6 +104,7 @@ import { DeviceManager } from './device-manager.js';
 import { BrewRecorder } from './brew-recorder.js';
 import { BrewChart, formatSeconds } from './brew-chart.js';
 import { BrewLog, downsample, MAX_BREWS } from './brew-log.js';
+import { Sync, SYNCED_SETTINGS } from './sync.js';
 import { CiyIntegrator, liveYield, tdsPercent, calcKv, extractionYield, extractionRegion, DEFAULT_KV, DEFAULT_ABSORPTION, MAX_ABSORPTION } from './tds.js';
 
 // --- Settings modal logic (moved to top for global availability) ---
@@ -138,6 +140,7 @@ let finalSnapshot = null;
 
 // TDS (needs the scale and the EC meter): CIY accumulates while a brew runs with both
 const ciy = new CiyIntegrator();
+let sync = null; // settings and brew log shared between devices (set up with the brew log)
 let tdsBrew = false; // true once this brew has summed EC over poured water
 let tdsMinSeconds = 30; // live TDS shows "--" for this long after Start
 let finalTds = null; // { yieldG, tds } from the final TDS calculator, after Stop
@@ -907,16 +910,21 @@ function exportBrewCsv() {
 
 // --- Timer settings (persisted) ---
 const TIMER_DRIVES_KEY = 'timerDrivesV1';
-window.addEventListener('DOMContentLoaded', () => {
+function loadTimerDrives() {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(TIMER_DRIVES_KEY)) || {}; } catch {}
     for (const [id, key] of [['driveScaleTimer', 'scale'], ['drivePortalTimer', 'portal']]) {
         const el = document.getElementById(id);
-        if (!el) continue;
-        if (typeof saved[key] === 'boolean') el.checked = saved[key];
-        el.addEventListener('change', () => {
+        if (el && typeof saved[key] === 'boolean') el.checked = saved[key];
+    }
+}
+window.addEventListener('DOMContentLoaded', () => {
+    loadTimerDrives();
+    for (const id of ['driveScaleTimer', 'drivePortalTimer']) {
+        document.getElementById(id)?.addEventListener('change', () => {
             const value = { scale: timerDrives('scale'), portal: timerDrives('portal') };
             try { localStorage.setItem(TIMER_DRIVES_KEY, JSON.stringify(value)); } catch {}
+            sync?.schedule();
         });
     }
     renderConnectionState();
@@ -1086,6 +1094,7 @@ function setRatio(r) {
     try { localStorage.setItem(RATIO_KEY, String(r)); } catch {}
     renderRatioSetting();
     recomputeTarget();
+    sync?.schedule();
 }
 
 // --- Settings: ratio row (Edit turns the number into an input) ---
@@ -1327,12 +1336,15 @@ function loadJson(key) {
 }
 function saveJson(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+    if (SYNCED_SETTINGS.includes(key)) sync?.schedule();
 }
 
 // Calibrated k_v (null until the first calibration; DEFAULT_KV is used meanwhile)
-let kv = (() => { const v = loadJson(KV_KEY); return typeof v === 'number' && v > 0 ? v : null; })();
+function loadKv() { const v = loadJson(KV_KEY); return typeof v === 'number' && v > 0 ? v : null; }
+function loadAbsorption() { const v = loadJson(ABSORPTION_KEY); return typeof v === 'number' && v >= 0 && v <= MAX_ABSORPTION ? v : DEFAULT_ABSORPTION; }
+let kv = loadKv();
 function activeKv() { return kv ?? DEFAULT_KV; }
-let absorption = (() => { const v = loadJson(ABSORPTION_KEY); return typeof v === 'number' && v >= 0 && v <= MAX_ABSORPTION ? v : DEFAULT_ABSORPTION; })();
+let absorption = loadAbsorption();
 
 /** 4 significant digits, no trailing zeros ("0.005", "0.005086") */
 /** "Oct 20, 09:56 a.m." (date, comma, time), used wherever a brew's time is shown */
@@ -1910,6 +1922,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // --- Brew log: every stopped brew is saved (summary + chart points); Settings > Brew log ---
 const brewLog = new BrewLog();
+sync = new Sync({ brewLog, onSettings: reloadSyncedSettings, onBrews: brewsSynced, onStatus: renderSyncStatus });
+brewLog.onChange = () => sync.schedule();
 let currentLogId = null; // the brew saved at the last Stop (updated by the calculator)
 let openLogBrew = null; // the brew shown in the detail view
 let logChart = null;
@@ -2208,6 +2222,7 @@ async function deleteBrew() {
     if (!openLogBrew) return;
     const id = openLogBrew.id;
     await brewLog.remove(id);
+    sync?.markBrewDeleted(id);
     if (currentLogId === id) currentLogId = null;
     await refreshLogCount();
     await showBrewList();
@@ -2273,6 +2288,106 @@ window.keepCurrentKv = keepCurrentKv;
 window.saveNewKv = saveNewKv;
 window.showChartSlide = showChartSlide;
 window.openBrewLog = openBrewLog;
+
+// --- Sync: settings and brew log shared between devices (Settings > Sync) ---
+
+/** Settings changed on another device: read them again and show them. */
+function reloadSyncedSettings() {
+    loadMemory(); // also recomputes the target
+    currentRatio = loadRatio();
+    renderRatioSetting();
+    recomputeTarget();
+    kv = loadKv();
+    renderKvSetting();
+    absorption = loadAbsorption();
+    renderAbsorptionSetting();
+    loadTimerDrives();
+    renderTdsPanel();
+}
+
+/** Brews came from another device: refresh the count and whatever part of the log is open. */
+function brewsSynced() {
+    refreshLogCount();
+    if (!brewLogOpen()) return;
+    if (openLogBrew && !isTablet()) openBrewDetail(openLogBrew.id);
+    else showBrewList();
+}
+
+function syncOpen() {
+    const modal = byId('syncModal');
+    return !!modal && modal.style.display !== 'none';
+}
+
+/** "10:24 a.m." today, otherwise "Oct 20, 10:24 a.m." */
+function formatSyncTime(at) {
+    const d = new Date(at);
+    return d.toDateString() === new Date().toDateString()
+        ? d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+        : formatShortDateTime(at);
+}
+
+function renderSyncStatus(st = sync.status()) {
+    const meta = !st.configured ? 'Off' : st.syncing ? 'Syncing…' : st.error ? 'Not synced' : st.lastSync ? formatSyncTime(st.lastSync) : 'On';
+    setText('syncRowMeta', meta);
+    if (!syncOpen()) return;
+    setText('syncStatus', st.configured && st.lastSync ? `Last synced ${formatSyncTime(st.lastSync)}` : '');
+    showFieldError('syncError', st.configured && !st.syncing && st.error ? st.error : '');
+    byId('syncOffBtn').hidden = !st.configured;
+    byId('syncSaveBtn').disabled = st.syncing;
+    byId('syncSaveBtn').textContent = st.configured ? 'Save and sync' : 'Turn on';
+}
+
+function openSync() {
+    const config = sync.config;
+    byId('syncUrl').value = config?.url || '';
+    const token = byId('syncToken');
+    token.value = '';
+    token.placeholder = config?.token ? 'Saved on this device' : "From the server's .env";
+    byId('syncModal').style.display = 'flex';
+    renderSyncStatus();
+    (config ? byId('syncSaveBtn') : byId('syncUrl')).focus();
+}
+
+function closeSync() {
+    const modal = byId('syncModal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function saveSync() {
+    const token = byId('syncToken').value || sync.config?.token || '';
+    try {
+        sync.setConfig({ url: byId('syncUrl').value, token });
+    } catch (e) {
+        showFieldError('syncError', e.message);
+        return;
+    }
+    byId('syncToken').value = '';
+    byId('syncToken').placeholder = 'Saved on this device';
+    await sync.sync().catch(() => {}); // the status line shows any error
+}
+
+function turnSyncOff() {
+    sync.turnOff();
+    byId('syncToken').placeholder = "From the server's .env";
+}
+
+window.openSync = openSync;
+window.closeSync = closeSync;
+window.saveSync = saveSync;
+window.turnSyncOff = turnSyncOff;
+window.__test_sync = sync;
+
+window.addEventListener('DOMContentLoaded', () => {
+    renderSyncStatus();
+    for (const id of ['syncUrl', 'syncToken']) {
+        byId(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveSync(); } });
+        byId(id).addEventListener('input', () => showFieldError('syncError', ''));
+    }
+    byId('syncModal').addEventListener('click', (e) => { if (e.target.id === 'syncModal') closeSync(); });
+    // Sync when the app opens and when it comes back to the front
+    sync.schedule(800);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync.schedule(500); });
+});
 window.closeBrewLog = closeBrewLog;
 window.showBrewList = showBrewList;
 window.startLogRename = startLogRename;
@@ -2351,6 +2466,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (e.key !== 'Escape') return;
         // Close the top dialog only
         if (brewLogOpen()) brewLogEscape();
+        else if (syncOpen()) closeSync();
         else if (calibrationOpen()) closeCalibration();
         else if (finalTdsOpen()) closeFinalTds();
         else closeSettingsModal();
