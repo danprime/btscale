@@ -133,6 +133,17 @@ Notes
 - Buttons: one big Start / Stop / Reset in the middle; Tare and Beans either side. After Stop: Final TDS (or Beans), Reset and CSV (Tare is in the calculator).
 - The Final TDS calculator and k_v calibration open as sheets from the bottom.
 
+## Tablet (iPad, landscape)
+
+On any screen at least 1024 x 700 in landscape (an 11" or 12.9" iPad) the layout uses thirds:
+
+- Left third: weight, time and ratio fill the top half; all nine readings fill the bottom half, always in this order: Flow, In → out, Remaining / TDS, Extraction, Yield / Temp, EC, CIY ("--" until there is data; Yield is an estimate until the Final TDS calculator). The buttons stay at the bottom.
+- Right two thirds: the brew chart, and under it (during and after a brew with both devices) the TDS vs extraction chart, with their y axes lined up. The latest weight and EC float next to their dots; the extraction chart always shows its region labels.
+- Settings slides in from the right (k_v calibration opens inside it); the Final TDS calculator opens over the left third.
+- The brew log shows the list (left third) beside the open brew (right two thirds).
+
+Portrait keeps the phone-style card. iPadOS browsers (Chrome included) have no Web Bluetooth, so on an iPad open the app in a Web Bluetooth browser such as Bluefy.
+
 ## Install as an app (Brew Tool)
 
 The page is an installable web app (`manifest.webmanifest`, icons in `icons/`). On Android, open https://danprime.github.io/btscale/ in Chrome, tap ⋮ > Install app (or Add to Home screen). "Brew Tool" then opens from the home screen in its own window, always in Chrome (needed for Web Bluetooth), even if another browser is the default. There's no service worker: every launch loads the current version from GitHub Pages (which lets browsers cache files for up to 10 minutes). The icons are rendered from `icons/icon.svg` and `icons/icon-maskable.svg`.

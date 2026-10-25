@@ -142,6 +142,10 @@ let tdsBrew = false; // true once this brew has summed EC over poured water
 let tdsMinSeconds = 30; // live TDS shows "--" for this long after Start
 let finalTds = null; // { yieldG, tds } from the final TDS calculator, after Stop
 
+// Tablet landscape (iPad): all nine readings, both charts at once, the brew log as list + detail
+const TABLET_QUERY = window.matchMedia?.('(min-width: 1024px) and (min-height: 700px) and (orientation: landscape)');
+function isTablet() { return !!TABLET_QUERY?.matches; }
+
 // Live brew chart (replaces the progress ring). Cleared on Reset, refilled from Start.
 let brewChart = null;
 let chartCleared = true;
@@ -327,7 +331,7 @@ function renderConnectionState(errorText) {
     if (stripConnect) stripConnect.hidden = any || !hasBrew;
     const portalInfo = document.getElementById('portalInfo');
     // Keep the frozen Temp/Peak EC cards after Stop even if the EC meter has gone
-    if (portalInfo) portalInfo.style.display = portalOn || finalSnapshot?.peakEc != null ? '' : 'none';
+    if (portalInfo) portalInfo.style.display = portalOn || finalSnapshot?.peakEc != null || isTablet() ? '' : 'none';
     renderLiveStrip();
 
     // Scale-only controls
@@ -462,9 +466,12 @@ function updateDisplay(scaleData) {
     document.getElementById('flowRate').textContent = `${scaleData.flowRate.toFixed(1)} g/s`;
     const showRemainder = document.getElementById('showRemainder');
     const remainderPanel = document.getElementById('remainderPanel');
-    if (targetWeight !== null && showRemainder && showRemainder.checked) {
+    // Remaining to the target: always on a tablet, otherwise only with "Show Remainder"
+    if (targetWeight !== null) {
         const remainder = targetWeight - scaleData.weight;
-        document.getElementById('remainder').textContent = `${remainder >= 0 ? '+' : ''}${remainder.toFixed(1)} g`;
+        document.getElementById('remainder').textContent = `${remainder.toFixed(1)} g`;
+    }
+    if (isTablet() || (targetWeight !== null && showRemainder && showRemainder.checked)) {
         if (remainderPanel) remainderPanel.style.display = '';
     } else if (remainderPanel) {
         remainderPanel.style.display = 'none';
@@ -485,7 +492,7 @@ function updateDisplay(scaleData) {
     const currentRatioPanel = document.getElementById('currentRatioPanel');
     const currentRatioValue = document.getElementById('currentRatio');
     if (showCurrentRatio && currentRatioPanel && currentRatioValue) {
-        if (showCurrentRatio.checked && targetWeight && memory.beans?.weight) {
+        if (showCurrentRatio.checked && targetWeight && memory.beans?.weight && !isTablet()) { // the tablet has the ratio in the hero
             const currentRatio = scaleData.weight / memory.beans.weight;
             if (isFinite(currentRatio) && currentRatio > 0) {
                 currentRatioValue.textContent = `1:${currentRatio.toFixed(1)}`;
@@ -630,8 +637,8 @@ function renderFinal() {
     setText('flowRate', f.avgFlow != null ? `${f.avgFlow.toFixed(1)} g/s` : '-- g/s');
     setText('tempLabel', 'Temp at stop');
     setText('tempValue', f.temp != null ? `${f.temp.toFixed(1)} °C` : '-- °C');
-    if (f.ciy != null) {
-        // TDS brew: CIY replaces the EC card
+    if (f.ciy != null && !isTablet()) {
+        // TDS brew: CIY replaces the EC card (the tablet has a CIY reading of its own)
         setText('ecLabel', 'CIY');
         setText('ecValue', formatCiy(f.ciy));
     } else {
@@ -1363,27 +1370,54 @@ function syncRecorderTds() {
 
 /** TDS card: live estimate while brewing with both devices, final values after Stop. */
 function renderTdsPanel() {
+    renderTabletReadings();
     const panel = byId('tdsPanel');
     if (!panel) return;
     const both = deviceConnected('scale') && deviceConnected('portal');
     const show = finalSnapshot ? finalSnapshot.ciy != null : both;
-    panel.hidden = !show;
-    if (!show) return;
+    panel.hidden = !show && !isTablet();
     // Marked until k_v has been calibrated (the default is used meanwhile)
     setText('tdsLabel', `${finalTds ? 'TDS' : 'TDS ≈'}${kv ? '' : ' (uncal.)'}`);
     let text;
-    if (finalTds) text = formatTds(finalTds.tds);
+    if (!show) text = '-- %';
+    else if (finalTds) text = formatTds(finalTds.tds);
     else if (finalSnapshot) text = formatTds(finalSnapshot.estTds);
     else if (!recorder.running || recorder.elapsed() < tdsMinSeconds) text = '-- %';
     else text = formatTds(liveTds());
     setText('tdsValue', text);
 }
 
+/** Tablet only: Extraction, CIY and the live yield have readings of their own. */
+function renderTabletReadings() {
+    const tablet = isTablet();
+    for (const id of ['eyPanel', 'ciyPanel']) {
+        const el = byId(id);
+        if (el) el.hidden = !tablet;
+    }
+    // Remaining: always on a tablet; on a phone only with the (hidden) "Show Remainder" setting
+    const remainderPanel = byId('remainderPanel');
+    if (remainderPanel && (tablet || !byId('showRemainder')?.checked)) remainderPanel.style.display = tablet ? '' : 'none';
+    if (!tablet) return;
+    const point = extractionPoint();
+    setText('eyLabel', point?.final ? 'Extraction' : 'Extraction ≈');
+    setText('eyValue', point ? `${point.ey.toFixed(1)} %` : '-- %');
+    setText('ciyValue', formatCiy(finalSnapshot ? finalSnapshot.ciy : recorder.running && tdsBrew ? ciy.ciy : null));
+    renderYieldPanel();
+}
+
 function renderYieldPanel() {
     const panel = byId('yieldPanel');
     if (!panel) return;
-    panel.hidden = !finalTds;
-    if (finalTds) setText('yieldValue', `${finalTds.yieldG.toFixed(1)} g`);
+    panel.hidden = !finalTds && !isTablet();
+    if (finalTds) {
+        setText('yieldLabel', 'Yield');
+        setText('yieldValue', `${finalTds.yieldG.toFixed(1)} g`);
+    } else if (isTablet()) {
+        // Tablet: the estimate (water poured minus what the bed holds) until the calculator
+        const est = finalSnapshot ? finalSnapshot.estYield : recorder.running ? estimatedYield() : null;
+        setText('yieldLabel', 'Yield ≈');
+        setText('yieldValue', est != null ? `${est.toFixed(1)} g` : '-- g');
+    }
     // The target card's format depends on how many cards share its row; apply it now, not on the next resize
     const twEl = byId('targetWeight');
     if (twEl) fitTarget(twEl);
@@ -1776,13 +1810,17 @@ function drawExtractionChart(svg, { point = null, trail = [], labelsShown = fals
     const h = svg.clientHeight || 150;
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     svg.replaceChildren();
-    const pad = { l: 32, r: 10, t: 8, b: 30 }; // bottom: tick numbers, then the x-axis title
+    // Bottom: tick numbers, then the x-axis title. With --chart-font set (tablet, brew log on a tablet)
+    // the chart sits under the brew chart, so it uses the brew chart's margins and the axes line up.
+    const fontPx = parseFloat(getComputedStyle(svg).getPropertyValue('--chart-font'));
+    const s = fontPx > 0 ? fontPx / 11 : 0;
+    const pad = s ? { l: 34 * s, r: 28 * s, t: 8, b: 30 * s } : { l: 32, r: 10, t: 8, b: 30 };
     const x = (ey) => pad.l + ((ey - EY_AXIS.min) / (EY_AXIS.max - EY_AXIS.min)) * (w - pad.l - pad.r);
     const y = (tds) => h - pad.b - ((tds - TDS_AXIS.min) / (TDS_AXIS.max - TDS_AXIS.min)) * (h - pad.t - pad.b);
 
     // Grid and ticks
     for (let v = EY_AXIS.min; v <= EY_AXIS.max + 1e-9; v += EY_AXIS.step) {
-        svg.append(svgEl('text', { x: x(v), y: h - pad.b + 12, 'text-anchor': 'middle', class: 'ey-tick' }, String(v)));
+        svg.append(svgEl('text', { x: x(v), y: h - pad.b + 12 * (s || 1), 'text-anchor': 'middle', class: 'ey-tick' }, String(v)));
     }
     // x-axis title, bottom right (the y-axis title "TDS · %" is in the card header)
     svg.append(svgEl('text', { x: w - pad.r, y: h - 4, 'text-anchor': 'end', class: 'ey-axis-title' }, 'Extraction · %'));
@@ -1799,11 +1837,13 @@ function drawExtractionChart(svg, { point = null, trail = [], labelsShown = fals
     // Reference points; top-row labels go below the point, bottom-row labels above
     for (const p of EY_REFERENCE) {
         svg.append(svgEl('circle', { cx: x(p.ey), cy: y(p.tds), r: 3.5, class: 'ey-ref' }));
-        if (!labelsShown) continue;
+        if (!labelsShown && !isTablet()) continue;
         const left = p.ey < 20;
         const top = p.tds > 1.2;
-        const text = svgEl('text', { x: x(p.ey) + (left ? -4 : 4), y: y(p.tds) + (top ? 14 : -18), 'text-anchor': left ? 'start' : 'end', class: 'ey-label' });
-        p.label.forEach((line, i) => text.append(svgEl('tspan', { x: x(p.ey) + (left ? -4 : 4), dy: i ? 11 : 0 }, line)));
+        const text = svgEl('text', { x: x(p.ey) + (left ? -4 : 4), y: y(p.tds), 'text-anchor': left ? 'start' : 'end', class: 'ey-label' });
+        // Offsets in em, so the labels clear the point at any font size
+        const first = top ? 1.55 : -(1.2 * (p.label.length - 1) + 0.8);
+        p.label.forEach((line, i) => text.append(svgEl('tspan', { x: x(p.ey) + (left ? -4 : 4), dy: `${i ? 1.2 : first}em` }, line)));
         svg.append(text);
     }
     // Trail, clipped at the chart edges rather than pinned, so it enters the chart where it really does
@@ -1825,7 +1865,7 @@ function drawExtractionChart(svg, { point = null, trail = [], labelsShown = fals
         const right = cx < w / 2;
         const below = cy < pad.t + 14;
         // The region labels take over while they are shown; the dot stays
-        if (!labelsShown) svg.append(svgEl('text', { x: cx + (right ? 9 : -9), y: cy + (below ? 14 : -8), 'text-anchor': right ? 'start' : 'end', class: 'ey-brew-label' },
+        if (!labelsShown || isTablet()) svg.append(svgEl('text', { x: cx + (right ? 9 : -9), y: cy + (below ? 14 : -8), 'text-anchor': right ? 'start' : 'end', class: 'ey-brew-label' },
             `${point.final ? '' : '≈ '}${point.ey.toFixed(1)} %, ${point.tds.toFixed(2)} %`));
         desc = `${point.final ? '' : `${estimateWord} `}extraction ${point.ey.toFixed(1)} %, TDS ${point.tds.toFixed(2)} %: ${extractionRegion(point.tds, point.ey)}`;
     } else if (hint) {
@@ -1852,9 +1892,9 @@ function renderChartDots(i) {
     const track = byId('chartTrack');
     const active = i ?? (track && track.clientWidth ? Math.round(track.scrollLeft / track.clientWidth) : 0);
     document.querySelectorAll('#chartDots .chart-dot').forEach((d, n) => d.setAttribute('aria-current', String(n === active)));
-    // The legend belongs to the brew chart
+    // The legend belongs to the brew chart (on a tablet both charts are always shown)
     const legend = document.getElementById('brewChartLabel');
-    if (legend) legend.style.visibility = active === 1 ? 'hidden' : '';
+    if (legend) legend.style.visibility = active === 1 && !isTablet() ? 'hidden' : '';
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -1995,7 +2035,10 @@ async function showBrewList() {
         li.append(btn);
         return li;
     }));
+    // Tablet: the newest brew (or the one already open) shows next to the list
+    if (isTablet() && brews.length) await openBrewDetail((brews.find((b) => b.id === logSelectedId) ?? brews[0]).id);
 }
+let logSelectedId = null; // the brew open next to the list (tablet)
 
 /** Detail view: static charts and the final data for one brew. */
 async function openBrewDetail(id) {
@@ -2004,7 +2047,9 @@ async function openBrewDetail(id) {
     if (nav !== logNav || !brewLogOpen()) return;
     if (!brew) return showBrewList();
     openLogBrew = brew;
-    byId('logListView').hidden = true;
+    logSelectedId = brew.id;
+    document.querySelectorAll('#logList .log-item').forEach((b) => b.classList.toggle('is-selected', b.dataset.id === String(id)));
+    byId('logListView').hidden = !isTablet();
     byId('logDetailView').hidden = false;
     byId('brewLogModal').setAttribute('aria-labelledby', 'logName');
     byId('logDeleteConfirm').hidden = true;
@@ -2171,11 +2216,21 @@ async function deleteBrew() {
 /** Escape in the brew log: cancel delete, then back to the list, then close. */
 function brewLogEscape() {
     if (!byId('logDeleteConfirm').hidden) cancelDeleteBrew();
-    else if (!byId('logDetailView').hidden) showBrewList();
+    else if (!byId('logDetailView').hidden && !isTablet()) showBrewList();
     else closeBrewLog();
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+    renderTdsPanel(); // the tablet's readings, before any device connects
+    TABLET_QUERY?.addEventListener?.('change', () => {
+        renderConnectionState();
+        if (finalSnapshot) renderFinal();
+        else if (lastScaleData && deviceConnected('scale')) updateDisplay(lastScaleData);
+        renderTdsPanel();
+        refreshChart();
+        if (brewLogOpen()) showBrewList();
+        renderChartDots();
+    });
     refreshLogCount();
     byId('brewLogModal').addEventListener('click', (e) => { if (e.target.id === 'brewLogModal') closeBrewLog(); });
 });
