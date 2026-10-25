@@ -1075,6 +1075,127 @@ input[type="number"]::-webkit-outer-spin-button {
     font-size: 0.85em;
 }
 
+/* ===== Trim: after Stop, if Stop was pressed late (optional) ===== */
+.chart-trim {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 4px;
+    padding: 3px 8px;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--muted);
+    font-size: var(--label);
+    white-space: nowrap;
+    cursor: pointer;
+}
+.chart-trim svg {
+    width: 13px;
+    height: 13px;
+}
+.chart-trim.is-trimmed {
+    background: var(--cream);
+    color: var(--accent);
+}
+.chart-trim.is-trimmed svg {
+    display: none;                   /* "Trimmed" alone fits next to the legend on a phone */
+}
+/* The end line over the brew chart; what's after it is faded */
+.trim-overlay {
+    position: absolute;
+    inset: 0;
+    touch-action: none;
+    cursor: ew-resize;
+}
+.trim-shade {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.75);
+}
+.trim-line {
+    position: absolute;
+    top: 0;
+    bottom: 20px;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--accent);
+}
+.trim-knob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 22px;
+    height: 22px;
+    margin: -11px 0 0 -11px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px #fff, 0 1px 4px rgba(47, 33, 24, 0.3);
+}
+.trim-hint {
+    color: var(--accent);
+}
+/* Trim bar: Cancel, -1 s / end / +1 s, Trim (in place of the buttons) */
+body.trimming .ritual-main-actions {
+    display: none;
+}
+.trim-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 80px;
+    margin: 12px 0 6px;
+    padding: 0 16px;
+}
+.trim-step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.trim-step button {
+    width: 48px;
+    height: 44px;
+    border: 0;
+    border-radius: 22px;
+    background: var(--cream);
+    color: var(--brown);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.trim-step b {
+    min-width: 2.6em;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--roast);
+    font-variant-numeric: tabular-nums;
+}
+.trim-text-btn {
+    padding: 10px 4px;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.trim-primary-btn {
+    min-height: 44px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--brown);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
 /* ===== Hover (mouse only: touch screens keep :hover after a tap) ===== */
 @media (hover: hover) {
     .timer-action:hover:enabled,
@@ -1102,6 +1223,13 @@ input[type="number"]::-webkit-outer-spin-button {
     }
     .modal .ritual-btn.log-delete-now:hover:enabled {
         background: #8c1d17;
+    }
+    .trim-primary-btn:hover {
+        background: var(--roast);
+    }
+    .chart-trim:hover,
+    .trim-step button:hover {
+        background: var(--cream-dark);
     }
 }
 
@@ -1206,6 +1334,12 @@ input[type="number"]::-webkit-outer-spin-button {
         grid-area: conn;
         margin: 12px 28px 0;
     }
+    .trim-hint {
+        grid-area: strip;
+        margin: 16px 28px 0;
+        font-size: 13px;
+        text-align: center;
+    }
 
     /* Readings: three rows of three, always in this order: scale, strength, EC meter */
     .readings {
@@ -1238,10 +1372,14 @@ input[type="number"]::-webkit-outer-spin-button {
     }
 
     /* Buttons */
-    .ritual-main-actions {
+    .ritual-main-actions,
+    .trim-bar {
         grid-area: ctrl;
         margin: 0;
         padding: 0 28px;
+    }
+    .chart-trim {
+        font-size: 13px;
     }
     .side-action {
         width: 96px;
