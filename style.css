@@ -603,7 +603,8 @@ button, input, select {
 
 /* ===== Inputs ===== */
 input[type="number"],
-.log-name-input {
+.log-name-input,
+.text-input {
     box-sizing: content-box;
     padding: 4px 6px;
     border: 2px solid var(--muted);
@@ -614,7 +615,8 @@ input[type="number"],
     outline: none;
 }
 input[type="number"]:focus,
-.log-name-input:focus {
+.log-name-input:focus,
+.text-input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.18);
 }
@@ -851,6 +853,18 @@ input[type="number"]::-webkit-outer-spin-button {
     font-size: 18px;
     color: var(--brown);
     text-align: left;
+}
+/* Sync: labels left, inputs fill the rest of the row */
+.sync-table td:first-child {
+    width: 4.5em;
+}
+.sync-table td:nth-child(2) {
+    white-space: normal;
+}
+.sync-table .text-input {
+    box-sizing: border-box;
+    width: 100%;
+    font-size: 0.95em;
 }
 .tds-formula {
     margin: 12px 0 14px;
@@ -1306,7 +1320,8 @@ input[type="number"]::-webkit-outer-spin-button {
 
     /* Settings: a panel from the right; the main screen stays visible */
     #settingsModal,
-    #calibrateModal {
+    #calibrateModal,
+    #syncModal {
         background: rgba(47, 33, 24, 0.12);
     }
     #settingsModal .settings-sheet {
@@ -1315,11 +1330,13 @@ input[type="number"]::-webkit-outer-spin-button {
         padding: 0 28px 28px;
         box-shadow: -8px 0 32px rgba(47, 33, 24, 0.12);
     }
-    /* Calibration opens inside the Settings panel */
-    #calibrateModal {
+    /* Calibration and Sync open inside the Settings panel */
+    #calibrateModal,
+    #syncModal {
         justify-content: flex-end;
     }
-    #calibrateModal .modal-content {
+    #calibrateModal .modal-content,
+    #syncModal .modal-content {
         width: 480px;
         margin: 0;
         padding-left: 28px;

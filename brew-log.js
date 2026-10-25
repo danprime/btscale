@@ -1,9 +1,11 @@
 /**
  * BrewLog - saved brews (summary + downsampled chart points) in IndexedDB.
  *
- * A brew: { id, at, name, summary: {...}, series: { weight: [{t, v}], ec: [{t, v}] } }
+ * A brew: { id, at, updatedAt, name, summary: {...}, series: { weight: [{t, v}], ec: [{t, v}] } }
  * `id` is the brew's start time (ms since epoch), so it is unique and sorts by date.
  * Only the newest MAX_BREWS are kept. Falls back to memory if IndexedDB is unavailable.
+ * `updatedAt` is set on every save (sync sends brews changed since its last push); `onChange`
+ * is called after a local save.
  */
 export const MAX_BREWS = 100;
 export const MAX_POINTS = 300; // per chart line
@@ -32,6 +34,7 @@ export class BrewLog {
     this._db = null;
     this._memory = null; // Map, when IndexedDB can't be used
     this._persistAsked = false;
+    this.onChange = null;
   }
 
   async _open() {
@@ -67,14 +70,19 @@ export class BrewLog {
     return store ? request(store.get(id)) : this._memory.get(id);
   }
 
-  /** Add or replace a brew, then drop the oldest beyond MAX_BREWS. */
-  async save(brew) {
+  /**
+   * Add or replace a brew, then drop the oldest beyond MAX_BREWS (dropping is not a delete:
+   * the sync server keeps them). `keepUpdatedAt` is for brews that come from the sync server.
+   */
+  async save(brew, { keepUpdatedAt = false } = {}) {
     this._askPersist();
+    const entry = keepUpdatedAt ? brew : { ...brew, updatedAt: Date.now() };
     const store = await this._store('readwrite');
-    if (store) await request(store.put(brew));
-    else this._memory.set(brew.id, brew);
+    if (store) await request(store.put(entry));
+    else this._memory.set(entry.id, entry);
     const all = await this.list();
     for (const old of all.slice(MAX_BREWS)) await this.remove(old.id);
+    if (!keepUpdatedAt) this.onChange?.();
   }
 
   async update(id, changes) {

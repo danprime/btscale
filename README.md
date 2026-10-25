@@ -144,6 +144,14 @@ On any screen at least 1024 x 700 in landscape (an 11" or 12.9" iPad) the layout
 
 Portrait keeps the phone-style card. iPadOS browsers (Chrome included) have no Web Bluetooth, so on an iPad open the app in a Web Bluetooth browser such as Bluefy.
 
+## Sync between devices
+
+Settings > Sync keeps the settings (bean dose, carafe, ratio, retained ratio, k_v and its history, timer drives) and the brew log the same on each device, through a [brewlog-server](https://github.com/danprime/brewlog-server) (your own, behind HTTPS, with a secret token). Enter the server address and the token once per device; the token stays in that browser.
+
+- `sync.js` syncs when the app opens or comes back to the front, and shortly after a setting changes or a brew is saved, renamed or deleted. Offline, it waits for the next time.
+- Per record, the newest change wins; deletes are sent as markers, so a deleted brew doesn't come back. Each device keeps its newest 100 brews; the server keeps them all (trimming isn't a delete).
+- On a device's first sync, what the server already has wins over that device's own values.
+
 ## Install as an app (Brew Tool)
 
 The page is an installable web app (`manifest.webmanifest`, icons in `icons/`). On Android, open https://danprime.github.io/btscale/ in Chrome, tap ⋮ > Install app (or Add to Home screen). "Brew Tool" then opens from the home screen in its own window, always in Chrome (needed for Web Bluetooth), even if another browser is the default. There's no service worker: every launch loads the current version from GitHub Pages (which lets browsers cache files for up to 10 minutes). The icons are rendered from `icons/icon.svg` and `icons/icon-maskable.svg`.
