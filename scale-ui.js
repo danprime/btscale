@@ -137,6 +137,11 @@ let lastScaleData = null;
 let lastPortalData = null;
 // Final values captured at Stop; while set, the main readouts stay frozen
 let finalSnapshot = null;
+// Trim (after Stop, if Stop was pressed late): the values at Stop, and the end being chosen
+let fullSnapshot = null;
+let trimMode = false;
+let trimEnd = null; // s
+let trimBefore = null; // the end in use when trim mode opened (null = the full brew)
 
 // TDS (needs the scale and the EC meter): CIY accumulates while a brew runs with both
 const ciy = new CiyIntegrator();
@@ -169,7 +174,7 @@ function chartData() {
         : null;
     // Nothing connected: no hint text, the Connect button sits in the empty chart instead
     const hint = deviceConnected('scale') || deviceConnected('portal') ? 'Press Start' : '';
-    return { mode, points, weightPoints, elapsed: chartCleared ? 0 : recorder.elapsed(), target: targetWeight, running: recorder.running, hint };
+    return { mode, points, weightPoints, elapsed: chartCleared ? 0 : recorder.elapsed(), target: targetWeight, running: recorder.running, hint, valuesAt: trimMode ? trimEnd : null };
 }
 
 function refreshChart() {
@@ -576,8 +581,10 @@ function captureFinal() {
         estTds: tdsBrew ? liveTds() : null,
     };
     if (tdsBrew) saveLastBrew({ ciy: ciy.ciy, estYield: finalSnapshot.estYield, yield: null, at: Date.now() });
+    fullSnapshot = null;
     saveBrewToLog();
     renderFinal();
+    renderTrimButton();
 }
 
 function setText(id, text) {
@@ -656,8 +663,11 @@ function renderFinal() {
 }
 
 function clearFinal() {
+    if (trimMode) endTrimMode();
     finalSnapshot = null;
+    fullSnapshot = null;
     finalTds = null;
+    renderTrimButton();
     closeFinalTds();
     setText('flowRateLabel', 'Flow');
     setText('tempLabel', 'Temp');
@@ -681,6 +691,7 @@ function clearFinal() {
 function renderLiveStrip() {
     const strip = document.getElementById('liveStrip');
     if (!strip) return;
+    if (trimMode) { strip.hidden = true; return; } // the trim hint takes its place
     const parts = [];
     if (finalSnapshot) {
         if (deviceConnected('scale') && lastScaleData) parts.push(`${lastScaleData.weight.toFixed(1)} g`);
@@ -1779,7 +1790,7 @@ let extractionTrail = [];
 /** Each EC reading while brewing adds the current live estimate to the trail. */
 function recordExtractionTrail() {
     const pt = extractionPoint();
-    if (pt && !finalSnapshot) extractionTrail.push({ ey: pt.ey, tds: pt.tds });
+    if (pt && !finalSnapshot) extractionTrail.push({ ey: pt.ey, tds: pt.tds, t: recorder.elapsed() });
 }
 
 function svgEl(tag, attrs, text) {
@@ -2289,6 +2300,174 @@ window.saveNewKv = saveNewKv;
 window.showChartSlide = showChartSlide;
 window.openBrewLog = openBrewLog;
 
+// --- Trim: after Stop, move the end of the brew earlier (Stop was pressed late). Optional. ---
+
+function lastOf(rows, key) {
+    for (let i = rows.length - 1; i >= 0; i--) if (rows[i][key] != null) return rows[i][key];
+    return null;
+}
+
+/** The stopped brew's values as if Stop had been pressed at t seconds. */
+function snapshotAt(t) {
+    const base = fullSnapshot;
+    const rows = recorder.allRows().filter((r) => r.t <= t);
+    const weight = lastOf(rows.filter((r) => r.source === 'scale'), 'weight') ?? base.weight;
+    const ecs = rows.filter((r) => r.source === 'portal' && r.ec != null).map((r) => r.ec);
+    const tdsBrewHere = base.ciy != null;
+    const ciyAt = tdsBrewHere ? lastOf(rows, 'ciy') : null;
+    const estYield = tdsBrewHere && weight != null ? liveYield(weight - (ciy.baseline ?? 0), memory.beans?.weight, absorption) : null;
+    return {
+        ...base,
+        ms: t * 1000,
+        weight,
+        avgFlow: weight != null && t > 0 ? weight / t : null,
+        peakEc: ecs.length ? Math.max(...ecs) : base.peakEc,
+        temp: base.temp != null ? lastOf(rows, 'temp') : null,
+        ciy: ciyAt,
+        estYield,
+        estTds: tdsBrewHere ? tdsPercent(activeKv(), ciyAt, estYield) : null,
+    };
+}
+
+/** Show the values for an end time (while trimming, the chart keeps the whole brew). */
+function showEnd(t) {
+    // At Stop (no trim): exactly the values captured then
+    finalSnapshot = t >= recorder.fullElapsed() - 0.5 ? fullSnapshot : snapshotAt(t);
+    if (finalTds) finalTds = { ...finalTds, tds: tdsPercent(activeKv(), finalSnapshot.ciy, finalTds.yieldG) };
+    renderFinal();
+}
+
+/** Where the weight dropped by more than 40 g (dripper lifted off): the brew had ended there. */
+function suggestedEnd() {
+    let max = -Infinity;
+    let atMax = null;
+    for (const r of recorder.allRows()) {
+        if (r.source !== 'scale' || r.weight == null) continue;
+        if (r.weight >= max) { max = r.weight; atMax = r.t; }
+        else if (max - r.weight > 40) return atMax;
+    }
+    return null;
+}
+
+/** The brew chart's plot area (same margins as BrewChart) and its time span. */
+function trimGeometry() {
+    const canvas = byId('brewChartCanvas');
+    const s = (parseFloat(getComputedStyle(canvas).getPropertyValue('--chart-font')) || 11) / 11;
+    const d = chartData();
+    const dual = d.mode === 'ec' && Array.isArray(d.weightPoints);
+    const left = 34 * s;
+    const right = (dual ? 28 : 12) * s;
+    const rows = recorder.allRows();
+    const lastT = rows.length ? rows[rows.length - 1].t : 0;
+    return { left, plotW: canvas.clientWidth - left - right, span: Math.max(d.elapsed, lastT, 30) };
+}
+
+function renderTrim() {
+    const g = trimGeometry();
+    const x = g.left + (trimEnd / g.span) * g.plotW;
+    byId('trimLine').style.left = `${x}px`;
+    Object.assign(byId('trimShade').style, { left: `${x}px`, width: `${Math.max(0, g.left + g.plotW - x)}px` });
+    setText('trimTime', formatSeconds(trimEnd));
+    const overlay = byId('trimOverlay');
+    overlay.setAttribute('aria-valuetext', formatSeconds(trimEnd));
+    setText('trimApplyBtn', trimEnd >= Math.round(recorder.fullElapsed()) ? 'Keep all' : `Trim to ${formatSeconds(trimEnd)}`);
+    showEnd(trimEnd);
+    refreshChart(); // the floating values follow the line
+}
+
+/** "Trim" after Stop; "Trimmed" once trimmed (tap to change). */
+function renderTrimButton() {
+    const btn = byId('trimBtn');
+    if (!btn) return;
+    btn.hidden = !finalSnapshot || trimMode || !recorder.allRows().length;
+    const trimmed = recorder.trimmed;
+    btn.classList.toggle('is-trimmed', trimmed);
+    btn.setAttribute('aria-label', trimmed ? `Trimmed to ${formatSeconds(recorder.elapsed())}. Change the end of the brew` : 'Trim the end of the brew');
+    setText('trimBtnLabel', trimmed ? 'Trimmed' : 'Trim');
+}
+
+function startTrim() {
+    if (!finalSnapshot) return;
+    fullSnapshot = fullSnapshot ?? finalSnapshot;
+    const current = recorder.elapsed();
+    const trimmed = recorder.trimmed;
+    trimBefore = trimmed ? current : null;
+    recorder.setEnd(null); // the whole brew is shown while choosing
+    trimMode = true;
+    document.body.classList.add('trimming');
+    const suggestion = trimmed ? null : suggestedEnd();
+    trimEnd = Math.round(suggestion ?? current);
+    setText('trimHint', suggestion != null ? `Weight dropped at ${formatSeconds(suggestion)} (dripper lifted). Drag to adjust.` : 'Drag the line to where the brew ended.');
+    for (const id of ['trimOverlay', 'trimBar', 'trimHint']) byId(id).hidden = false;
+    renderLiveStrip();
+    renderTrimButton();
+    requestAnimationFrame(renderTrim);
+    byId('trimOverlay').focus({ preventScroll: true });
+}
+
+function endTrimMode() {
+    trimMode = false;
+    document.body.classList.remove('trimming');
+    for (const id of ['trimOverlay', 'trimBar', 'trimHint']) byId(id).hidden = true;
+    renderLiveStrip();
+    renderTrimButton();
+    refreshChart();
+}
+
+/** Back to the end that was in use before (the full brew, or the earlier trim). */
+function cancelTrim() {
+    recorder.setEnd(trimBefore);
+    endTrimMode();
+    showEnd(recorder.elapsed());
+}
+
+function applyTrim() {
+    recorder.setEnd(trimEnd);
+    extractionTrail = extractionTrail.filter((p) => p.t == null || p.t <= recorder.elapsed());
+    endTrimMode();
+    showEnd(recorder.elapsed());
+    saveTrimmedBrew();
+}
+
+/** The brew log entry (and the brew used for calibration) follow the trim. */
+function saveTrimmedBrew() {
+    const entry = buildLogEntry();
+    if (entry && currentLogId != null) {
+        brewLog.update(currentLogId, { summary: { ...entry.summary, yield: finalTds?.yieldG ?? null, tds: finalTds?.tds ?? null }, series: entry.series })
+            .catch((e) => log(`Brew log update failed: ${e.message}`));
+    }
+    if (finalSnapshot.ciy != null) {
+        const brew = loadJson(LAST_BREW_KEY);
+        saveLastBrew({ ...(brew || {}), ciy: finalSnapshot.ciy, estYield: finalSnapshot.estYield, at: brew?.at ?? Date.now() });
+    }
+}
+
+function nudgeTrim(d) {
+    trimEnd = Math.min(Math.max(1, trimEnd + d), Math.round(recorder.fullElapsed()));
+    renderTrim();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const overlay = byId('trimOverlay');
+    const move = (e) => {
+        const g = trimGeometry();
+        const t = ((e.clientX - overlay.getBoundingClientRect().left - g.left) / g.plotW) * g.span;
+        trimEnd = Math.min(Math.max(1, Math.round(t)), Math.round(recorder.fullElapsed()));
+        renderTrim();
+    };
+    overlay.addEventListener('pointerdown', (e) => { overlay.setPointerCapture(e.pointerId); move(e); });
+    overlay.addEventListener('pointermove', (e) => { if (overlay.hasPointerCapture(e.pointerId)) move(e); });
+    overlay.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') { e.preventDefault(); nudgeTrim(-1); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); nudgeTrim(1); }
+        if (e.key === 'Enter') { e.preventDefault(); applyTrim(); }
+    });
+});
+window.startTrim = startTrim;
+window.cancelTrim = cancelTrim;
+window.applyTrim = applyTrim;
+window.nudgeTrim = nudgeTrim;
+
 // --- Sync: settings and brew log shared between devices (Settings > Sync) ---
 
 /** Settings changed on another device: read them again and show them. */
@@ -2469,6 +2648,7 @@ window.addEventListener('DOMContentLoaded', () => {
         else if (syncOpen()) closeSync();
         else if (calibrationOpen()) closeCalibration();
         else if (finalTdsOpen()) closeFinalTds();
+        else if (trimMode && modal.style.display === 'none') cancelTrim();
         else closeSettingsModal();
     });
     window.addEventListener('click', (e) => {

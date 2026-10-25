@@ -20,6 +20,8 @@ export class BrewRecorder {
 
   start() {
     this.rows = [];
+    this._all = null; // every row, while a trim hides some
+    this._end = null; // trimmed end (s)
     this.running = true;
     this.startedAt = new Date();
     this._t0 = this.now();
@@ -31,10 +33,40 @@ export class BrewRecorder {
     this.running = false;
   }
 
-  /** Seconds since start (frozen at the stop time once stopped). */
+  /** Seconds since start (frozen at the stop time once stopped; the trimmed end if trimmed). */
   elapsed() {
     if (this.startedAt == null) return 0;
+    return this._end ?? this.fullElapsed();
+  }
+
+  /** Seconds from start to Stop, ignoring any trim. */
+  fullElapsed() {
+    if (this.startedAt == null) return 0;
     return ((this._t1 ?? this.now()) - this._t0) / 1000;
+  }
+
+  /** True while a trim hides the end of the brew. */
+  get trimmed() { return this._end != null; }
+
+  /** Every recorded row, including any a trim has cut off. */
+  allRows() { return this._all ?? this.rows; }
+
+  /**
+   * After Stop: keep only the rows up to `t` seconds (Stop was pressed late). `null`, or a time
+   * within half a second of Stop (the end is set in whole seconds), restores them all. The cut
+   * rows are kept until the next Start, so a trim can be changed or undone.
+   */
+  setEnd(t) {
+    const all = this.allRows();
+    if (t == null || t >= this.fullElapsed() - 0.5) {
+      this.rows = all;
+      this._all = null;
+      this._end = null;
+    } else {
+      this._all = all;
+      this.rows = all.filter((r) => r.t <= t);
+      this._end = t;
+    }
   }
 
   hasData() { return this.rows.length > 0; }

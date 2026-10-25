@@ -10,6 +10,8 @@
  * The chart pulls its data from a callback on every draw:
  *   () => ({ mode: 'ec'|'weight', points: [{t, v}], weightPoints?: [{t, v}], elapsed, target, running, hint? })
  * `hint` overrides the text shown while there's no data ('' shows none).
+ * `valuesAt` (s): the floating values show the readings at that time instead of the latest
+ * (trimming: they follow the end line).
  *
  * Two CSS custom properties on the canvas (or an ancestor) adjust it for larger screens:
  *   --chart-font: 14px   axis text size (default 11px)
@@ -86,7 +88,7 @@ export class BrewChart {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    const { mode = 'ec', points = [], elapsed = 0, target = null, weightPoints = null, hint = null } = this.getData() || {};
+    const { mode = 'ec', points = [], elapsed = 0, target = null, weightPoints = null, hint = null, valuesAt = null } = this.getData() || {};
     const css = getComputedStyle(canvas);
     const fontPx = parseFloat(css.getPropertyValue('--chart-font')) || 11;
     const showValues = css.getPropertyValue('--chart-values').trim() === '1';
@@ -214,12 +216,14 @@ export class BrewChart {
       dot(last, y, COLORS.line);
     }
     if (showValues) {
-      const lastWeight = dual ? weightPoints[weightPoints.length - 1] : mode === 'weight' ? last : null;
+      const at = (pts) => (valuesAt == null ? pts[pts.length - 1] : [...pts].reverse().find((p) => p.t <= valuesAt) ?? pts[0]);
+      const lastWeight = dual ? at(weightPoints) : mode === 'weight' ? at(points) : null;
+      const lastEc = mode === 'ec' ? at(points) : null;
       const tags = [];
       if (lastWeight) tags.push({ p: lastWeight, at: dual ? wy : y, text: `${lastWeight.v.toFixed(1)} g`, color: COLORS.weight });
-      if (mode === 'ec') {
-        if (dual) dot(last, y, COLORS.line); // the EC line gets a dot of its own for its value
-        tags.push({ p: last, at: y, text: `${last.v.toFixed(2)} mS/cm`, color: COLORS.line });
+      if (lastEc) {
+        if (dual) dot(lastEc, y, COLORS.line); // the EC line gets a dot of its own for its value
+        tags.push({ p: lastEc, at: y, text: `${lastEc.v.toFixed(2)} mS/cm`, color: COLORS.line });
       }
       this._valueTags(ctx, tags, x, { pad, plotW, plotH, size: fontPx + 3 });
     }

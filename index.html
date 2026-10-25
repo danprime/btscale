@@ -62,12 +62,16 @@
                     <button type="button" class="chart-dot" aria-label="Show TDS vs extraction chart" onclick="showChartSlide(1)">Extraction</button>
                 </div>
                 <div class="brew-chart-label chart-legend" id="brewChartLabel">EC · mS/cm</div>
+                <!-- After Stop: move the end of the brew if Stop was pressed late (optional) -->
+                <button type="button" id="trimBtn" class="chart-trim" onclick="startTrim()" hidden><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg><span id="trimBtnLabel">Trim</span></button>
             </div>
             <div class="chart-track" id="chartTrack">
                 <div class="chart-slide">
                     <canvas id="brewChartCanvas" role="img" aria-label="Brew chart, no data yet"></canvas>
                     <!-- Nothing connected: connect from here instead of Settings -->
                     <button type="button" id="chartConnectBtn" class="chart-connect" onclick="connectFromChart()" hidden>Connect</button>
+                    <!-- Trim: drag the line (or use the arrow keys) to the real end of the brew -->
+                    <div id="trimOverlay" class="trim-overlay" role="slider" tabindex="0" aria-label="End of the brew" hidden><div class="trim-shade" id="trimShade"></div><div class="trim-line" id="trimLine"><span class="trim-knob"></span></div></div>
                 </div>
                 <div class="chart-slide" id="extractionSlide" hidden>
                     <div class="brew-chart-label">TDS · %</div>
@@ -78,6 +82,7 @@
         </section>
         <!-- After Stop: the big values are frozen, live readings show here -->
         <div class="live-strip" id="liveStrip" aria-live="polite" hidden></div>
+        <div class="live-strip trim-hint" id="trimHint" hidden></div>
         <!-- After Stop with nothing connected: connect again without covering the brew's chart -->
         <div class="strip-connect-row"><button type="button" id="stripConnectBtn" class="chart-connect strip-connect" onclick="connectFromChart('stripConnectBtn')" hidden>Connect</button></div>
         <!-- Readings: a spec-sheet grid (labels above values, no boxes) across both sections -->
@@ -142,6 +147,16 @@
                 </span>
             </button>
             <button id="exportCsvBtn" class="ritual-btn main-action side-action" onclick="exportBrewCsv()" aria-label="Download brew data as CSV" title="Download brew data (CSV)" hidden><span class="side-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></span><span class="side-label">CSV</span></button>
+        </section>
+        <!-- Trim mode: takes the buttons' place -->
+        <section class="trim-bar" id="trimBar" aria-label="Trim the end of the brew" hidden>
+            <button type="button" class="trim-text-btn" onclick="cancelTrim()">Cancel</button>
+            <div class="trim-step">
+                <button type="button" onclick="nudgeTrim(-1)" aria-label="1 second earlier">−1 s</button>
+                <b id="trimTime" aria-live="polite">0:00</b>
+                <button type="button" onclick="nudgeTrim(1)" aria-label="1 second later">+1 s</button>
+            </div>
+            <button type="button" class="trim-primary-btn" id="trimApplyBtn" onclick="applyTrim()">Trim</button>
         </section>
         <!-- Ratio Slider Overlay (hidden by default) -->
         <div id="ratioSliderOverlay" class="ratio-slider-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ratioSliderTitle">

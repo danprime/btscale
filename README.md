@@ -132,6 +132,7 @@ Notes
 - Readings: a spec sheet (small label above each value, units smaller), no boxes.
 - Buttons: one big Start / Stop / Reset in the middle; Tare and Beans either side. After Stop: Final TDS (or Beans), Reset and CSV (Tare is in the calculator).
 - The Final TDS calculator and k_v calibration open as sheets from the bottom.
+- Trim (optional, after Stop): if Stop was pressed late, the small "Trim" chip by the chart legend puts an end line on the brew chart. It starts where the weight dropped (dripper lifted), if it did; drag it or use -1 s / +1 s, and the weight, time, ratio, readings, TDS and extraction follow it. "Trim to m:ss" cuts the brew there (chart, CSV, brew log, calibration); until the next Start it can be changed or undone ("Keep all").
 
 ## Tablet (iPad, landscape)
 
