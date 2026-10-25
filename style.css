@@ -1268,6 +1268,10 @@ body.trimming .ritual-main-actions {
    the brew log is a list beside the open brew. */
 @media (min-width: 1024px) and (min-height: 700px) and (orientation: landscape),
        (min-width: 768px) and (min-height: 1000px) and (orientation: portrait) {
+    /* The only place that decides "tablet": scale-ui.js reads this (isTablet) */
+    :root {
+        --layout: tablet;
+    }
     body {
         background: #fff;
     }
