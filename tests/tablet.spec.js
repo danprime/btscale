@@ -29,6 +29,7 @@ function createStaticServer(root, port = 0) {
 
 const IPAD_12 = { width: 1366, height: 930 }; // 12.9" landscape, minus the browser toolbar
 const IPAD_11 = { width: 1194, height: 760 }; // 11" landscape, minus the browser toolbar
+const IPAD_12_PORTRAIT = { width: 1024, height: 1290 };
 
 let server;
 
@@ -180,16 +181,52 @@ test('tablet: the brew log shows the list beside the open brew; tapping another 
   await expect(page.locator('#brewLogModal')).toBeHidden();
 });
 
-test('rotating to portrait leaves the tablet layout; the phone never shows the tablet-only readings', async ({ page }) => {
+test('rotating keeps the tablet layouts (landscape <-> portrait); the phone never shows the tablet-only readings', async ({ page }) => {
   await expect(page.locator('#eyPanel')).toBeVisible();
-  await page.setViewportSize({ width: 1024, height: 1366 }); // portrait
+  await page.setViewportSize(IPAD_12_PORTRAIT);
+  await expect(page.locator('#eyPanel')).toBeVisible();
+  expect(await readingOrder(page)).toEqual(NINE);
+  await page.setViewportSize({ width: 384, height: 720 }); // phone
   await expect(page.locator('#eyPanel')).toBeHidden();
   await expect(page.locator('#ciyPanel')).toBeHidden();
   await expect(page.locator('#remainderPanel')).toBeHidden();
-  await page.setViewportSize({ width: 384, height: 720 }); // phone
-  await expect(page.locator('#eyPanel')).toBeHidden();
   await expect(page.locator('#portalInfo')).toBeHidden(); // EC meter readings only when it is connected
+  await page.setViewportSize({ width: 700, height: 1000 }); // too small for the tablet layout: the floating card
+  await expect(page.locator('#eyPanel')).toBeHidden();
   await page.setViewportSize(IPAD_12); // and back
   await expect(page.locator('#eyPanel')).toBeVisible();
   expect(await readingOrder(page)).toEqual(NINE);
 });
+
+for (const [name, size] of [['12.9"', { width: 1024, height: 1290 }], ['11"', { width: 834, height: 1120 }]]) {
+  test(`iPad ${name} portrait: charts on top (extraction, then brew), readings left and weight right below, no scrolling`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await page.evaluate(async () => { await window.__connect(['scale', 'portal']); await window.__brew(); });
+    await expect(page.locator('#extractionSlide')).toBeVisible();
+    const r = await page.evaluate(() => {
+      const box = (sel) => document.querySelector(sel).getBoundingClientRect().toJSON();
+      return {
+        extraction: box('#extractionSlide'),
+        legend: box('#brewChartLabel'),
+        brew: box('#brewChartCanvas'),
+        hero: box('.ritual-hero'),
+        readings: box('#readings'),
+        controls: box('.ritual-main-actions'),
+        scrolls: document.documentElement.scrollHeight > window.innerHeight,
+        width: window.innerWidth,
+      };
+    });
+    expect(r.scrolls).toBe(false);
+    // Extraction on top, then the brew chart with its legend just above it
+    expect(r.extraction.bottom).toBeLessThanOrEqual(r.legend.top);
+    expect(r.legend.bottom).toBeLessThanOrEqual(r.brew.top);
+    expect(r.brew.width).toBeGreaterThan(r.width * 0.85); // full width
+    // Bottom third: readings left, weight right, buttons under both
+    expect(r.brew.bottom).toBeLessThanOrEqual(r.readings.top);
+    expect(r.readings.right).toBeLessThanOrEqual(r.hero.left + 1);
+    expect(r.hero.right).toBeLessThanOrEqual(r.width);
+    expect(Math.max(r.hero.bottom, r.readings.bottom)).toBeLessThanOrEqual(r.controls.top);
+    expect(await readingOrder(page)).toEqual(NINE);
+    await expect(page.locator('#chartDots')).toBeHidden();
+  });
+}

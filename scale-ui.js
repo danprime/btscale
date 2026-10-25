@@ -150,8 +150,8 @@ let tdsBrew = false; // true once this brew has summed EC over poured water
 let tdsMinSeconds = 30; // live TDS shows "--" for this long after Start
 let finalTds = null; // { yieldG, tds } from the final TDS calculator, after Stop
 
-// Tablet landscape (iPad): all nine readings, both charts at once, the brew log as list + detail
-const TABLET_QUERY = window.matchMedia?.('(min-width: 1024px) and (min-height: 700px) and (orientation: landscape)');
+// Tablet (iPad, landscape or portrait): all nine readings, both charts at once, the brew log as list + detail
+const TABLET_QUERY = window.matchMedia?.('(min-width: 1024px) and (min-height: 700px) and (orientation: landscape), (min-width: 768px) and (min-height: 1000px) and (orientation: portrait)');
 function isTablet() { return !!TABLET_QUERY?.matches; }
 
 // Live brew chart (replaces the progress ring). Cleared on Reset, refilled from Start.
