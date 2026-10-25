@@ -1,4 +1,4 @@
-/* Brew Tool styles. Phone first; the desktop card and the tablet layout are at the end.
+/* Brew Tool styles. Phone first; the desktop card and the tablet layouts are at the end.
    Sections: tokens · base · header · hero · chart · readings · controls ·
    sheets and buttons · Settings · dialogs · brew log · extraction chart · desktop · tablet */
 
@@ -1259,13 +1259,19 @@ body.trimming .ritual-main-actions {
     }
 }
 
-/* ===== Tablet landscape (iPad): thirds ===== */
-/* Any iPad in landscape (11": ~1194 x 760 in the browser, 12.9": ~1366 x 930). The big
-   sizes scale with the screen height, so both get the same layout.
-   Left third: weight, time and ratio (top half), all nine readings (bottom half), buttons.
-   Right two thirds: the charts, both at once. Settings slides in from the right;
-   the brew log is a list (left third) beside the open brew (right two thirds). */
-@media (min-width: 1024px) and (min-height: 700px) and (orientation: landscape) {
+/* ===== Tablet (iPad), landscape and portrait ===== */
+/* Any iPad. Landscape (11": ~1194 x 760 in the browser, 12.9": ~1366 x 930), and portrait
+   (~834 x 1120, ~1024 x 1290: its own grid and sizes are in the next block). The big sizes
+   scale with the screen, so the 11" and 12.9" get the same layout.
+   Landscape, left third: weight, time and ratio (top half), all nine readings (bottom half),
+   buttons. Right two thirds: the charts, both at once. Settings slides in from the right;
+   the brew log is a list beside the open brew. */
+@media (min-width: 1024px) and (min-height: 700px) and (orientation: landscape),
+       (min-width: 768px) and (min-height: 1000px) and (orientation: portrait) {
+    /* The only place that decides "tablet": scale-ui.js reads this (isTablet) */
+    :root {
+        --layout: tablet;
+    }
     body {
         background: #fff;
     }
@@ -1580,5 +1586,110 @@ body.trimming .ritual-main-actions {
     }
     .log-delete-area {
         margin-top: 28px;
+    }
+}
+
+/* ===== Tablet portrait: what the tablet rules above don't cover =====
+   Charts on top (TDS vs extraction, then the brew chart with its legend and Trim), then the
+   readings (left) and weight, time and ratio (right) in the bottom third, buttons at the bottom. */
+@media (min-width: 768px) and (min-height: 1000px) and (orientation: portrait) {
+    .ritual-container {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-rows: auto 1fr auto auto auto auto;
+        grid-template-areas:
+            "header header"
+            "chart  chart"
+            "strip  strip"
+            "conn   conn"
+            "read   hero"
+            "ctrl   ctrl";
+    }
+    .brew-chart {
+        margin: 12px 28px 0;
+        padding-left: 0;
+        border-left: 0;
+    }
+    /* Extraction chart on top; the brew chart, with its legend and Trim, just above the numbers */
+    .chart-track {
+        display: contents;
+    }
+    #extractionSlide {
+        order: 1;
+        margin-bottom: 16px;
+        padding: 0 0 20px;
+        border-top: 0;
+        border-bottom: 1px solid var(--line);
+    }
+    .chart-head {
+        order: 2;
+    }
+    .chart-slide:first-child {
+        order: 3;
+    }
+    .live-strip,
+    .trim-hint {
+        margin: 12px 28px 0;
+    }
+    /* Bottom third: weight, time and ratio | the nine readings */
+    .ritual-hero,
+    .readings {
+        align-self: stretch;
+        margin-top: 16px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+    }
+    .ritual-hero {
+        justify-content: center;
+        margin-right: 28px;
+    }
+    .readings {
+        align-content: center;
+        margin: 16px 0 0 28px;
+        padding-right: 12px;
+    }
+    .progress-weight-value,
+    .hero-weight .w-int,
+    .hero-weight .w-frac {
+        font-size: clamp(4.5rem, 12vw, 8.5rem);
+    }
+    .hero-weight-unit {
+        font-size: clamp(1.6rem, 3.4vw, 2.6rem);
+    }
+    .progress-timer,
+    .progress-ratio-value {
+        font-size: clamp(32px, 4.6vw, 48px);
+    }
+    .readings .ritual-info-value {
+        font-size: clamp(20px, 2.6vw, 28px);
+    }
+    .readings .ritual-info-value em {
+        font-size: clamp(13px, 1.6vw, 17px);
+    }
+    /* Buttons across the bottom */
+    .ritual-main-actions {
+        justify-content: center;
+        gap: 96px;
+        margin-top: 20px;
+    }
+    .trim-bar {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 640px;
+        margin: 20px auto 0;
+    }
+    /* Final TDS: from the bottom, centred; the charts above stay visible */
+    .modal.tds-dialog {
+        justify-content: center;
+    }
+    .tds-dialog .modal-content {
+        width: min(560px, 100%);
+        margin: 0 auto;
+    }
+    /* Brew log: a narrower list beside the open brew */
+    .brew-log .modal-content {
+        grid-template-columns: 300px minmax(0, 1fr);
+    }
+    .log-summary {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }

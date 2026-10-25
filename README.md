@@ -134,7 +134,7 @@ Notes
 - The Final TDS calculator and k_v calibration open as sheets from the bottom.
 - Trim (optional, after Stop): if Stop was pressed late, the small "Trim" chip by the chart legend puts an end line on the brew chart. It starts where the weight dropped (dripper lifted), if it did; drag it or use -1 s / +1 s, and the weight, time, ratio, readings, TDS and extraction follow it. "Trim to m:ss" cuts the brew there (chart, CSV, brew log, calibration); until the next Start it can be changed or undone ("Keep all").
 
-## Tablet (iPad, landscape)
+## Tablet (iPad, landscape and portrait)
 
 On any screen at least 1024 x 700 in landscape (an 11" or 12.9" iPad) the layout uses thirds:
 
@@ -143,7 +143,9 @@ On any screen at least 1024 x 700 in landscape (an 11" or 12.9" iPad) the layout
 - Settings slides in from the right (k_v calibration opens inside it); the Final TDS calculator opens over the left third.
 - The brew log shows the list (left third) beside the open brew (right two thirds).
 
-Portrait keeps the phone-style card. iPadOS browsers (Chrome included) have no Web Bluetooth, so on an iPad open the app in a Web Bluetooth browser such as Bluefy.
+In portrait (at least 768 x 1000, e.g. an 11" or 12.9" iPad) the same principles are stacked: the TDS vs extraction chart on top, then the brew chart (with its legend and Trim) just above the bottom third, which has the nine readings on the left and the weight, time and ratio on the right; the buttons are at the bottom. Settings, the Final TDS sheet and the brew log work as in landscape (the brew log list is 300 px wide).
+
+Smaller tablets and desktop windows keep the floating card. iPadOS browsers (Chrome included) have no Web Bluetooth, so on an iPad open the app in a Web Bluetooth browser such as Bluefy.
 
 ## Sync between devices
 
