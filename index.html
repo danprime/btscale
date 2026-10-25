@@ -83,11 +83,11 @@
         <!-- Readings: a spec-sheet grid (labels above values, no boxes) across both sections -->
         <div class="readings" id="readings">
         <section class="ritual-info" aria-label="Scale info panels">
-            <div class="ritual-info-item">
+            <div class="ritual-info-item" id="flowPanel">
                 <div class="ritual-info-label" id="flowRateLabel">Flow</div>
                 <div class="ritual-info-value" id="flowRate" aria-live="polite">0.0 g/s</div>
             </div>
-            <div class="ritual-info-item">
+            <div class="ritual-info-item" id="targetPanel">
                 <div class="ritual-info-label" id="targetWeightLabel">In → out</div>
                 <div class="ritual-info-value" id="targetWeight" aria-live="polite">-- g</div>
             </div>
@@ -97,7 +97,7 @@
                 <div class="ritual-info-value" id="yieldValue" aria-live="polite">-- g</div>
             </div>
             <div class="ritual-info-item" id="remainderPanel">
-                <div class="ritual-info-label" id="remainderLabel">Remainder</div>
+                <div class="ritual-info-label" id="remainderLabel">Remaining</div>
                 <div class="ritual-info-value" id="remainder" aria-live="polite">-- g</div>
             </div>
             <div class="ritual-info-item" id="currentRatioPanel">
@@ -115,6 +115,15 @@
             <div class="ritual-info-item" id="tdsPanel" hidden>
                 <div class="ritual-info-label" id="tdsLabel">TDS ≈</div>
                 <div class="ritual-info-value" id="tdsValue" aria-live="polite">-- %</div>
+            </div>
+            <!-- Tablet only: extraction and CIY get their own readings -->
+            <div class="ritual-info-item" id="eyPanel" hidden>
+                <div class="ritual-info-label" id="eyLabel">Extraction ≈</div>
+                <div class="ritual-info-value" id="eyValue" aria-live="polite">-- %</div>
+            </div>
+            <div class="ritual-info-item" id="ciyPanel" hidden>
+                <div class="ritual-info-label" id="ciyLabel">CIY</div>
+                <div class="ritual-info-value" id="ciyValue" aria-live="polite">--</div>
             </div>
             <div class="ritual-info-item" id="ecPanel">
                 <div class="ritual-info-label" id="ecLabel">EC</div>

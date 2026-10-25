@@ -10,6 +10,10 @@
  * The chart pulls its data from a callback on every draw:
  *   () => ({ mode: 'ec'|'weight', points: [{t, v}], weightPoints?: [{t, v}], elapsed, target, running, hint? })
  * `hint` overrides the text shown while there's no data ('' shows none).
+ *
+ * Two CSS custom properties on the canvas (or an ancestor) adjust it for larger screens:
+ *   --chart-font: 14px   axis text size (default 11px)
+ *   --chart-values: 1    the latest values float next to their dots
  */
 
 const EC_AXIS_MAX = 5;
@@ -83,10 +87,14 @@ export class BrewChart {
     ctx.clearRect(0, 0, w, h);
 
     const { mode = 'ec', points = [], elapsed = 0, target = null, weightPoints = null, hint = null } = this.getData() || {};
+    const css = getComputedStyle(canvas);
+    const fontPx = parseFloat(css.getPropertyValue('--chart-font')) || 11;
+    const showValues = css.getPropertyValue('--chart-values').trim() === '1';
+    const scale = fontPx / 11;
     // EC mode with a scale: weight is a second line. Weight's axis stays on the
     // left (as in weight-only mode) and EC's axis goes on the right.
     const dual = mode === 'ec' && Array.isArray(weightPoints);
-    const pad = { left: 34, right: dual ? 28 : 12, top: 10, bottom: 22 };
+    const pad = { left: 34 * scale, right: (dual ? 28 : 12) * scale, top: 10, bottom: 22 * scale };
     const plotW = w - pad.left - pad.right;
     const plotH = h - pad.top - pad.bottom;
 
@@ -105,7 +113,7 @@ export class BrewChart {
     const wy = (v) => pad.top + (1 - Math.min(Math.max(v, 0), wMax) / wMax) * plotH;
 
     // Grid + labels. Left axis: weight in dual mode, otherwise the main series.
-    ctx.font = '11px ui-sans-serif, system-ui, sans-serif';
+    ctx.font = `${fontPx}px ui-sans-serif, system-ui, sans-serif`;
     ctx.lineWidth = 1;
     ctx.strokeStyle = COLORS.grid;
     const yStep = mode === 'ec' ? (yMax <= 6 ? 1 : 2) : niceMax(yMax / 5);
@@ -179,7 +187,7 @@ export class BrewChart {
         return;
       }
       // Shrink the hint (down to 11px) so long messages fit narrow phones
-      let size = 13;
+      let size = 13 * scale;
       ctx.font = `${size}px ui-sans-serif, system-ui, sans-serif`;
       while (size > 11 && ctx.measureText(text).width > plotW - 12) {
         size -= 0.5;
@@ -205,7 +213,42 @@ export class BrewChart {
       stroke(points, y, COLORS.line, 2);
       dot(last, y, COLORS.line);
     }
+    if (showValues) {
+      const lastWeight = dual ? weightPoints[weightPoints.length - 1] : mode === 'weight' ? last : null;
+      const tags = [];
+      if (lastWeight) tags.push({ p: lastWeight, at: dual ? wy : y, text: `${lastWeight.v.toFixed(1)} g`, color: COLORS.weight });
+      if (mode === 'ec') {
+        if (dual) dot(last, y, COLORS.line); // the EC line gets a dot of its own for its value
+        tags.push({ p: last, at: y, text: `${last.v.toFixed(2)} mS/cm`, color: COLORS.line });
+      }
+      this._valueTags(ctx, tags, x, { pad, plotW, plotH, size: fontPx + 3 });
+    }
     this._label(mode, last, dual ? weightPoints[weightPoints.length - 1] : null);
+  }
+
+  /** The latest values, next to their dots, kept apart and inside the plot. */
+  _valueTags(ctx, tags, x, { pad, plotW, plotH, size }) {
+    ctx.font = `600 ${size}px ui-sans-serif, system-ui, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    for (const t of tags) t.ty = t.at(t.p.v) - size * 0.9; // just above the dot
+    if (tags.length === 2 && Math.abs(tags[0].ty - tags[1].ty) < size * 1.7) {
+      const [upper, lower] = tags[0].ty <= tags[1].ty ? tags : [tags[1], tags[0]];
+      const mid = (upper.ty + lower.ty) / 2;
+      upper.ty = mid - size * 0.85;
+      lower.ty = mid + size * 0.85;
+    }
+    for (const t of tags) {
+      const dotX = x(t.p.t);
+      const ty = Math.min(Math.max(t.ty, pad.top + size / 2), pad.top + plotH - size / 2);
+      const width = ctx.measureText(t.text).width;
+      // Left of the dot in the right half (where the latest point usually is), otherwise right of it
+      const tx = dotX > pad.left + plotW / 2 ? dotX - 10 - width : dotX + 10;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fillRect(tx - 4, ty - size * 0.7, width + 8, size * 1.4);
+      ctx.fillStyle = t.color;
+      ctx.fillText(t.text, tx, ty);
+    }
   }
 
   _label(mode, last, lastWeight, hint) {

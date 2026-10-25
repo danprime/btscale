@@ -1,6 +1,6 @@
-/* Brew Tool styles. Phone first; the desktop card is at the end.
+/* Brew Tool styles. Phone first; the desktop card and the tablet layout are at the end.
    Sections: tokens · base · header · hero · chart · readings · controls ·
-   sheets and buttons · Settings · dialogs · brew log · extraction chart · desktop */
+   sheets and buttons · Settings · dialogs · brew log · extraction chart · desktop · tablet */
 
 /* ===== Tokens ===== */
 :root {
@@ -1114,5 +1114,316 @@ input[type="number"]::-webkit-outer-spin-button {
     }
     .log-ey-chart {
         height: 170px;
+    }
+}
+
+/* ===== Tablet landscape (iPad): thirds ===== */
+/* Any iPad in landscape (11": ~1194 x 760 in the browser, 12.9": ~1366 x 930). The big
+   sizes scale with the screen height, so both get the same layout.
+   Left third: weight, time and ratio (top half), all nine readings (bottom half), buttons.
+   Right two thirds: the charts, both at once. Settings slides in from the right;
+   the brew log is a list (left third) beside the open brew (right two thirds). */
+@media (min-width: 1024px) and (min-height: 700px) and (orientation: landscape) {
+    body {
+        background: #fff;
+    }
+    .ritual-container {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+        grid-template-rows: auto 1fr auto auto 1fr auto;
+        grid-template-areas:
+            "header header"
+            "hero   chart"
+            "strip  chart"
+            "conn   chart"
+            "read   chart"
+            "ctrl   chart";
+        max-width: none;
+        height: 100vh;
+        height: 100dvh;
+        margin: 0;
+        padding: 0 0 20px;
+        border-radius: 0;
+        background: #fff;
+        box-shadow: none;
+    }
+    .ritual-header {
+        grid-area: header;
+        height: 64px;
+        padding: 8px 28px 0;
+    }
+    .app-title {
+        font-size: 20px;
+    }
+
+    /* Hero: as large as the third allows */
+    .ritual-hero {
+        grid-area: hero;
+        align-self: center;
+        margin: 0;
+    }
+    .progress-weight-unit,
+    .hero-stat-label {
+        font-size: 14px;
+    }
+    .progress-weight-value,
+    .hero-weight .w-int,
+    .hero-weight .w-frac {
+        font-size: clamp(5rem, 15vh, 9rem);
+    }
+    .hero-weight-unit {
+        font-size: clamp(1.8rem, 4.6vh, 2.8rem);
+    }
+    .hero-meta {
+        gap: 64px;
+        margin-top: clamp(8px, 2vh, 20px);
+    }
+    .progress-timer,
+    .progress-ratio-value {
+        font-size: clamp(36px, 5.6vh, 52px);
+    }
+    .live-strip {
+        grid-area: strip;
+        margin: 16px 28px 0;
+        font-size: 13px;
+        text-align: center;
+    }
+    .strip-connect-row {
+        grid-area: conn;
+        margin: 12px 28px 0;
+    }
+
+    /* Readings: three rows of three, always in this order: scale, strength, EC meter */
+    .readings {
+        grid-area: read;
+        align-self: center;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: clamp(16px, 3.2vh, 30px) 16px;
+        margin: 0 28px;
+        padding-top: clamp(16px, 3vh, 28px);
+        border-top: 1px solid var(--line);
+    }
+    #flowPanel { order: 1; }
+    #targetPanel { order: 2; }
+    #remainderPanel { order: 3; }
+    #tdsPanel { order: 4; }
+    #eyPanel { order: 5; }
+    #yieldPanel { order: 6; }
+    #tempPanel { order: 7; }
+    #ecPanel { order: 8; }
+    #ciyPanel { order: 9; }
+    .readings .ritual-info-label {
+        font-size: 13px;
+        white-space: nowrap;
+    }
+    .readings .ritual-info-value {
+        font-size: clamp(20px, min(3vh, 2.1vw), 28px);
+    }
+    .readings .ritual-info-value em {
+        font-size: clamp(13px, min(1.8vh, 1.3vw), 17px);
+    }
+
+    /* Buttons */
+    .ritual-main-actions {
+        grid-area: ctrl;
+        margin: 0;
+        padding: 0 28px;
+    }
+    .side-action {
+        width: 96px;
+    }
+    .side-icon {
+        width: clamp(52px, 7vh, 64px);
+        height: clamp(52px, 7vh, 64px);
+    }
+    .side-icon svg {
+        width: 28px;
+        height: 28px;
+    }
+    .side-label {
+        font-size: 13px;
+    }
+    .timer-action {
+        width: clamp(80px, 11vh, 104px);
+        height: clamp(80px, 11vh, 104px);
+    }
+    .timer-action svg {
+        width: 40px;
+        height: 40px;
+    }
+
+    /* Charts: stacked, no tabs; the brew chart fills the space when it is alone */
+    .brew-chart {
+        grid-area: chart;
+        min-height: 0;
+        margin: 20px 28px 0 0;
+        padding-left: 28px;
+        border-left: 1px solid var(--line);
+        --chart-font: 14px;
+        --chart-values: 1;
+    }
+    .chart-dots {
+        display: none;
+    }
+    .brew-chart-label {
+        font-size: 13px;
+    }
+    .chart-track {
+        flex-direction: column;
+        gap: 20px;
+        overflow: hidden;
+        scroll-snap-type: none;
+    }
+    /* A hairline between the brew chart and the extraction chart */
+    #extractionSlide {
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+    }
+    .chart-slide {
+        flex: 1 1 0;
+        min-height: 0;
+    }
+    .ey-tick,
+    .ey-axis-title,
+    .ey-brew-label {
+        font-size: 13px;
+    }
+    .ey-label {
+        font-size: 12px;
+    }
+    .ey-hint {
+        font-size: 15px;
+    }
+
+    /* Final TDS: over the left third, so the charts stay visible */
+    .modal.tds-dialog {
+        justify-content: flex-start;
+    }
+    .tds-dialog .modal-content {
+        width: calc(33.333% - 16px);
+        margin: 0 0 0 8px;
+    }
+
+    /* Settings: a panel from the right; the main screen stays visible */
+    #settingsModal,
+    #calibrateModal {
+        background: rgba(47, 33, 24, 0.12);
+    }
+    #settingsModal .settings-sheet {
+        width: 480px;
+        margin: 0 0 0 auto;
+        padding: 0 28px 28px;
+        box-shadow: -8px 0 32px rgba(47, 33, 24, 0.12);
+    }
+    /* Calibration opens inside the Settings panel */
+    #calibrateModal {
+        justify-content: flex-end;
+    }
+    #calibrateModal .modal-content {
+        width: 480px;
+        margin: 0;
+        padding-left: 28px;
+        padding-right: 28px;
+    }
+
+    /* Brew log: the list beside the open brew */
+    .brew-log .modal-content {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+        align-items: start;
+        width: 100%;
+        padding: 0;
+    }
+    #logListView {
+        position: sticky;
+        top: 0;
+        box-sizing: border-box;
+        height: 100dvh;
+        overflow-y: auto;
+        padding: 12px 20px 24px 28px;
+        border-right: 1px solid var(--line);
+    }
+    .log-header {
+        min-height: 52px;
+    }
+    .log-item {
+        padding: 12px 10px;
+        border-bottom-color: transparent;
+        border-radius: var(--radius);
+        box-shadow: 0 1px 0 var(--line);
+    }
+    .log-item.is-selected {
+        background: var(--cream);
+        box-shadow: none;
+    }
+    .log-item.is-selected .log-item-name {
+        color: var(--brown);
+    }
+    #logDetailView {
+        padding: 12px 28px 28px;
+    }
+    #logDetailView .log-back {
+        display: none;               /* the list is beside it */
+    }
+    #logDetailView .log-header h3 {
+        font-size: 26px;
+    }
+    #logDate {
+        margin: 2px 0 12px;
+    }
+    .log-summary {
+        grid-template-columns: repeat(auto-fit, minmax(0, 180px));
+        margin: 12px 0 20px;
+        text-align: left;
+    }
+    .log-summary > div {
+        align-items: flex-start;
+    }
+    .log-summary-label {
+        font-size: 13px;
+    }
+    .log-summary-value {
+        font-size: 40px;
+    }
+    .log-chart {
+        margin: 0 0 20px;
+        --chart-font: 13px;
+        --chart-values: 1;
+    }
+    .log-chart canvas,
+    .log-chart .log-ey-chart {
+        height: 260px;
+    }
+    #logEyChartBox {
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+    }
+    .log-chart .brew-chart-label {
+        font-size: 13px;
+    }
+    /* Final data: the three groups side by side */
+    #logCards {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-rows: auto auto;
+        grid-auto-flow: column;
+        column-gap: 32px;
+    }
+    #logCards .log-group {
+        margin: 0 0 8px;
+        font-size: 13px;
+    }
+    #logCards .log-cards {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+    }
+    .log-cards .ritual-info-label {
+        font-size: 13px;
+    }
+    .log-cards .ritual-info-value {
+        font-size: 24px;
+    }
+    .log-delete-area {
+        margin-top: 28px;
     }
 }
