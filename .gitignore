@@ -1,1 +1,8 @@
 node_modules
+
+
+# Agent-ready standard: personal agent files, never committed
+CLAUDE.local.md
+.claude/settings.local.json
+# Built docs site
+_site/

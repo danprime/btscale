@@ -1,0 +1,53 @@
+name: docs-check
+
+# Agent-ready standard. Warning mode by default.
+# To make problems block merges, set the repo variable DOCS_CHECK_STRICT=true
+# (Settings > Secrets and variables > Actions > Variables).
+
+# Like playwright.yml, runs on pushes to main only: PRs here are merged straight away.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Docs compliance
+        run: python3 scripts/docs_check.py ${{ vars.DOCS_CHECK_STRICT == 'true' && '--strict' || '' }}
+      - name: Docs site builds
+        run: |
+          pip install markdown
+          python3 scripts/build_docs_site.py --out _site_check
+
+  # GitHub Pages publishes this repo with Jekyll; a stray {{ or {% can fail that build and stop
+  # the app from updating. Run on any branch with: gh workflow run docs-check --ref <branch>
+  jekyll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No Liquid braces in published files
+        run: python3 scripts/check_jekyll.py
+      - name: Pages (Jekyll) build succeeds
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site_jekyll
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

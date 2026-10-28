@@ -1,0 +1,30 @@
+name: Something's broken
+description: Report a problem.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we see it happen?
+      description: Steps, in order.
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: e.g. Pixel 8, Chrome 130
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or anything else
