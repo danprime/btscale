@@ -29,7 +29,7 @@ The owner. The server is the owner's own, and its token is private.
 | Condition | Available | Notes |
 | --- | --- | --- |
 | Chrome or Edge on Android | Yes | The main way it is used. |
-| Chrome or Edge on Windows, macOS or Linux | Yes | Web Bluetooth works there. Open question: has it been used with the real devices on a desktop? |
+| Chrome or Edge on Windows, macOS or Linux | Yes | Used with the real devices on a MacBook and a Windows mini PC. |
 | iPad or iPhone, any normal browser (Safari, Chrome) | No | Apple doesn't allow Web Bluetooth in any iPad or iPhone browser. |
 | iPad with the Bluefy browser | Yes | Tested on an iPad Pro 12.9", in landscape and portrait. |
 | Firefox, Safari on a Mac | No | No Web Bluetooth. |
@@ -46,7 +46,7 @@ The owner. The server is the owner's own, and its token is private.
 ## Limits and known gaps
 
 - It doesn't sync while the app is closed or in the background.
-- Open question: if other people start using the app, should they be able to sync (their own server, or a shared one)?
+- Sync for other people isn't decided yet. Someone who brews on several devices, like the owner, would probably want their own sync.
 
 ## Related
 

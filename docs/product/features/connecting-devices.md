@@ -31,11 +31,11 @@ Everyone, at the start of every brew session.
 | Condition | Available | Notes |
 | --- | --- | --- |
 | Chrome or Edge on Android | Yes | The main way it is used. |
-| Chrome or Edge on Windows, macOS or Linux | Yes | Web Bluetooth works there. Open question: has it been used with the real devices on a desktop? |
+| Chrome or Edge on Windows, macOS or Linux | Yes | Used with the real devices on a MacBook and a Windows mini PC. |
 | iPad or iPhone, any normal browser (Safari, Chrome) | No | Apple doesn't allow Web Bluetooth in any iPad or iPhone browser. |
 | iPad with the Bluefy browser | Yes | Tested on an iPad Pro 12.9", in landscape and portrait. |
 | Firefox, Safari on a Mac | No | No Web Bluetooth. |
-| BOOKOO scale | Yes | Open question: which BOOKOO models have been tried? The code looks for BOOKOO's Bluetooth service, so other BOOKOO scales may work too. |
+| BOOKOO Mini scale | Yes | Used regularly. Other BOOKOO scales that use the same Bluetooth service may work, but haven't been tried. |
 | Belka PORTAL EC meter | Yes | Its Bluetooth protocol was worked out from the Belka app. |
 | Any other scale (Acaia, Felicita, Timemore, ...) | No | See the [Roadmap](../roadmap.md): "Support for other scales as needed". |
 | Reconnecting without the device list | Limited | Only in browsers that can list devices you've already allowed. If a remembered device doesn't answer within 8 seconds, it is forgotten and the list is shown next time. |

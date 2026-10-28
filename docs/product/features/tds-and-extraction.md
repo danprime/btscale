@@ -35,7 +35,7 @@ calibrating.
 | Condition | Available | Notes |
 | --- | --- | --- |
 | Chrome or Edge on Android | Yes | The main way it is used. |
-| Chrome or Edge on Windows, macOS or Linux | Yes | Web Bluetooth works there. Open question: has it been used with the real devices on a desktop? |
+| Chrome or Edge on Windows, macOS or Linux | Yes | Used with the real devices on a MacBook and a Windows mini PC. |
 | iPad or iPhone, any normal browser (Safari, Chrome) | No | Apple doesn't allow Web Bluetooth in any iPad or iPhone browser. |
 | iPad with the Bluefy browser | Yes | Tested on an iPad Pro 12.9", in landscape and portrait. |
 | Firefox, Safari on a Mac | No | No Web Bluetooth. |
@@ -46,6 +46,7 @@ calibrating.
 | Calibrated (k_v saved at least once) | Recommended | Until then a rough default is used and every TDS value is marked "uncalibrated". |
 | Retained ratio setting | Optional | How much water the coffee bed holds back (default 2 grams per gram of coffee). Used for the live yield estimate. |
 | A refractometer | Required for calibration | The app doesn't measure TDS directly. |
+| Brew water | Distilled assumed | Distilled water's own EC is about 0, so nothing is subtracted. Water with minerals would add to the EC. |
 
 ## Variants and edge cases
 
@@ -55,7 +56,8 @@ calibrating.
 
 ## Limits and known gaps
 
-- A calibration made with one bean and one pour technique can be off by about 0.1 % TDS for a different bean and technique. This is being explored in [#44](https://github.com/danprime/btscale/issues/44).
+- A calibration made with one bean and one pour technique can be off by about 0.1 % TDS for a different bean and technique. For now, 0.1 % is good enough. This is being explored in [#44](https://github.com/danprime/btscale/issues/44).
+- Refractometer readings themselves can swing by up to 0.3 % TDS for the same sample at different temperatures, so a calibration is only as good as the reading it's based on.
 - The calculations are written up in detail in the repository (TDS calculations document).
 
 ## Related

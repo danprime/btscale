@@ -18,9 +18,12 @@ them on a chart. Every brew is saved to a brew log.
 
 ## Who it's for
 
-Right now, one person: the owner, who uses it at home on an Android phone and an iPad.
-No one else uses it yet.
-Open question: who might use it next (friends, other coffee brewers), and on which devices?
+Right now, one person: the owner, who uses it at home on an Android phone, an iPad, a MacBook and
+a Windows mini PC.
+
+Next, it's meant for friends and other people who own one or both of the devices. Several of the
+owner's friends have the BOOKOO scale. No one else the owner knows has a Belka PORTAL EC meter yet,
+so most new users would start with the scale alone.
 
 ## The problem it solves
 

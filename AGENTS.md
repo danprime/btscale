@@ -37,10 +37,10 @@ On Windows, use `python` instead of `python3`.
 
 ## Conventions
 
-- Branches: `feature/<issue>-<short-name>`, `fix/<issue>-<short-name>`, `docs/<short-name>`.
-  Most work here has no issue; then a short descriptive name (e.g. `trim`, `tablet-portrait`) is fine.
-- Commits and PR titles start with the issue reference when there is one, e.g. `#42 Add EC graph`;
-  otherwise a plain descriptive sentence ("Trim the end of a brew after Stop").
+- Branches: a short descriptive name, e.g. `trim`, `tablet-portrait`, `docs/agent-ready`.
+  No issue number needed (this repo's choice; it differs from the kit's `feature/<issue>-...`).
+- Commits and PR titles: a plain descriptive sentence ("Trim the end of a brew after Stop").
+  Mention the issue (`#44`) only when there is one.
 - One change per branch, descriptive commits. Push, open a PR and merge only when the owner says
   "push and merge"; then `gh pr merge --merge` and `git checkout main && git pull`.
 - Code style: plain ES modules, no framework, no bundler. `scale-ui.js` holds all UI wiring;
