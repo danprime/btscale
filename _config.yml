@@ -1,0 +1,12 @@
+# GitHub Pages (Jekyll) settings for this repo, which Pages publishes from main as-is.
+# A custom `exclude` replaces Jekyll's default list, so the defaults are repeated here.
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  # Kit template full of {{PLACEHOLDERS}}: Liquid would blank them out or fail the build
+  - docs/decisions/0000-template.md

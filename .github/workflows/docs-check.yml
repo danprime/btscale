@@ -28,6 +28,20 @@ jobs:
           pip install markdown
           python3 scripts/build_docs_site.py --out _site_check
 
+  # GitHub Pages publishes this repo with Jekyll; a stray {{ or {% can fail that build and stop
+  # the app from updating. Run on any branch with: gh workflow run docs-check --ref <branch>
+  jekyll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No Liquid braces in published files
+        run: python3 scripts/check_jekyll.py
+      - name: Pages (Jekyll) build succeeds
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site_jekyll
+
   secrets:
     runs-on: ubuntu-latest
     steps:
