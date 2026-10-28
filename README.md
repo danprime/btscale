@@ -149,7 +149,7 @@ Smaller tablets and desktop windows keep the floating card. iPadOS browsers (Chr
 
 ## Sync between devices
 
-Settings > Sync keeps the settings (bean dose, carafe, ratio, retained ratio, k_v and its history, timer drives) and the brew log the same on each device, through a [brewlog-server](https://github.com/danprime/brewlog-server) (your own, behind HTTPS, with a secret token). Enter the server address and the token once per device; the token stays in that browser.
+Settings > Sync keeps the settings (bean dose, carafe, ratio, retained ratio, k_v and its history, timer drives) and the brew log the same on each device, through a [brewlog-server](https://github.com/danprime/brewlog-server) (your own, behind HTTPS, with a secret token). Sync is off by default: switch on "Sync data across all devices.", then enter the server address and the token once per device; the token stays in that browser. Switching it off stops syncing and forgets the address and token on that device (its data stays), so they have to be entered again to turn it back on.
 
 - `sync.js` syncs when the app opens or comes back to the front, and shortly after a setting changes or a brew is saved, renamed or deleted. Offline, it waits for the next time.
 - Per record, the newest change wins; deletes are sent as markers, so a deleted brew doesn't come back. Each device keeps its newest 100 brews; the server keeps them all (trimming isn't a delete).

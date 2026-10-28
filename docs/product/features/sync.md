@@ -15,8 +15,9 @@ code_paths:
 
 ## What it does
 
-Settings, then Sync, connects the app to a small private server. You enter the server address and
-a secret token once per device. From then on, the bean dose, carafe weight, ratio, retained ratio,
+Settings, then Sync, connects the app to a small private server. Sync is off until you switch on
+"Sync data across all devices." The server address and secret token then appear, under a note to
+check with Dan for the values, and you enter them once per device. From then on, the bean dose, carafe weight, ratio, retained ratio,
 calibration and brew log stay the same on every device. It syncs when the app opens or comes back to
 the front, and shortly after a setting changes or a brew is saved, renamed or deleted.
 
@@ -42,6 +43,8 @@ The owner. The server is the owner's own, and its token is private.
 - For each setting and each brew, the newest change wins.
 - A deleted brew is sent as a deletion, so it doesn't come back from another device.
 - On a device's first sync, what the server already has wins over that device's own values.
+- Switching sync off stops it on that device and forgets the server address and token. The device
+  keeps its settings and brews. To sync again, switch it back on and enter both again.
 
 ## Limits and known gaps
 

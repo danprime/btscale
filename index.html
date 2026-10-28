@@ -369,18 +369,25 @@
                 <p class="dialog-step">Sync</p>
                 <h3 id="syncTitle">Sync between devices</h3>
                 <p class="dialog-note">Keeps your settings and brew log the same on each device, through your brewlog server.</p>
-                <table class="memory-table tds-table sync-table">
-                  <tbody>
-                    <tr><td><label for="syncUrl">Server</label></td><td><input type="url" id="syncUrl" class="text-input" placeholder="https://brewlog.example.com" autocomplete="off" autocapitalize="off" spellcheck="false"></td></tr>
-                    <tr><td><label for="syncToken">Token</label></td><td><input type="password" id="syncToken" class="text-input" autocomplete="off" autocapitalize="off" spellcheck="false"></td></tr>
-                  </tbody>
-                </table>
-                <p id="syncStatus" class="dialog-step"></p>
-                <div id="syncError" class="field-error" role="alert" hidden></div>
+                <!-- Off by default; turning it off forgets the server and token on this device -->
+                <label class="switch-row" for="syncToggle">
+                    <span>Sync data across all devices.</span>
+                    <input type="checkbox" id="syncToggle" class="switch" role="switch" onchange="toggleSync(this.checked)">
+                </label>
+                <div id="syncFields" hidden>
+                    <p class="dialog-note">Check with Dan for values.</p>
+                    <table class="memory-table tds-table sync-table">
+                      <tbody>
+                        <tr><td><label for="syncUrl">Server</label></td><td><input type="url" id="syncUrl" class="text-input" placeholder="https://brewlog.example.com" autocomplete="off" autocapitalize="off" spellcheck="false"></td></tr>
+                        <tr><td><label for="syncToken">Token</label></td><td><input type="password" id="syncToken" class="text-input" autocomplete="off" autocapitalize="off" spellcheck="false"></td></tr>
+                      </tbody>
+                    </table>
+                    <p id="syncStatus" class="dialog-step"></p>
+                    <div id="syncError" class="field-error" role="alert" hidden></div>
+                </div>
                 <div class="dialog-actions">
-                    <button id="syncOffBtn" class="ritual-btn btn-secondary" onclick="turnSyncOff()" hidden>Turn off</button>
                     <button class="ritual-btn btn-secondary" onclick="closeSync()">Close</button>
-                    <button id="syncSaveBtn" class="ritual-btn memory-confirm-btn" onclick="saveSync()">Save and sync</button>
+                    <button id="syncSaveBtn" class="ritual-btn memory-confirm-btn" onclick="saveSync()" hidden>Save and sync</button>
                 </div>
             </div>
         </div>

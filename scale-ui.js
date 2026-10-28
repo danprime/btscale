@@ -2522,20 +2522,37 @@ function renderSyncStatus(st = sync.status()) {
     if (!syncOpen()) return;
     setText('syncStatus', st.configured && st.lastSync ? `Last synced ${formatSyncTime(st.lastSync)}` : '');
     showFieldError('syncError', st.configured && !st.syncing && st.error ? st.error : '');
-    byId('syncOffBtn').hidden = !st.configured;
     byId('syncSaveBtn').disabled = st.syncing;
     byId('syncSaveBtn').textContent = st.configured ? 'Save and sync' : 'Turn on';
 }
 
+/** The switch shows or hides the server and token; the Save button only goes with them. */
+function showSyncFields(on) {
+    byId('syncToggle').checked = on;
+    byId('syncFields').hidden = !on;
+    byId('syncSaveBtn').hidden = !on;
+}
+
 function openSync() {
-    const config = sync.config;
+    const config = sync.configured ? sync.config : null;
     byId('syncUrl').value = config?.url || '';
     const token = byId('syncToken');
     token.value = '';
-    token.placeholder = config?.token ? 'Saved on this device' : "From the server's .env";
+    token.placeholder = config ? 'Saved on this device' : "From the server's .env";
+    showSyncFields(!!config);
     byId('syncModal').style.display = 'flex';
     renderSyncStatus();
-    (config ? byId('syncSaveBtn') : byId('syncUrl')).focus();
+    (config ? byId('syncSaveBtn') : byId('syncToggle')).focus();
+}
+
+/** Switch on: ask for the server and token. Switch off: stop syncing and forget them. */
+function toggleSync(on) {
+    showSyncFields(on);
+    if (on) {
+        byId('syncUrl').focus();
+        return;
+    }
+    turnSyncOff();
 }
 
 function closeSync() {
@@ -2556,15 +2573,20 @@ async function saveSync() {
     await sync.sync().catch(() => {}); // the status line shows any error
 }
 
+/** Stop syncing; the server and token have to be entered again to turn it back on. */
 function turnSyncOff() {
     sync.turnOff();
+    byId('syncUrl').value = '';
+    byId('syncToken').value = '';
     byId('syncToken').placeholder = "From the server's .env";
+    showFieldError('syncError', '');
+    setText('syncStatus', '');
 }
 
 window.openSync = openSync;
 window.closeSync = closeSync;
 window.saveSync = saveSync;
-window.turnSyncOff = turnSyncOff;
+window.toggleSync = toggleSync;
 window.__test_sync = sync;
 
 window.addEventListener('DOMContentLoaded', () => {
