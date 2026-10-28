@@ -46,9 +46,10 @@ def build(root):
     src = root / SRC
     pages = []
     for p in src.rglob("*.md"):
-        if p.name.startswith("_"):
-            continue
         rel = p.relative_to(src).as_posix()
+        # index.md is the site's landing page for the same list; llms.txt is that list already
+        if p.name.startswith("_") or rel == "index.md":
+            continue
         fm, body = front_matter(p.read_text(encoding="utf-8"))
         pages.append((rel, fm, body))
     pages.sort(key=lambda pg: (ORDER.index(pg[0]) if pg[0] in ORDER else len(ORDER), pg[0]))
