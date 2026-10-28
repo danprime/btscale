@@ -1,0 +1,25 @@
+{
+  "name": "Brew Tool (btscale)",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "postCreateCommand": "npm ci && npx playwright install --with-deps chromium && npm install -g @anthropic-ai/claude-code && pip install --user markdown",
+  "forwardPorts": [
+    8766
+  ],
+  "remoteEnv": {
+    "TZ": "America/Edmonton"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": []
+    }
+  }
+}

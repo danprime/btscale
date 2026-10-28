@@ -1,0 +1,36 @@
+name: Idea or feature request
+description: Suggest something new. No technical knowledge needed.
+labels: ["idea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tip: draft this with your own AI assistant. Ask it to read the product docs first
+        (especially Constraints and Ideas rejected), then paste the result here.
+  - type: textarea
+    id: what
+    attributes:
+      label: What do you want?
+      description: Describe it in plain words, as if explaining to a friend.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why does it matter?
+      description: What problem does it solve, or what does it make better?
+    validations:
+      required: true
+  - type: textarea
+    id: who
+    attributes:
+      label: Who is it for?
+  - type: textarea
+    id: done
+    attributes:
+      label: How would we know it's done?
+      description: What would you see or be able to do?
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples, sketches or links
