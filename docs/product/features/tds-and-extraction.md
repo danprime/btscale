@@ -34,7 +34,7 @@ calibrating.
 
 | Condition | Available | Notes |
 | --- | --- | --- |
-| Chrome or Edge on Android | Yes | The main way it is used (tested on a Galaxy S24). |
+| Chrome or Edge on Android | Yes | The main way it is used. |
 | Chrome or Edge on Windows, macOS or Linux | Yes | Web Bluetooth works there. Open question: has it been used with the real devices on a desktop? |
 | iPad or iPhone, any normal browser (Safari, Chrome) | No | Apple doesn't allow Web Bluetooth in any iPad or iPhone browser. |
 | iPad with the Bluefy browser | Yes | Tested on an iPad Pro 12.9", in landscape and portrait. |
