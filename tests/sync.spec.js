@@ -81,10 +81,11 @@ async function device(browser, storage = {}) {
   return page;
 }
 
-/** Settings > Sync: enter the server and token, Turn on. */
+/** Settings > Sync: switch it on, enter the server and token, Turn on. */
 async function turnOnSync(page, token = TOKEN) {
   await page.click('#settingsBtn');
   await page.click('#syncBtn');
+  await page.check('#syncToggle');
   await page.fill('#syncUrl', syncUrl);
   await page.fill('#syncToken', token);
   await page.click('#syncSaveBtn');
@@ -154,17 +155,65 @@ test('a rename and a delete reach the other device', async ({ browser }) => {
   expect(await ipad.evaluate((id) => window.__test_brewLog.get(id), id)).toBeUndefined();
 });
 
-test('a wrong token is refused and shown; Turn off stops syncing and keeps the data', async ({ browser }) => {
+test('the switch is off by default and shows the server and token only when on', async ({ browser }) => {
+  const phone = await device(browser);
+  await phone.click('#settingsBtn');
+  await phone.click('#syncBtn');
+  await expect(phone.locator('#syncToggle')).not.toBeChecked();
+  await expect(phone.locator('#syncModal')).toContainText('Sync data across all devices.');
+  await expect(phone.locator('#syncFields')).toBeHidden();
+  await expect(phone.locator('#syncSaveBtn')).toBeHidden();
+  await phone.check('#syncToggle');
+  await expect(phone.locator('#syncFields')).toBeVisible();
+  await expect(phone.locator('#syncFields')).toContainText('Check with Dan for values.');
+  await expect(phone.locator('#syncUrl')).toBeFocused();
+  await expect(phone.locator('#syncSaveBtn')).toHaveText('Turn on');
+  // Switched on but never saved: closed and opened again, it is still off
+  await phone.click('#syncModal .btn-secondary >> text=Close');
+  await phone.click('#syncBtn');
+  await expect(phone.locator('#syncToggle')).not.toBeChecked();
+  await expect(phone.locator('#syncFields')).toBeHidden();
+});
+
+test('switching sync off stops it and the server and token must be entered again', async ({ browser }) => {
+  const phone = await device(browser);
+  await turnOnSync(phone);
+  await expect(phone.locator('#syncRowMeta')).toHaveText(/\d/);
+  await phone.click('#syncModal .btn-secondary >> text=Close');
+  await phone.click('#syncBtn');
+  await expect(phone.locator('#syncToggle')).toBeChecked();
+  await expect(phone.locator('#syncUrl')).toHaveValue(syncUrl);
+  await phone.uncheck('#syncToggle');
+  await expect(phone.locator('#syncRowMeta')).toHaveText('Off');
+  await expect(phone.locator('#syncFields')).toBeHidden();
+  expect(await phone.evaluate(() => window.__test_sync.configured)).toBe(false);
+  // Back on: both fields are empty, and saving without them is refused
+  await phone.check('#syncToggle');
+  await expect(phone.locator('#syncUrl')).toHaveValue('');
+  await expect(phone.locator('#syncToken')).toHaveValue('');
+  await expect(phone.locator('#syncToken')).toHaveAttribute('placeholder', "From the server's .env");
+  await phone.fill('#syncUrl', syncUrl);
+  await phone.click('#syncSaveBtn');
+  await expect(phone.locator('#syncError')).toHaveText('Enter the token.');
+  // After a reload it is still off
+  await phone.reload();
+  await phone.click('#settingsBtn');
+  await phone.click('#syncBtn');
+  await expect(phone.locator('#syncToggle')).not.toBeChecked();
+});
+
+test('a wrong token is refused and shown; switching off stops syncing and keeps the data', async ({ browser }) => {
   const phone = await device(browser, { brewRatioV1: '17' });
   await turnOnSync(phone, 'wrong-token');
   await expect(phone.locator('#syncError')).toHaveText('The server did not accept the token.');
   await expect(phone.locator('#syncRowMeta')).toHaveText('Not synced');
   expect(sync.records.size).toBe(0);
-  await phone.click('#syncOffBtn');
+  await phone.uncheck('#syncToggle');
   await expect(phone.locator('#syncRowMeta')).toHaveText('Off');
-  await expect(phone.locator('#syncOffBtn')).toBeHidden();
+  await expect(phone.locator('#syncError')).toBeHidden();
   await expect(phone.locator('#ratioSettingValue')).toHaveText('17');
   // Only https (or localhost while testing)
+  await phone.check('#syncToggle');
   await phone.fill('#syncUrl', 'http://brewlog.example.com');
   await phone.fill('#syncToken', TOKEN);
   await phone.click('#syncSaveBtn');

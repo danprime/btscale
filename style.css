@@ -854,6 +854,46 @@ input[type="number"]::-webkit-outer-spin-button {
     color: var(--brown);
     text-align: left;
 }
+/* Sync: on/off switch (a checkbox drawn as a sliding switch) */
+.switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0.4em 0 0.8em;
+    color: var(--ink);
+    cursor: pointer;
+}
+.switch {
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    flex: none;
+    width: 44px;
+    height: 26px;
+    margin: 0;
+    border-radius: 13px;
+    background: var(--faint);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.switch::before {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.15s;
+}
+.switch:checked {
+    background: var(--brown);
+}
+.switch:checked::before {
+    transform: translateX(18px);
+}
 /* Sync: labels left, inputs fill the rest of the row */
 .sync-table td:first-child {
     width: 4.5em;
