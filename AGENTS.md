@@ -32,6 +32,7 @@ npx playwright test --browser=chromium     # Playwright specs in tests/ (mocked 
 # docs check (must pass before opening a PR)
 python3 scripts/docs_check.py
 python3 scripts/check_jekyll.py   # no Liquid tags in files GitHub Pages publishes
+python3 scripts/build_llms_txt.py --check   # llms.txt matches docs/product (rewrite: drop --check)
 ```
 
 On Windows, use `python` instead of `python3`.

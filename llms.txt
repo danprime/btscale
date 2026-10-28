@@ -1,0 +1,38 @@
+# Brew Tool
+
+> Brew Tool is a web app for brewing pour-over coffee. It connects to a Bluetooth coffee scale and, optionally, a Bluetooth EC meter that sits under the dripper. While you brew, it shows the weight, time, brew ratio, temperature and strength of the coffee in big, easy-to-read numbers, and draws them on a chart. Every brew is saved to a brew log.
+
+The app runs at https://myscale.danieltse.com/. Read the brief first; for features and how it works, read the index, then only the pages you need.
+
+## Overview
+
+- [Brief](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/brief.md): What Brew Tool is, who it's for, and who owns it.
+- [Constraints](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/constraints.md): Hard limits, non-goals, and rules any change to Brew Tool must respect.
+- [Roadmap](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/roadmap.md): What's in progress, what's planned next, and what's later for Brew Tool.
+- [Decisions](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/decisions.md): Plain-English index of the key decisions behind Brew Tool, linking to the full records.
+- [Ideas rejected](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/ideas-rejected.md): Ideas that were considered and declined for Brew Tool, and why. Check here before proposing something.
+
+## Features
+
+- [Features](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/features/index.md): Everything Brew Tool can do today, one row per feature area. Read this first, then only the files you need.
+- [After a brew](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/features/after-a-brew.md): Final values after Stop, trimming a late Stop, and downloading the readings.
+- [Brew log](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/features/brew-log.md): Every finished brew is saved with its charts and numbers; rename or delete them.
+- [Connecting devices](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/features/connecting-devices.md): One Connect button for the scale and the EC meter, with known devices reconnected automatically.
+- [Live brewing](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/features/live-brewing.md): Big weight, time and ratio while you pour, with flow, target and a live chart.
+- [Screens and install](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/features/screens-and-install.md): Phone and tablet layouts, and installing Brew Tool as an app.
+- [Sync between devices](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/features/sync.md): Keeps settings and the brew log the same on a phone and a tablet, through the owner's own server.
+- [Strength and extraction (TDS)](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/features/tds-and-extraction.md): Temperature, EC, live and final TDS, the TDS vs extraction chart, and calibrating the TDS estimate.
+
+## How it works
+
+- [How it works](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/how-it-works/index.md): How Brew Tool fits together, in plain English. Read this first, then only the subsystem files you need.
+- [Bluetooth devices](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/how-it-works/bluetooth-devices.md): Finds, connects and talks to the BOOKOO scale and the Belka PORTAL EC meter.
+- [Recording and charts](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/how-it-works/recording-and-charts.md): Records every reading during a brew and draws the brew chart; makes the download file.
+- [Saved data and sync](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/how-it-works/saved-data-and-sync.md): Where settings and the brew log are kept, and how sync copies them between devices.
+- [Screens and layout](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/how-it-works/screens.md): The page itself: the main screen, Settings, the sheets, and the phone and tablet layouts.
+- [TDS maths](https://raw.githubusercontent.com/danprime/btscale/main/docs/product/how-it-works/tds-maths.md): Turns EC and weight into TDS and extraction yield, and works out the calibration number.
+
+## Optional
+
+- [README](https://raw.githubusercontent.com/danprime/btscale/main/README.md): Developer reference: modules, screens, TDS behaviour, CSV format.
+- [TDS calculations](https://raw.githubusercontent.com/danprime/btscale/main/tds_calculations.md): Every TDS, k_v and extraction calculation, with worked examples.
