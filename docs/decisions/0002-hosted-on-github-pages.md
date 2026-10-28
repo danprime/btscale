@@ -24,6 +24,8 @@ Publish the app from `main` on GitHub Pages. Merging a PR to `main` is the relea
 
 No servers or build to maintain. The repository and the site are public. Browsers may cache files for up to about 10 minutes after a release.
 
+The owner chose (2026-10-28) to keep the docs in `docs/`, published by the same Jekyll build, rather than add a separate docs workflow. Jekyll reads Liquid template tags in published Markdown and HTML, and one stray tag can fail the build and stop app updates too. So `scripts/check_jekyll.py` checks for them, `_config.yml` excludes the decision template, and the `docs-check` workflow runs GitHub's own Pages builder.
+
 ## Links
 
 - https://danprime.github.io/btscale/
