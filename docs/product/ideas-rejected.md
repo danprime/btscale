@@ -2,8 +2,8 @@
 title: Ideas rejected
 summary: Ideas that were considered and declined for Brew Tool, and why. Check here before proposing something.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 ---
 

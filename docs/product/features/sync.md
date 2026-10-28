@@ -2,8 +2,8 @@
 title: Sync between devices
 summary: Keeps settings and the brew log the same on a phone and a tablet, through the owner's own server.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 code_paths:
   - sync.js

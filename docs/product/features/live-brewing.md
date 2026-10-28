@@ -2,8 +2,8 @@
 title: Live brewing
 summary: Big weight, time and ratio while you pour, with flow, target and a live chart.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 code_paths:
   - scale-ui.js

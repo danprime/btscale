@@ -2,8 +2,8 @@
 title: Screens and install
 summary: Phone and tablet layouts, and installing Brew Tool as an app.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 code_paths:
   - index.html

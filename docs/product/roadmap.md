@@ -2,8 +2,8 @@
 title: Roadmap
 summary: What's in progress, what's planned next, and what's later for Brew Tool.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 ---
 

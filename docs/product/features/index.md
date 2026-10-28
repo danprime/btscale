@@ -2,8 +2,8 @@
 title: Features
 summary: Everything Brew Tool can do today, one row per feature area. Read this first, then only the files you need.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 ---
 

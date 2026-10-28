@@ -2,8 +2,8 @@
 title: Saved data and sync
 summary: Where settings and the brew log are kept, and how sync copies them between devices.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 code_paths:
   - brew-log.js

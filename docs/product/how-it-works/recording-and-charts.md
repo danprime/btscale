@@ -2,8 +2,8 @@
 title: Recording and charts
 summary: Records every reading during a brew and draws the brew chart; makes the download file.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 code_paths:
   - brew-recorder.js

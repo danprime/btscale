@@ -2,8 +2,8 @@
 title: Strength and extraction (TDS)
 summary: Temperature, EC, live and final TDS, the TDS vs extraction chart, and calibrating the TDS estimate.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 code_paths:
   - tds.js

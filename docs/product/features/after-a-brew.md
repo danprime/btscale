@@ -2,8 +2,8 @@
 title: After a brew
 summary: Final values after Stop, trimming a late Stop, and downloading the readings.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 code_paths:
   - scale-ui.js

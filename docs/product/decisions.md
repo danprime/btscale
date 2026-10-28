@@ -2,8 +2,8 @@
 title: Decisions
 summary: Plain-English index of the key decisions behind Brew Tool, linking to the full records.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 ---
 

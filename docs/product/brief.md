@@ -2,8 +2,8 @@
 title: Brief
 summary: What Brew Tool is, who it's for, and who owns it.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 ---
 

@@ -2,8 +2,8 @@
 title: TDS maths
 summary: Turns EC and weight into TDS and extraction yield, and works out the calibration number.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 code_paths:
   - tds.js

@@ -2,8 +2,8 @@
 title: Brew log
 summary: Every finished brew is saved with its charts and numbers; rename or delete them.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 code_paths:
   - brew-log.js

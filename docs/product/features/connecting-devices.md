@@ -2,8 +2,8 @@
 title: Connecting devices
 summary: One Connect button for the scale and the EC meter, with known devices reconnected automatically.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 code_paths:
   - device-manager.js

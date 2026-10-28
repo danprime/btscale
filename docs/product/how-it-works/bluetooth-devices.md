@@ -2,8 +2,8 @@
 title: Bluetooth devices
 summary: Finds, connects and talks to the BOOKOO scale and the Belka PORTAL EC meter.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 code_paths:
   - ble-scale.js

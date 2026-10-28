@@ -2,8 +2,8 @@
 title: How it works
 summary: How Brew Tool fits together, in plain English. Read this first, then only the subsystem files you need.
 owner: Daniel Tse
-last_verified: 2026-10-27
-status: draft
+last_verified: 2026-10-28
+status: current
 standard_version: 1.0
 code_paths:
   - index.html
