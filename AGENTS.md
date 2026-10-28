@@ -31,7 +31,7 @@ npx playwright test --browser=chromium     # Playwright specs in tests/ (mocked 
 
 # docs check (must pass before opening a PR)
 python3 scripts/docs_check.py
-python3 scripts/check_jekyll.py   # no {{ or {% in files GitHub Pages publishes
+python3 scripts/check_jekyll.py   # no Liquid tags in files GitHub Pages publishes
 ```
 
 On Windows, use `python` instead of `python3`.
@@ -103,8 +103,9 @@ stop and ask. Add a `Co-authored-by:` trailer for each person on commits made in
 - Deploy: GitHub Pages publishes the `main` branch as-is (legacy Pages build, Jekyll, no workflow).
   Merging to `main` is the deploy; there is no service worker, so the next page load gets the change.
   `docs/` is published too, at `https://danprime.github.io/btscale/docs/...`. Keep it free of anything
-  you wouldn't publish. Jekyll reads `{{ }}` and `{% %}` in published Markdown/HTML as Liquid, which
-  can fail the Pages build (and stop app updates): `scripts/check_jekyll.py` catches them;
+  you wouldn't publish. Jekyll reads double curly braces, and a curly brace followed by a percent
+  sign, in published Markdown/HTML as Liquid template tags, which can fail the Pages build (and stop
+  app updates). `scripts/check_jekyll.py` catches them (see its docstring for the raw-block escape);
   `_config.yml` excludes files that must keep them (the decision template).
 - CI (`.github/workflows/playwright.yml`, `docs-check.yml`) runs on pushes to `main` only, by choice.
   Linux fonts differ from Windows, so layout tests can fail only in CI.
