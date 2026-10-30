@@ -30,6 +30,7 @@ The owner, while working out how far off the calibrated k_v is (see #44).
 | Which dot moves | A second "what if" dot; the real final dot stays visible | Moving the final dot itself: you lose the measured point to compare against |
 | What the predicted k_v does | Shown only, to copy by hand if wanted | A "use this k_v" button: a second way to change k_v, outside the calibration history (#44) |
 | Effect on the real result | None: final TDS, extraction, stored k_v and the brew log entry stay the same | |
+| Where the readout goes | A card of its own right under the chart, shown only after a drag: "If TDS were 1.48 % · k_v 0.005441 · now 0.005", dashed to mark it as a "what if" | A reading next to TDS in the readings grid: looks like a measured value and pushes the grid onto another row, so the screen scrolls on a 375×667 phone |
 | Where the drag starts | Only by pressing on (or near) the final dot | The whole chart: it would break swiping between charts, scrolling the page and the tap that shows the region labels |
 
 ## Acceptance criteria
@@ -63,11 +64,10 @@ The owner, while working out how far off the calibrated k_v is (see #44).
 
 ## Status
 
-- Done: feasibility review on #48 (feasible, Small to Medium).
-- Next steps: settle the open questions; add a dragging hit area around the final dot in `drawExtractionChart` (final screen only); work out k_v with `calcKv()` from `tds.js`; add the readout; write a Playwright spec with the mocked devices.
+- Done: feasibility review on #48 (feasible, Small to Medium); mockups of two readout placements, card under the chart chosen.
+- Next steps: add a dragging hit area around the final dot in `drawExtractionChart` (final screen only) and draw the dashed "what if" dot and its line; work out k_v with `calcKv()` from `tds.js`; add the card under the chart; clear both when a new brew starts; write a Playwright spec with the mocked devices.
 
 ## Open questions
 
-- Where should the readout go? Two mockups: (A) a "k_v at <TDS>" reading next to TDS in the readings grid, or (B) a dashed card of its own under the chart, shown only after a drag.
 - If the calculator is used again (a new yield), should the dragged dot stay at its TDS or be cleared?
 - Copying the predicted k_v into the app today means Settings → Calibrate → typing it in step 2's "New" box. Saving any k_v there marks it calibrated, not uncalibrated, and adds it to the last-3 list. Is that fine for a "what if" value, or is a plain k_v field in Settings wanted (a separate issue)?
