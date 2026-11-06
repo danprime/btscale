@@ -68,8 +68,9 @@ These hold for the first new scale, once it is chosen. Items marked (open) depen
 
 ## Status
 
-- Done: nothing built. Issue and code read; this spec drafted.
+- Done: driver for older Acaia scales (service 0x1820, ISC-licensed protocol from bpowers/btscale) in `acaia-protocol.js` and `acaia-scale.js`; `scale-switch.js` picks the driver by device name; fake Acaia in `ble-mock.js`; `tests/acaia.spec.js`. Brand is worked out from the device name, so no stored format changed. Checked against the fake in Node only: the Playwright suite could not run in the build session (no browser libraries).
 - Next steps:
+  0. Run `npx playwright test --browser=chromium` where Chromium works, and check at 384 x 720 and 375 x 667.
   1. Answer the open questions, in particular which Acaia models and whether a real one is available.
   2. Research the Acaia Bluetooth protocol from a source the owner trusts (service and characteristic IDs, the handshake, weight packet layout, tare and timer commands) and add it as a protocol file beside `bookoo_protocols.md`. Nothing here is verified against a real scale yet.
   3. Split `ble-scale.js` and `bookoo-scale.js` so a scale driver can be chosen by brand, keeping the BOOKOO behaviour byte for byte.

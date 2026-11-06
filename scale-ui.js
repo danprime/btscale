@@ -381,7 +381,7 @@ function renderConnectionState(errorText) {
 /** Settings > Devices: one row per device with its state and battery. */
 function renderDeviceRows() {
     const rows = [
-        ['scale', 'scaleRowState', 'scaleRowSub', 'BOOKOO', lastScaleData?.batteryPercent],
+        ['scale', 'scaleRowState', 'scaleRowSub', devices.scale.label, lastScaleData?.batteryPercent],
         ['portal', 'portalRowState', 'portalRowSub', 'Belka PORTAL', lastPortalData?.battery],
     ];
     for (const [type, stateId, subId, model, battery] of rows) {
