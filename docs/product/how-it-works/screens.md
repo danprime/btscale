@@ -1,6 +1,6 @@
 ---
 title: Screens and layout
-summary: The page itself: the main screen, Settings, the sheets, and the phone and tablet layouts.
+summary: "The page itself: the main screen, Settings, the sheets, and the phone and tablet layouts."
 owner: Daniel Tse
 last_verified: 2026-10-28
 status: current
