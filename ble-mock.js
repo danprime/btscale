@@ -1,12 +1,14 @@
 /**
  * Test-only navigator.bluetooth mock that can simulate several devices at once
- * (BOOKOO scale and Belka Portal).
+ * (BOOKOO scale, an older Acaia scale and Belka Portal).
  *
  * requestDevice() behaves like a user picking the first not-yet-connected device
  * that matches the filters; it rejects with NotFoundError (like a cancelled
  * picker) when nothing matches. getDevices() returns the devices listed in
  * `permitted` plus any device previously returned by requestDevice().
  */
+
+import { encode as acaiaEncode } from './acaia-protocol.js';
 
 const BASE_UUID_SUFFIX = '-0000-1000-8000-00805f9b34fb';
 
@@ -102,6 +104,12 @@ function makeScale() {
   ]));
 }
 
+function makeAcaia() {
+  return new MockDevice('mock-acaia-id', 'ACAIA-MOCK', new MockService(0x1820, [
+    new MockCharacteristic(0x2a80, { notify: true, write: true, writeWithoutResponse: true }),
+  ]));
+}
+
 function makePortal() {
   return new MockDevice('mock-portal-id', 'BelkaPortal', new MockService(0x7400, [
     new MockCharacteristic(0x7410, { notify: true }),
@@ -112,11 +120,11 @@ function makePortal() {
 
 /**
  * Install the mock as navigator.bluetooth.
- * @param {{devices?: Array<'scale'|'portal'>, permitted?: Array<'scale'|'portal'>, getDevices?: boolean}} opts
+ * @param {{devices?: Array<'scale'|'acaia'|'portal'>, permitted?: Array<'scale'|'acaia'|'portal'>, getDevices?: boolean}} opts
  */
 export function installMockBluetooth({ devices = ['scale'], permitted = [], getDevices = true } = {}) {
   const original = typeof navigator !== 'undefined' ? navigator.bluetooth : undefined;
-  const all = { scale: makeScale(), portal: makePortal() };
+  const all = { scale: makeScale(), acaia: makeAcaia(), portal: makePortal() };
   const available = devices.map((t) => all[t]);
   const granted = new Set(permitted.map((t) => all[t]));
   const requests = [];
@@ -149,6 +157,13 @@ export function installMockBluetooth({ devices = ['scale'], permitted = [], getD
     // Scale helpers (kept compatible with the original installMock API)
     async getWeightCharacteristic() { return char('scale', 0xff11); },
     scaleCommandWrites: () => char('scale', 0xff12).writes,
+    // Acaia helpers
+    acaiaWrites: () => char('acaia', 0x2a80).writes,
+    /** Emit a weight packet (grams, one decimal place) the way an older Acaia scale sends it. */
+    emitAcaiaWeight(grams, seq = 0) {
+      const raw = Math.round(Math.abs(grams) * 10);
+      char('acaia', 0x2a80).__emit(acaiaEncode(5, [raw & 0xff, raw >> 8, 0, 0, 1, 0, grams < 0 ? 2 : 0], seq));
+    },
     // Portal helpers
     portalStream: () => char('portal', 0x7410),
     portalCommandWrites: () => char('portal', 0x7420).writes,

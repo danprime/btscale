@@ -93,7 +93,7 @@ test('single connect button connects both devices, then disconnects both', async
   await expect(page.locator('#portalInfo')).toBeVisible();
   await expect(connectBtn).toHaveText('Disconnect');
   const filters = await page.evaluate(() => window.__mock.mock.requests.map((r) => r.filters));
-  expect(filters[0].length).toBe(2);
+  expect(filters[0].length).toBe(3);
   expect(filters[1]).toEqual([{ name: 'BelkaPortal' }]);
 
   // Readings reach the cards; weight stays the hero value.

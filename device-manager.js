@@ -12,7 +12,8 @@
  * Emits 'change' whenever a device connects or disconnects.
  */
 import { SimpleEmitter } from './emitter.js';
-import ScaleController from './bookoo-scale.js';
+import { ScaleSwitch } from './scale-switch.js';
+import { ACAIA_SERVICE_UUID } from './acaia-scale.js';
 import { SERVICE_UUID as SCALE_SERVICE_UUID } from './ble-scale.js';
 import { BelkaPortal, PORTAL_NAME, PORTAL_FILTER, PORTAL_SERVICE_UUID } from './belka-portal.js';
 
@@ -21,7 +22,7 @@ const STORAGE_KEY = 'bleDeviceIdsV1';
 const RECONNECT_TIMEOUT_MS = 8000;
 
 const FILTERS = {
-  scale: [{ services: [SCALE_SERVICE_UUID] }],
+  scale: [{ services: [SCALE_SERVICE_UUID] }, { services: [ACAIA_SERVICE_UUID] }],
   portal: [PORTAL_FILTER],
 };
 const OPTIONAL_SERVICES = {
@@ -48,7 +49,7 @@ export class DeviceManager extends SimpleEmitter {
     super();
     this.bluetooth = options.bluetooth || null;
     this.storage = options.storage || (typeof localStorage !== 'undefined' ? localStorage : null);
-    this.scale = new ScaleController({ bluetooth: options.bluetooth });
+    this.scale = new ScaleSwitch({ bluetooth: options.bluetooth });
     this.portal = new BelkaPortal({ bluetooth: options.bluetooth });
     this.names = { scale: null, portal: null };
     this.reconnectTimeoutMs = options.reconnectTimeoutMs ?? RECONNECT_TIMEOUT_MS;

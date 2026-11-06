@@ -2,13 +2,16 @@
 title: Connecting devices
 summary: One Connect button for the scale and the EC meter, with known devices reconnected automatically.
 owner: Daniel Tse
-last_verified: 2026-10-28
+last_verified: 2026-11-06
 status: current
 standard_version: 1.0
 code_paths:
   - device-manager.js
   - ble-scale.js
   - bookoo-scale.js
+  - scale-switch.js
+  - acaia-scale.js
+  - acaia-protocol.js
   - belka-portal.js
 ---
 
@@ -16,7 +19,7 @@ code_paths:
 
 ## What it does
 
-One Connect button connects the BOOKOO scale and the Belka PORTAL EC meter. The first time, the
+One Connect button connects a scale (BOOKOO, or an older Acaia scale) and the Belka PORTAL EC meter. The first time, the
 browser shows a list of nearby devices for you to pick from. Browsers only allow one list per tap,
 so with two devices you tap Connect twice. After that, devices you've used before are reconnected
 without the list, where the browser allows it. Two small icons in the header show each device: faded
@@ -37,7 +40,9 @@ Everyone, at the start of every brew session.
 | Firefox, Safari on a Mac | No | No Web Bluetooth. |
 | BOOKOO Mini scale | Yes | Used regularly. Other BOOKOO scales that use the same Bluetooth service may work, but haven't been tried. |
 | Belka PORTAL EC meter | Yes | Its Bluetooth protocol was worked out from the Belka app. |
-| Any other scale (Acaia, Felicita, Timemore, ...) | No | See the [Roadmap](../roadmap.md): "Support for other scales as needed". |
+| Older Acaia scales (the 2016-era Lunar and Pearl) | Needs verification | Built from a public protocol write-up and tested only against a fake scale. Weight, Tare and the timer are meant to work. The brew time and flow are worked out by the app, and there is no battery reading, beep, auto-off or flow smoothing. |
+| Newer Acaia scales (Lunar 2021, Pearl firmware 2.0, Pyxis) | No | They use a different protocol. Planned, see the [Roadmap](../roadmap.md). |
+| Any other scale (Felicita, Timemore, ...) | No | Planned where a public protocol write-up exists. |
 | Reconnecting without the device list | Limited | Only in browsers that can list devices you've already allowed. If a remembered device doesn't answer within 8 seconds, it is forgotten and the list is shown next time. |
 | Web page opened over https (or on the developer's own computer) | Required | Browsers only allow Bluetooth on secure pages. |
 

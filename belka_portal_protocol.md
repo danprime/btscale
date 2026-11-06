@@ -181,4 +181,4 @@ The app also supports a second device, the Belka Filter. It has the same service
   - Temperature: the 24-bit value is turned into a thermistor resistance, using constants 40950000 and 10000, then a polynomial fit with `spoutK1`, `spoutK2` and `spoutTempOffset`.
 - No start/stop commands for the Filter.
 
-The scale drivers (Acaia, Bookoo, DiFluid, Felicita) are also in the app but out of scope here.
+The scale drivers are out of scope here: BOOKOO is in `bookoo_protocols.md`, and the older Acaia scales are in `acaia-protocol.js`.
