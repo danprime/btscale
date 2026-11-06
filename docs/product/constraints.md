@@ -13,7 +13,7 @@ standard_version: 1.0
 
 - Bluetooth only works in browsers with Web Bluetooth: Chrome and Edge on Android, Windows, macOS and Linux. No browser on an iPhone or iPad has it (Apple doesn't allow it), so iPad use needs the Bluefy browser. Firefox and Safari don't have it.
 - Bluetooth only works on secure (https) pages, and the device list can only open when you tap something, once per tap.
-- Only two devices are supported: BOOKOO scales and the Belka PORTAL EC meter.
+- Only one EC meter is supported: the Belka PORTAL. Scales: BOOKOO is the one in regular use. Other brands are to be added and are "needs verification" until tried on a real scale.
 - TDS needs both devices at once, and calibrating it needs a refractometer.
 - Everything is stored in the browser on each device. Clearing the browser's site data clears it, unless sync is on.
 - Each device keeps the newest 100 brews.
