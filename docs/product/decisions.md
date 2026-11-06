@@ -13,6 +13,7 @@ Newest first. Full records live in the decisions folder.
 
 | # | Decision | Why, in one line | Status |
 | --- | --- | --- | --- |
+| [0009](../decisions/0009-more-scales-marked-needs-verification.md) | More scale brands are welcome, and each is marked "needs verification" until tried on a real scale | The owner has only a BOOKOO, so nothing else can be promised without testing | accepted |
 | [0008](../decisions/0008-sync-off-by-default-forgets-credentials.md) | Sync is off until switched on, and switching it off forgets the server and token | A device that has stopped syncing doesn't keep the secret; turning it back on means typing both again | accepted |
 | [0007](../decisions/0007-tests-with-fake-bluetooth.md) | Automated tests with a fake Bluetooth | Every feature can be tested without the real devices, in a real browser | accepted |
 | [0006](../decisions/0006-tds-from-cumulative-ec.md) | Estimate TDS from EC added up over the water poured | The EC meter measures the coffee as it flows, so adding it up gives the strength of the cup | accepted |

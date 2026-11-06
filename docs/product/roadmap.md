@@ -2,7 +2,7 @@
 title: Roadmap
 summary: What's in progress, what's planned next, and what's later for Brew Tool.
 owner: Daniel Tse
-last_verified: 2026-10-28
+last_verified: 2026-11-06
 status: current
 standard_version: 1.0
 ---
@@ -13,6 +13,7 @@ standard_version: 1.0
 
 | Item | Issue | Spec | Notes |
 | --- | --- | --- | --- |
+| Support for Acaia and other documented Bluetooth scales | [#50](https://github.com/danprime/btscale/issues/50) | [spec](../specs/50-acaia-and-other-scales.md) | Spec drafted, open questions to answer first. Nothing built. Every non-BOOKOO scale will be marked "needs verification". |
 | Explore better calibrations, for a more accurate TDS across beans and pour techniques | [#44](https://github.com/danprime/btscale/issues/44) | [spec](../specs/44-better-tds-calibration.md) | First step built but not merged yet: each calibration is recorded on its brew in the brew log. |
 
 ## Next
@@ -23,5 +24,4 @@ standard_version: 1.0
 
 ## Later
 
-- Support for other scales as needed.
 - Make it easy for non-developers to contribute (content files, idea intake).
