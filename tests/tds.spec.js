@@ -656,3 +656,186 @@ test('devices disconnect after Stop: final values kept, chart redrawn, Connect u
   await page.click('#chartConnectBtn');
   await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'true');
 });
+
+// #48: after the calculator's Next, drag the final dot to see the k_v another TDS would need
+async function finalScreen(page, storage) {
+  await withStorage(page, storage);
+  await page.evaluate(async () => {
+    await window.__connect(['scale', 'portal']);
+    await window.__brew();
+    await triStateTimer(); // stop
+    await window.__emitScale(window.__mock, 336, 2000);
+  });
+}
+
+/** Next scrolls the carousel to the extraction chart: wait until it has stopped there. */
+async function waitForExtractionSlide(page) {
+  const track = page.locator('#chartTrack');
+  await expect.poll(() => track.evaluate((t) => t.scrollLeft === t.scrollWidth - t.clientWidth || t.scrollWidth <= t.clientWidth)).toBe(true);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+}
+
+/** Drag the dot by dy pixels (negative = up) with the mouse. */
+async function dragDot(page, dy) {
+  await waitForExtractionSlide(page);
+  const box = await page.locator('#extractionChart .ey-drag').boundingBox();
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx, cy + dy / 2, { steps: 3 });
+  await page.mouse.move(cx, cy + dy, { steps: 3 });
+  await page.mouse.up();
+}
+
+test('final screen: drag the dot to see the k_v another TDS needs; nothing is saved; cleared by the calculator and a new brew', async ({ page }) => {
+  // Dose 10 g, so the dot is on the chart: 150 g x 1.10 % / 10 g = 16.5 % extraction
+  await finalScreen(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 10 }, carafe: { weight: 186 } } });
+  const card = page.locator('#whatIfCard');
+  // Before Next: an estimate, nothing to drag
+  await expect(page.locator('#extractionChart .ey-drag')).toHaveCount(0);
+  await expect(card).toBeHidden();
+
+  await page.click('#tareBeanBtn');
+  await page.click('#ftNextBtn');
+  await expect(page.locator('.ey-brew-label')).toHaveText('16.5 %, 1.10 %');
+  await expect(card).toBeVisible();
+  await expect(page.locator('#whatIfTds')).toHaveText('Drag the dot to try another TDS');
+  await expect(page.locator('#whatIfKv')).toHaveText('k_v now 0.005');
+  await expect(page.locator('#extractionChart .ey-drag')).toHaveCount(1);
+
+  // Drag up: a second, dashed dot on the yield's line; the real dot stays
+  await dragDot(page, -30);
+  await expect(page.locator('#extractionChart .ey-whatif')).toHaveCount(1);
+  await expect(page.locator('#extractionChart .ey-whatif-line')).toHaveCount(1);
+  await expect(page.locator('#extractionChart .ey-brew')).toHaveCount(1);
+  await expect(page.locator('.ey-brew-label')).toHaveText('16.5 %, 1.10 %');
+  const text = await page.locator('#whatIfTds').textContent();
+  const tds = parseFloat(text.match(/If TDS were (\d\.\d\d) %/)[1]);
+  expect(tds).toBeGreaterThan(1.1);
+  // k_v = TDS x yield / (100 x CIY), 4 significant digits
+  const expected = String(Number(((tds * 150) / (100 * 330)).toPrecision(4)));
+  await expect(page.locator('#whatIfKv')).toHaveText(`k_v ${expected} · now 0.005`);
+  // Extraction moves with TDS (the yield is fixed)
+  await expect(page.locator('.ey-whatif-label')).toHaveText(`${((150 * tds) / 10).toFixed(1)} %, ${tds.toFixed(2)} %`);
+  // The drag doesn't toggle the region labels, and the dot stays after letting go
+  await expect(page.locator('.ey-label')).toHaveCount(0);
+  await page.waitForTimeout(200);
+  await expect(page.locator('#whatIfTds')).toHaveText(`If TDS were ${tds.toFixed(2)} %`);
+
+  // Nothing is saved or recalculated
+  await expect(page.locator('#tdsValue')).toHaveText('1.10 %');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('tdsKvV1')))).toBe(0.005);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('lastBrewV1')).yield)).toBe(150);
+
+  // The arrow keys move it by 0.01 %
+  await page.locator('#extractionChart').focus();
+  await page.keyboard.press('ArrowUp');
+  await expect(page.locator('#whatIfTds')).toHaveText(`If TDS were ${(tds + 0.01).toFixed(2)} %`);
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown');
+  await expect(page.locator('#whatIfTds')).toHaveText(`If TDS were ${(tds - 0.01).toFixed(2)} %`);
+
+  // A tap away from the dot still shows the region labels, and doesn't move the dot
+  const chart = await page.locator('#extractionChart').boundingBox();
+  await page.mouse.click(chart.x + chart.width - 20, chart.y + chart.height - 40);
+  await expect(page.locator('.ey-label')).toHaveCount(4);
+  await expect(page.locator('#whatIfTds')).toHaveText(`If TDS were ${(tds - 0.01).toFixed(2)} %`);
+  await page.mouse.click(chart.x + chart.width - 20, chart.y + chart.height - 40);
+
+  // Dragging far down stops at the bottom of the chart
+  await dragDot(page, 400);
+  await expect(page.locator('#whatIfTds')).toHaveText('If TDS were 0.80 %');
+
+  // The calculator again (another yield): the dragged dot is cleared
+  await page.click('#tareBeanBtn');
+  await page.locator('#ftYield').fill('160');
+  await page.click('#ftNextBtn');
+  await expect(page.locator('#extractionChart .ey-whatif')).toHaveCount(0);
+  await expect(page.locator('#whatIfTds')).toHaveText('Drag the dot to try another TDS');
+
+  // A new brew: gone, along with the card
+  await dragDot(page, -20);
+  await expect(page.locator('#extractionChart .ey-whatif')).toHaveCount(1);
+  await page.evaluate(() => triStateTimer()); // reset
+  await expect(card).toBeHidden();
+  await expect(page.locator('#extractionSlide')).toBeHidden();
+  // The next brew's final screen starts without it
+  await page.evaluate(async () => {
+    await window.__brew();
+    await triStateTimer(); // stop
+    await window.__emitScale(window.__mock, 336, 2000);
+  });
+  await page.click('#tareBeanBtn');
+  await page.click('#ftNextBtn');
+  await expect(page.locator('#extractionChart .ey-brew')).toHaveCount(1);
+  await expect(page.locator('#extractionChart .ey-whatif')).toHaveCount(0);
+  await expect(page.locator('#whatIfTds')).toHaveText('Drag the dot to try another TDS');
+});
+
+test('what-if k_v: the k_v in use is marked uncalibrated; the brew log chart cannot be dragged', async ({ page }) => {
+  await finalScreen(page, { scaleMemoryV1: { beans: { weight: 10 }, carafe: { weight: 186 } } });
+  await page.click('#tareBeanBtn');
+  await page.click('#ftNextBtn');
+  await expect(page.locator('#whatIfKv')).toHaveText('k_v now 0.005 (uncalibrated)');
+  await dragDot(page, -20);
+  await expect(page.locator('#whatIfKv')).toHaveText(/^k_v [\d.]+ · now 0\.005 \(uncalibrated\)$/);
+  await page.click('#settingsBtn');
+  await page.click('#brewLogBtn');
+  await page.locator('.log-item').first().click();
+  await expect(page.locator('#logDetailView')).toBeVisible();
+  await expect(page.locator('#logEyChart .ey-brew')).toHaveCount(1);
+  await expect(page.locator('#logEyChart .ey-drag')).toHaveCount(0);
+});
+
+for (const size of [{ width: 384, height: 720 }, { width: 375, height: 667 }]) {
+  test(`what-if card fits a ${size.width}x${size.height} phone without page scroll`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await finalScreen(page, { scaleMemoryV1: { beans: { weight: 10 }, carafe: { weight: 186 } } });
+    await page.click('#tareBeanBtn');
+    await page.click('#ftNextBtn');
+    await dragDot(page, -20);
+    const dims = await page.evaluate(() => {
+      const card = document.getElementById('whatIfCard');
+      const chart = document.getElementById('extractionChart').getBoundingClientRect();
+      return { doc: document.documentElement.scrollHeight, view: innerHeight, cardOverflow: card.scrollWidth > card.clientWidth, cardBelowChart: card.getBoundingClientRect().top >= chart.bottom - 0.5, chartHeight: chart.height };
+    });
+    expect(dims.doc).toBe(dims.view);
+    expect(dims.cardOverflow).toBe(false);
+    expect(dims.cardBelowChart).toBe(true);
+    expect(dims.chartHeight).toBeGreaterThan(110);
+  });
+}
+
+test.describe('touch', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 384, height: 720 } });
+  test('what-if: a touch drag on the dot moves it without swiping the carousel; a swipe elsewhere still swipes', async ({ page }) => {
+    await finalScreen(page, { tdsKvV1: 0.005, scaleMemoryV1: { beans: { weight: 10 }, carafe: { weight: 186 } } });
+    await page.click('#tareBeanBtn');
+    await page.click('#ftNextBtn');
+    const track = page.locator('#chartTrack');
+    await waitForExtractionSlide(page);
+    const before = await track.evaluate((t) => t.scrollLeft);
+    const cdp = await page.context().newCDPSession(page);
+    const touch = async (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+    // Diagonal drag from the dot: up and to the right, as a thumb would
+    const box = await page.locator('#extractionChart .ey-drag').boundingBox();
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    await touch('touchStart', cx, cy);
+    for (let i = 1; i <= 6; i++) await touch('touchMove', cx + i * 6, cy - i * 5);
+    await touch('touchEnd');
+    await expect(page.locator('#whatIfTds')).toHaveText(/If TDS were 1\.\d\d %/);
+    await page.waitForTimeout(400);
+    expect(await track.evaluate((t) => t.scrollLeft)).toBe(before);
+    await expect(page.locator('.ey-label')).toHaveCount(0); // no tap toggled the labels
+
+    // A swipe to the right that starts away from the dot goes back to the brew chart
+    const chart = await page.locator('#extractionChart').boundingBox();
+    const sy = chart.y + chart.height - 30;
+    await touch('touchStart', chart.x + 60, sy);
+    for (let i = 1; i <= 8; i++) await touch('touchMove', chart.x + 60 + i * 30, sy);
+    await touch('touchEnd');
+    await expect.poll(() => track.evaluate((t) => Math.round(t.scrollLeft / t.clientWidth))).toBe(0);
+  });
+});

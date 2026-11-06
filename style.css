@@ -1095,6 +1095,49 @@ input[type="number"]::-webkit-outer-spin-button {
     font-size: 10.5px;
     font-weight: 600;
 }
+/* What if: the final dot dragged to another TDS, along the yield's line */
+.ey-whatif-line {
+    stroke: var(--faint);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+}
+.ey-whatif {
+    fill: var(--cream);
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-dasharray: 2.5 2;
+}
+.ey-whatif-label {
+    fill: var(--muted);
+    font-size: 10.5px;
+    font-weight: 600;
+}
+.ey-drag {
+    fill: transparent;
+    cursor: ns-resize;
+    touch-action: none;
+}
+.whatif-card {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 2px 12px;
+    margin-top: 6px;
+    padding: 6px 12px;
+    border: 1px dashed var(--edge);
+    border-radius: var(--radius);
+    background: var(--cream);
+    color: var(--muted);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+.whatif-card b {
+    color: var(--ink);
+}
+.whatif-card #whatIfKv b {
+    color: var(--accent);
+}
 .ey-trail {
     fill: none;
     stroke: var(--accent);
@@ -1483,7 +1526,8 @@ body.trimming .ritual-main-actions {
     }
     .ey-tick,
     .ey-axis-title,
-    .ey-brew-label {
+    .ey-brew-label,
+    .ey-whatif-label {
         font-size: 13px;
     }
     .ey-label {
