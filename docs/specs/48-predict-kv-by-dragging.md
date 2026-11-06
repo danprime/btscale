@@ -26,7 +26,7 @@ The owner, while working out how far off the calibrated k_v is (see #44).
 | What can change | TDS only; the yield stays as measured | Dragging the yield too: the yield is weighed, not guessed |
 | How the dot moves | Along a slanted line, because extraction = yield × TDS ÷ dose moves with TDS | Straight up and down: extraction would no longer match the TDS shown |
 | What happens when you let go | The dot stays where you put it, so you can read the numbers | Snapping back: you couldn't look at the result |
-| When the dragged dot goes away | When a new brew starts | Keeping it across brews: it belongs to this brew's numbers |
+| When the dragged dot goes away | When a new brew starts, or the calculator is run again | Keeping it across brews: it belongs to this brew's numbers. Keeping it after a new yield: the predicted k_v depends on the yield, so it would be wrong |
 | Which dot moves | A second "what if" dot; the real final dot stays visible | Moving the final dot itself: you lose the measured point to compare against |
 | What the predicted k_v does | Shown only, to copy by hand if wanted | A "use this k_v" button: a second way to change k_v, outside the calibration history (#44) |
 | Effect on the real result | None: final TDS, extraction, stored k_v and the brew log entry stay the same | |
@@ -38,6 +38,7 @@ The owner, while working out how far off the calibrated k_v is (see #44).
 - [ ] Given a stopped brew with both devices and a final TDS from the calculator, when the owner presses the final dot and drags it up, then the dot moves up and to the right along the yield's line, and a readout shows the dragged TDS, the predicted k_v and the current k_v.
 - [ ] Given a dragged dot, when the owner lets go, then the dot and the readout stay where they are, and the real final dot is still shown.
 - [ ] Given a dragged dot, when a new brew starts, then the dragged dot and the readout are gone.
+- [ ] Given a dragged dot, when the calculator's Next is pressed again, then the dragged dot and the readout are gone.
 - [ ] Given a dragged dot, then the final TDS on the TDS card, the extraction value, the k_v in Settings and the saved brew in the brew log are unchanged.
 - [ ] Given the predicted k_v, when worked out by hand as dragged TDS × yield ÷ (100 × added-up EC), then it matches the readout to 4 significant digits.
 - [ ] Given the final screen, when the owner taps the chart away from the dot, then the region labels still toggle, and swiping sideways still moves between the charts.
@@ -52,6 +53,8 @@ The owner, while working out how far off the calibrated k_v is (see #44).
 | Happy path | Mocked brew with both devices, Stop, calculator Next, drag the dot up | Readout shows a higher TDS and a higher predicted k_v; current k_v unchanged |
 | Drag down | Same, drag down | Lower TDS and lower predicted k_v |
 | Let go | Drag, then release | Dot and readout stay |
+| Calculator again | Drag, open Final TDS, change the yield, Next | Dragged dot and readout gone; real dot at the new TDS |
+| New brew | Drag, Reset, Start | Dragged dot and readout gone |
 | Nothing saved | Drag, then open Settings and the brew log | Settings k_v and the logged TDS are the same as before the drag |
 | Tap still works | Tap the chart away from the dot | Region labels toggle; dot doesn't move |
 | Swipe still works (phone) | Swipe sideways starting away from the dot | Moves to the brew chart |
@@ -65,9 +68,9 @@ The owner, while working out how far off the calibrated k_v is (see #44).
 ## Status
 
 - Done: feasibility review on #48 (feasible, Small to Medium); mockups of two readout placements, card under the chart chosen.
-- Next steps: add a dragging hit area around the final dot in `drawExtractionChart` (final screen only) and draw the dashed "what if" dot and its line; work out k_v with `calcKv()` from `tds.js`; add the card under the chart; clear both when a new brew starts; write a Playwright spec with the mocked devices.
+- Next steps: add a dragging hit area around the final dot in `drawExtractionChart` (final screen only) and draw the dashed "what if" dot and its line; work out k_v with `calcKv()` from `tds.js`; add the card under the chart; clear both when a new brew starts or the calculator's Next is pressed; write a Playwright spec with the mocked devices.
 
 ## Open questions
 
-- If the calculator is used again (a new yield), should the dragged dot stay at its TDS or be cleared?
+- None.
 - Copying the predicted k_v into the app today means Settings → Calibrate → typing it in step 2's "New" box. Saving any k_v there marks it calibrated, not uncalibrated, and adds it to the last-3 list. Is that fine for a "what if" value, or is a plain k_v field in Settings wanted (a separate issue)?
