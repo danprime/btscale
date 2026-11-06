@@ -266,7 +266,7 @@ test('remembered device out of range: reconnect times out, is forgotten, next pr
   await page.evaluate(() => toggleConnect());
   await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'true');
   const requests = await page.evaluate(() => window.__mock.mock.requests.map((r) => r.filters));
-  expect(requests).toEqual([[{ services: [0x0ffe] }]]);
+  expect(requests).toEqual([[{ services: [0x0ffe] }, { services: [0x1820] }]]);
 });
 
 test('scale timer not driven: elapsed time comes from the app clock, not the scale', async ({ page }) => {

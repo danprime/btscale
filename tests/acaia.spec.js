@@ -89,7 +89,7 @@ test('an Acaia scale connects, shows weight and takes tare and timer commands', 
   const msg = await page.evaluate(() => window.__scaleController.setBeep(2).then(() => 'ok', (e) => e.message));
   expect(msg).toMatch(/not supported/);
 
-  await page.evaluate(() => toggleConnect());
+  await page.evaluate(() => window.__devices.disconnectAll());
   await expect(page.locator('#scaleIcon')).toHaveAttribute('data-connected', 'false');
 });
 
