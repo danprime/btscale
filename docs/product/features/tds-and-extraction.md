@@ -53,6 +53,7 @@ calibrating.
 - The live TDS estimate starts 30 seconds after Start.
 - Right after Stop the extraction dot is hollow (an estimate). After the calculator's Next it turns solid (measured).
 - Tapping the extraction chart shows or hides the four region labels (Strong and sour, and so on).
+- After the calculator's Next, you can drag the solid dot up or down to try another TDS. A dashed dot follows your finger and a card under the chart shows the k_v that TDS would need, next to the k_v in use. It's only shown: nothing is saved, and the real TDS doesn't change. The dashed dot stays until you run the calculator again or start a new brew. To use that k_v, enter it through Calibrate in Settings.
 
 ## Limits and known gaps
 

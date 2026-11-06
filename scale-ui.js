@@ -149,6 +149,7 @@ let sync = null; // settings and brew log shared between devices (set up with th
 let tdsBrew = false; // true once this brew has summed EC over poured water
 let tdsMinSeconds = 30; // live TDS shows "--" for this long after Start
 let finalTds = null; // { yieldG, tds } from the final TDS calculator, after Stop
+let whatIfTds = null; // TDS % the final dot was dragged to (shows the k_v that would give it; nothing is saved)
 
 // Tablet (iPad, landscape or portrait): all nine readings, both charts at once, the brew log as list + detail.
 // style.css decides when (its tablet media query sets --layout: tablet); read once, again on resize.
@@ -674,6 +675,7 @@ function clearFinal() {
     finalSnapshot = null;
     fullSnapshot = null;
     finalTds = null;
+    whatIfTds = null;
     renderTrimButton();
     closeFinalTds();
     setText('flowRateLabel', 'Flow');
@@ -1534,6 +1536,7 @@ function applyFinalTds() {
         return;
     }
     finalTds = { yieldG, tds: tdsPercent(activeKv(), finalSnapshot.ciy, yieldG) };
+    whatIfTds = null; // the predicted k_v depended on the old yield
     // Calibration uses this measured yield for the same brew
     const brew = loadJson(LAST_BREW_KEY);
     if (brew) saveLastBrew({ ...brew, yield: yieldG });
@@ -1821,21 +1824,54 @@ function renderExtractionChart() {
     if (!point && !(memory.beans?.weight > 0)) hint = 'Set the bean dose to plot this brew';
     else if (!point && !finalSnapshot && recorder.elapsed() < tdsMinSeconds) hint = `Live path from ${formatSeconds(tdsMinSeconds)}`;
     // The live trail stays after Next, with the measured final dot drawn on top
+    const draggable = !!point?.final;
     const desc = drawExtractionChart(svg, {
         point,
         trail: extractionTrail,
         labelsShown: extractionLabelsShown,
         hint,
         estimateWord: finalSnapshot ? 'estimated' : 'live estimate:',
+        whatIfTds: draggable ? whatIfTds : null,
+        draggable,
     });
-    svg.setAttribute('aria-label', `TDS versus extraction yield chart, ${desc}. Tap to ${extractionLabelsShown ? 'hide' : 'show'} region labels.`);
+    const drag = draggable ? ' Drag the dot, or use the up and down arrow keys, to see the k_v for another TDS.' : '';
+    svg.setAttribute('aria-label', `TDS versus extraction yield chart, ${desc}. Tap to ${extractionLabelsShown ? 'hide' : 'show'} region labels.${drag}`);
+    renderWhatIfCard(draggable);
+}
+
+/** Under the extraction chart after the calculator's Next: the k_v the dragged TDS would need, and the k_v in use. */
+function renderWhatIfCard(show) {
+    const card = byId('whatIfCard');
+    if (!card) return;
+    card.hidden = !show;
+    if (!show) return;
+    const now = `now ${formatKv(activeKv())}${kv ? '' : ' (uncalibrated)'}`;
+    const tdsEl = byId('whatIfTds');
+    const kvEl = byId('whatIfKv');
+    if (whatIfTds == null) {
+        tdsEl.textContent = 'Drag the dot to try another TDS';
+        kvEl.textContent = `k_v ${now}`;
+        return;
+    }
+    const predicted = calcKv(whatIfTds, finalTds.yieldG, finalSnapshot.ciy);
+    tdsEl.replaceChildren('If TDS were ', Object.assign(document.createElement('b'), { textContent: formatTds(whatIfTds) }));
+    kvEl.replaceChildren('k_v ', Object.assign(document.createElement('b'), { textContent: formatKv(predicted) }), ` · ${now}`);
+}
+
+/** Move the what-if dot to a TDS (kept on the chart, to 0.01 %). */
+function setWhatIfTds(tds) {
+    if (!finalTds || !(tds > 0)) return;
+    const clamped = Math.min(TDS_AXIS.max, Math.max(TDS_AXIS.min, tds));
+    whatIfTds = Math.round(clamped * 100) / 100;
+    renderExtractionChart();
 }
 
 /**
  * Draw the TDS vs extraction chart into an <svg> (also used by the brew log).
  * point: {ey, tds, final} or null; trail: [{ey, tds}]; returns a description for aria-label.
+ * draggable (final point only): a grab area around the dot; whatIfTds: the dot dragged there, on the yield's line.
  */
-function drawExtractionChart(svg, { point = null, trail = [], labelsShown = false, hint = null, estimateWord = 'estimated' } = {}) {
+function drawExtractionChart(svg, { point = null, trail = [], labelsShown = false, hint = null, estimateWord = 'estimated', whatIfTds = null, draggable = false } = {}) {
     const w = svg.clientWidth || 300;
     const h = svg.clientHeight || 150;
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
@@ -1847,6 +1883,8 @@ function drawExtractionChart(svg, { point = null, trail = [], labelsShown = fals
     const pad = s ? { l: 34 * s, r: 28 * s, t: 8, b: 30 * s } : { l: 32, r: 10, t: 8, b: 30 };
     const x = (ey) => pad.l + ((ey - EY_AXIS.min) / (EY_AXIS.max - EY_AXIS.min)) * (w - pad.l - pad.r);
     const y = (tds) => h - pad.b - ((tds - TDS_AXIS.min) / (TDS_AXIS.max - TDS_AXIS.min)) * (h - pad.t - pad.b);
+    // Dragging reads a TDS back from a height in the chart
+    svg.tdsAtY = (py) => TDS_AXIS.min + ((h - pad.b - py) / (h - pad.t - pad.b)) * (TDS_AXIS.max - TDS_AXIS.min);
 
     // Grid and ticks
     for (let v = EY_AXIS.min; v <= EY_AXIS.max + 1e-9; v += EY_AXIS.step) {
@@ -1891,13 +1929,44 @@ function drawExtractionChart(svg, { point = null, trail = [], labelsShown = fals
     if (point) {
         const cx = px(point.ey);
         const cy = py(point.tds);
+        const showLabels = !labelsShown || isTablet(); // the region labels take over while they are shown; the dots stay
+        // A label beside a dot: right of it on the left half (or toward `toRight`); above it unless there's no room.
+        // Kept inside the chart, so a label pushed toward an edge stays readable.
+        const label = (lx, ly, cls, text, side = 'above', toRight = lx < w / 2) => {
+            if (ly < pad.t + 14) side = 'below';
+            const ty = side === 'below' ? Math.min(ly + 14, h - pad.b - 3) : ly - 8;
+            const el = svgEl('text', { x: lx + (toRight ? 9 : -9), y: ty, 'text-anchor': toRight ? 'start' : 'end', class: cls }, text);
+            svg.append(el);
+            const box = el.getBBox?.();
+            if (!box?.width) return;
+            const shift = box.x + box.width > w - pad.r ? w - pad.r - (box.x + box.width) : box.x < pad.l ? pad.l - box.x : 0;
+            if (shift) el.setAttribute('x', Number(el.getAttribute('x')) + shift);
+        };
         svg.append(svgEl('circle', { cx, cy, r: 5.5, class: point.final ? 'ey-brew' : 'ey-brew ey-brew-estimate' }));
-        const right = cx < w / 2;
-        const below = cy < pad.t + 14;
-        // The region labels take over while they are shown; the dot stays
-        if (!labelsShown || isTablet()) svg.append(svgEl('text', { x: cx + (right ? 9 : -9), y: cy + (below ? 14 : -8), 'text-anchor': right ? 'start' : 'end', class: 'ey-brew-label' },
-            `${point.final ? '' : '≈ '}${point.ey.toFixed(1)} %, ${point.tds.toFixed(2)} %`));
         desc = `${point.final ? '' : `${estimateWord} `}extraction ${point.ey.toFixed(1)} %, TDS ${point.tds.toFixed(2)} %: ${extractionRegion(point.tds, point.ey)}`;
+        const brewLabel = `${point.final ? '' : '≈ '}${point.ey.toFixed(1)} %, ${point.tds.toFixed(2)} %`;
+        let grab = { cx, cy };
+        if (whatIfTds != null && point.tds > 0) {
+            // The yield is fixed, so extraction moves with TDS: the dot slides along this line
+            const r = point.ey / point.tds;
+            const lo = Math.max(TDS_AXIS.min, EY_AXIS.min / r);
+            const hi = Math.min(TDS_AXIS.max, EY_AXIS.max / r);
+            if (lo < hi) svg.append(svgEl('line', { x1: x(lo * r), y1: y(lo), x2: x(hi * r), y2: y(hi), class: 'ey-whatif-line' }));
+            const ey = whatIfTds * r;
+            grab = { cx: px(ey), cy: py(whatIfTds) };
+            svg.append(svgEl('circle', { ...grab, r: 5.5, class: 'ey-whatif' }));
+            // The two labels face away from each other (the dragged dot moves up and right, or down and left)
+            const up = grab.cy <= cy;
+            if (showLabels) {
+                label(grab.cx, grab.cy, 'ey-whatif-label', `${ey.toFixed(1)} %, ${whatIfTds.toFixed(2)} %`, up ? 'above' : 'below', up);
+                label(cx, cy, 'ey-brew-label', brewLabel, up ? 'below' : 'above', !up);
+            }
+            desc += `; dragged to extraction ${ey.toFixed(1)} %, TDS ${whatIfTds.toFixed(2)} %`;
+        } else if (showLabels) {
+            label(cx, cy, 'ey-brew-label', brewLabel);
+        }
+        // A larger, invisible area to grab (the what-if dot once there is one, else the final dot)
+        if (draggable) svg.append(svgEl('circle', { ...grab, r: 22, class: 'ey-drag' }));
     } else if (hint) {
         svg.append(svgEl('text', { x: w / 2, y: h / 2, 'text-anchor': 'middle', class: 'ey-hint' }, hint));
         if (hint.startsWith('Live path')) desc = 'live path starts shortly';
@@ -1929,9 +1998,43 @@ function renderChartDots(i) {
 
 window.addEventListener('DOMContentLoaded', () => {
     const svg = byId('extractionChart');
-    svg.addEventListener('click', toggleExtractionLabels);
+    // Drag the final dot (only from its grab area, so swiping and scrolling elsewhere still work)
+    let drag = null; // { id, moved } while a finger or the mouse holds the dot
+    let dragged = false; // a drag just ended: the click it makes doesn't toggle the labels
+    // A touch that starts on the dot must not swipe the carousel or scroll the page
+    // (Chrome ignores touch-action on SVG shapes, so this is done here)
+    svg.addEventListener('touchstart', (e) => {
+        if (e.target.classList?.contains('ey-drag')) e.preventDefault();
+    }, { passive: false });
+    svg.addEventListener('pointerdown', (e) => {
+        dragged = false;
+        if (!e.target.classList?.contains('ey-drag')) return;
+        e.preventDefault();
+        svg.setPointerCapture(e.pointerId);
+        drag = { id: e.pointerId, moved: false };
+    });
+    svg.addEventListener('pointermove', (e) => {
+        if (!drag || e.pointerId !== drag.id || !svg.tdsAtY) return;
+        drag.moved = true;
+        setWhatIfTds(svg.tdsAtY(e.clientY - svg.getBoundingClientRect().top));
+    });
+    const endDrag = (e) => {
+        if (!drag || e.pointerId !== drag.id) return;
+        dragged = drag.moved;
+        drag = null;
+    };
+    svg.addEventListener('pointerup', endDrag);
+    svg.addEventListener('pointercancel', endDrag);
+    svg.addEventListener('click', () => {
+        if (dragged) { dragged = false; return; }
+        toggleExtractionLabels();
+    });
     svg.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExtractionLabels(); }
+        if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && finalTds && extractionPoint()?.final) {
+            e.preventDefault();
+            setWhatIfTds((whatIfTds ?? finalTds.tds) + (e.key === 'ArrowUp' ? 0.01 : -0.01));
+        }
     });
     if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => renderExtractionChart()).observe(svg);
     byId('chartTrack').addEventListener('scroll', () => renderChartDots(), { passive: true });
