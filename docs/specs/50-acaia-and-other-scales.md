@@ -25,7 +25,7 @@ Only what the issue says is decided. Everything else is under Open questions.
 | First scale brand | Acaia | None recorded. The issue says "namely acaia" |
 | Which scales | Any Bluetooth scale whose protocol is documented somewhere public, Acaia first, newer and older Acaia models both aimed for | A single brand only: the issue says "any standard BLE scale" |
 | How compatibility is shown in the docs | Every scale other than BOOKOO is listed as "needs verification" until someone has tried it on a real scale | Claiming support from a protocol write-up alone: nobody on the project owns the scales |
-| The "only two devices" constraint | It was about one scale (BOOKOO) and one EC meter (Belka PORTAL). More scales are allowed. There is still only one supported EC meter, because no other Bluetooth EC meter is known | Keeping "only two devices": it would block this issue |
+| The "only two devices" constraint (see [decision 0009](../decisions/0009-more-scales-marked-needs-verification.md)) | It was about one scale (BOOKOO) and one EC meter (Belka PORTAL). More scales are allowed. There is still only one supported EC meter, because no other Bluetooth EC meter is known | Keeping "only two devices": it would block this issue |
 | Where the new scale appears | In the existing scale slot: Connect still offers one scale and one EC meter | Not decided whether two scales at once is ever wanted |
 | Fix for the stale line in `belka_portal_protocol.md` (it says Acaia, DiFluid and Felicita drivers are in the app; only BOOKOO is) | Corrected as part of this work | Fixing it on its own now: it becomes true or gets removed depending on what this work delivers |
 
@@ -86,4 +86,3 @@ These hold for the first new scale, once it is chosen. Items marked (open) depen
 - Is the licence and terms of use of the Acaia protocol, whichever source is used, compatible with a public GitHub repository?
 - Should the brew log record which scale was used?
 - The roadmap entry "Support for other scales as needed" should become a real item with this issue once the spec is agreed.
-- Does this need a decision record (adding a second brand of device driver changes how devices are chosen and stored)?

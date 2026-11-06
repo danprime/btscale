@@ -2,7 +2,7 @@
 title: Constraints
 summary: Hard limits, non-goals, and rules any change to Brew Tool must respect.
 owner: Daniel Tse
-last_verified: 2026-10-28
+last_verified: 2026-11-06
 status: current
 standard_version: 1.0
 ---
