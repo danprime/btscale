@@ -68,13 +68,12 @@ These hold for the first new scale, once it is chosen. Items marked (open) depen
 
 ## Status
 
-- Done: driver for older Acaia scales (service 0x1820, ISC-licensed protocol from bpowers/btscale) in `acaia-protocol.js` and `acaia-scale.js`; `scale-switch.js` picks the driver by device name; fake Acaia in `ble-mock.js`; `tests/acaia.spec.js`. Brand is worked out from the device name, so no stored format changed. Checked against the fake in Node only: the Playwright suite could not run in the build session (no browser libraries).
+- Done: driver for older Acaia scales (service 0x1820, ISC-licensed protocol from bpowers/btscale) in `acaia-protocol.js` and `acaia-scale.js`. `scale-switch.js` picks the driver by device name (ACAIA, PEARL, LUNAR, PYXIS or PROCH prefix; anything else is BOOKOO), so no stored format changed. Fake Acaia in `ble-mock.js` and `tests/acaia.spec.js`. Merged in #55 and #56; the full Playwright suite passes in CI. Not tried on a real scale, so it is "needs verification" in the docs. The stale line in `belka_portal_protocol.md` is fixed.
 - Next steps:
-  0. Run `npx playwright test --browser=chromium` where Chromium works, and check at 384 x 720 and 375 x 667.
-  1. Answer the open questions, in particular which Acaia models and whether a real one is available.
-  2. Research the Acaia Bluetooth protocol from a source the owner trusts (service and characteristic IDs, the handshake, weight packet layout, tare and timer commands) and add it as a protocol file beside `bookoo_protocols.md`. Nothing here is verified against a real scale yet.
-  3. Split `ble-scale.js` and `bookoo-scale.js` so a scale driver can be chosen by brand, keeping the BOOKOO behaviour byte for byte.
-  4. Add the fake Acaia to `ble-mock.js`, then the driver, then the device manager changes, then the docs.
+  1. Check at 384 x 720 and 375 x 667 that the settings row ("Acaia (needs verification)") fits. CI's layout tests pass, but nobody has looked at it.
+  2. Find someone with an older Acaia (Lunar or Pearl from about 2016) to try it. Check the device name prefixes, that weight and Tare work, and whether the timer commands (start 5, stop 7) behave. Then change the docs from "Needs verification" for that model.
+  3. For newer Acaia models (Lunar 2021, Pearl firmware 2.0, Pyxis), find a protocol source whose licence allows reuse. pyacaia is AGPL-3.0, so its code cannot be copied. Then add a second Acaia driver and register it in `scale-switch.js` and `scaleBrandOf`.
+  4. Other brands (Felicita, Timemore and so on): one driver each, only where a public protocol write-up exists.
 
 ## Open questions
 
