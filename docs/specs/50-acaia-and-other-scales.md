@@ -23,6 +23,9 @@ Only what the issue says is decided. Everything else is under Open questions.
 | Decision | Chosen | Rejected, and why |
 | --- | --- | --- |
 | First scale brand | Acaia | None recorded. The issue says "namely acaia" |
+| Which scales | Any Bluetooth scale whose protocol is documented somewhere public, Acaia first, newer and older Acaia models both aimed for | A single brand only: the issue says "any standard BLE scale" |
+| How compatibility is shown in the docs | Every scale other than BOOKOO is listed as "needs verification" until someone has tried it on a real scale | Claiming support from a protocol write-up alone: nobody on the project owns the scales |
+| The "only two devices" constraint | It was about one scale (BOOKOO) and one EC meter (Belka PORTAL). More scales are allowed. There is still only one supported EC meter, because no other Bluetooth EC meter is known | Keeping "only two devices": it would block this issue |
 | Where the new scale appears | In the existing scale slot: Connect still offers one scale and one EC meter | Not decided whether two scales at once is ever wanted |
 | Fix for the stale line in `belka_portal_protocol.md` (it says Acaia, DiFluid and Felicita drivers are in the app; only BOOKOO is) | Corrected as part of this work | Fixing it on its own now: it becomes true or gets removed depending on what this work delivers |
 
@@ -47,7 +50,7 @@ These hold for the first new scale, once it is chosen. Items marked (open) depen
 - [ ] Given a device remembered from an earlier visit, when the page opens, then each device reconnects to its own kind of driver, with no picker.
 - [ ] Given a brew from a device brand other than BOOKOO, when sync is on, then it syncs and displays like any other brew, and no stored or synced data format changes without an upgrade path.
 - [ ] The phone layout still fits without scrolling at 384 x 720 and 375 x 667.
-- [ ] `belka_portal_protocol.md` and `docs/product/features/connecting-devices.md` say which scales are supported, and the stale line is gone.
+- [ ] `belka_portal_protocol.md` and `docs/product/features/connecting-devices.md` say which scales are supported, with "needs verification" beside every scale that is not BOOKOO, and the stale line is gone.
 
 ## Test cases
 
@@ -74,13 +77,13 @@ These hold for the first new scale, once it is chosen. Items marked (open) depen
 
 ## Open questions
 
-- Which Acaia models matter? The company has made several generations (for example Lunar, Pearl, Pyxis) and the older ones and the newer ones use different Bluetooth schemes. This changes the size of the work.
-- Is there an Acaia scale available to test with? The constraints say a new scale needs "the device in hand". Without one, the driver can only be checked against the fake.
-- "Other BLE scales": which ones, in what order? There is no single standard Bluetooth protocol for coffee scales, so each brand is its own driver. Is one brand per issue acceptable, with this issue covering Acaia and the others tracked separately?
+- Do both older and newer Acaia models work from public information? Public write-ups exist for the Lunar (2021) and Pyxis, and Acaia is reported to have changed its protocol on newer Pearl firmware, so the models differ. The first piece of work is to list which models have a documented protocol, and to cover those. Models with no public write-up are left out.
+- No Acaia scale is available to test with (owner has none). The driver can only be checked against the fake, so every scale other than BOOKOO is "needs verification" in the docs. Who might try one on a real scale?
+- Which other scales and in what order? Any with a publicly documented Bluetooth protocol. There is no single standard, so each brand is its own driver. Does each brand go in as its own step under this issue?
 - Should timer start, stop and reset be sent to the scale, or should the app time the brew itself for scales that cannot do it? (The brew screen shows time from the scale today.)
 - Does the Acaia report battery, flow and a scale-side timer? The screen uses all three for the BOOKOO. What should show for a missing one?
 - How does the app tell which brand a device is? Today it checks by Bluetooth service and by name, and remembers devices by id (`bleDeviceIdsV1`). That stored list is likely to need a brand next to each id, and it already lives on user devices, so it needs an upgrade path.
 - Is the licence and terms of use of the Acaia protocol, whichever source is used, compatible with a public GitHub repository?
 - Should the brew log record which scale was used?
-- "Only two devices are supported" in `docs/product/constraints.md`, and "Support for other scales as needed" in the roadmap: both change if this goes ahead. They are not edited here, because this is still a draft.
+- The roadmap entry "Support for other scales as needed" should become a real item with this issue once the spec is agreed.
 - Does this need a decision record (adding a second brand of device driver changes how devices are chosen and stored)?
