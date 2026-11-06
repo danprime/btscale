@@ -3,7 +3,7 @@ title: Predict k_v by dragging the final TDS
 issue: "#48"
 owner: Daniel Tse
 last_verified: 2026-11-06
-status: ready for review
+status: done
 ---
 
 # Predict k_v by dragging the final TDS
@@ -70,9 +70,9 @@ The owner, while working out how far off the calibrated k_v is (see #44).
 
 ## Status
 
-- Done: feasibility review (feasible, Small to Medium); mockups, card under the chart chosen; built on branch `kv-drag` (`scale-ui.js` `drawExtractionChart`, `renderWhatIfCard`, `setWhatIfTds`; `index.html` `#whatIfCard`; `style.css`). Playwright specs in `tests/tds.spec.js`: mouse drag, arrow keys, nothing saved, tap and swipe still work, clearing, uncalibrated, brew log, both phone sizes, and a touch drag that doesn't swipe the carousel.
+- Done: feasibility review (feasible, Small to Medium); mockups, card under the chart chosen; built and merged in PR #51 (`scale-ui.js` `drawExtractionChart`, `renderWhatIfCard`, `setWhatIfTds`; `index.html` `#whatIfCard`; `style.css`). Playwright specs in `tests/tds.spec.js`: mouse drag, arrow keys, nothing saved, tap and swipe still work, clearing, uncalibrated, brew log, both phone sizes, and a touch drag that doesn't swipe the carousel.
 - Not yet checked: dragging on a real phone or iPad (only emulated touch), and iPad portrait.
-- Next steps: try it on the phone after a real brew; then push, PR and merge when the owner says so.
+- Next steps: after a real brew, drag the dot on the phone (Android Chrome) and on the iPad (Bluefy, landscape and portrait). Check the drag doesn't swipe the charts or scroll the page. File a bug if it does.
 
 ## Open questions
 
