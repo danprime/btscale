@@ -636,8 +636,16 @@ test('devices disconnect after Stop: final values kept, chart redrawn, Connect u
     for (let i = 3; i < d.length; i += 4) if (d[i]) return true;
     return false;
   });
-  await page.evaluate(() => { const c = document.querySelector('#brewChartCanvas'); c.getContext('2d').clearRect(0, 0, c.width, c.height); });
-  expect(await painted()).toBe(false);
+  // Clear and check in one step: the app can repaint between two separate calls, which made this flaky
+  const paintedAfterClear = await page.evaluate(() => {
+    const c = document.querySelector('#brewChartCanvas');
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+    const d = ctx.getImageData(0, 0, c.width, c.height).data;
+    for (let i = 3; i < d.length; i += 4) if (d[i]) return true;
+    return false;
+  });
+  expect(paintedAfterClear).toBe(false);
   await page.evaluate(() => document.querySelector('#brewChartCanvas').dispatchEvent(new Event('contextrestored')));
   await expect.poll(painted).toBe(true);
 
