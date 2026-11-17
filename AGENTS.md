@@ -123,3 +123,7 @@ stop and ask. Add a `Co-authored-by:` trailer for each person on commits made in
   (otherwise Chromium on Windows keeps sockets open and the hook times out).
 - Declined ideas are listed in [docs/product/ideas-rejected.md](docs/product/ideas-rejected.md);
   check there before proposing UI cues or new features.
+- Playwright's Chromium is already installed on this machine. Don't run `playwright install`
+  or `--with-deps`. If a test says a browser is missing, stop and tell me.
+- Install dependencies with `npm ci --prefer-offline` (uses the local cache, no re-download).
+- Only test in Chromium unless a task says otherwise.
