@@ -93,6 +93,21 @@ Each skill is a runbook in `docs/runbooks/`. Tool-specific wrappers (e.g. `.clau
 | `feasibility-review` | An issue is labelled `idea` | [docs/runbooks/feasibility-review.md](docs/runbooks/feasibility-review.md) |
 | `incident-mode` | Something is broken in production | [docs/runbooks/incident-mode.md](docs/runbooks/incident-mode.md) |
 
+## Modern Web Guidance
+
+Google Chrome's [Modern Web Guidance](https://developer.chrome.com/docs/modern-web-guidance) skill is
+installed in `.claude/skills/modern-web-guidance/` (pinned in `skills-lock.json`). For any HTML, CSS or
+client-side JS work (dialogs, forms, layout, animation, accessibility, performance), run its
+`search` then `retrieve` steps before writing code, and end the reply with its `### Modern Web
+Guidance` section. Skip it for tests, docs, scripts and device protocol code.
+
+- **Browser support:** Web Bluetooth already limits the app to Chromium browsers (Chrome, Edge,
+  Android Chrome). Features that are Baseline "newly available" or Chromium-only may be used
+  without polyfills; keep fallbacks to a few lines.
+- Do not run `legacy-scan` for a specific feature; it is for a deliberate modernization pass.
+- Update with `npx modern-web-guidance@latest update`, then commit the changed skill files.
+- The CLI sends anonymous usage data (search queries, guide IDs). Set `DISABLE_TELEMETRY=1` to opt out.
+
 ## Shared sessions
 
 In pairing or incident sessions, messages may come from more than one person, prefixed with their name
@@ -101,6 +116,10 @@ stop and ask. Add a `Co-authored-by:` trailer for each person on commits made in
 
 ## Project-specific notes
 
+- Playwright's Chromium is already installed on this machine. Don't run `playwright install`
+  or `--with-deps`. If a test says a browser is missing, stop and tell me.
+- Install dependencies with `npm ci --prefer-offline` (uses the local cache, no re-download).
+- Only test in Chromium unless a task says otherwise.
 - Deploy: GitHub Pages publishes the `main` branch as-is (legacy Pages build, Jekyll, no workflow).
   Merging to `main` is the deploy; there is no service worker, so the next page load gets the change.
   `docs/` is published too, at `https://danprime.github.io/btscale/docs/...`. Keep it free of anything

@@ -16,6 +16,7 @@
       "Bash(gh pr diff:*)",
       "Bash(python3 scripts/docs_check.py:*)",
       "Bash(python3 scripts/build_docs_site.py:*)",
+      "Bash(npx -y modern-web-guidance@latest *)",
       "Bash(npm ci)",
       "Bash(npm test:*)",
       "Bash(npx playwright test:*)",
