@@ -211,6 +211,10 @@ test('rename (Enter saves, Escape cancels, empty refused) and the date stays', a
   await expect(page.locator('#logName')).toHaveText('Kenya AA, V60');
   await page.click('#logRenameBtn');
   await page.locator('#logNameInput').fill('Something else');
+  // An Enter that confirms an IME candidate must not save the name
+  await page.locator('#logNameInput').evaluate((el) => el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true, cancelable: true })));
+  await expect(page.locator('#logRenameBtn')).toHaveText('Save');
+  await expect(page.locator('#logNameInput')).toHaveValue('Something else');
   await page.locator('#logNameInput').press('Escape');
   await expect(page.locator('#logName')).toHaveText('Kenya AA, V60');
   await expect(page.locator('#logDetailView')).toBeVisible(); // Escape only cancelled the rename
