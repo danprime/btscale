@@ -1189,7 +1189,7 @@ function renderRatioSlider() {
     const track = document.getElementById('ratioSliderTrack');
     if (!track) return;
     const ratios = currentBrewMode === 'brew' ? brewRatios : espressoRatios;
-    track.innerHTML = '';
+    track.replaceChildren();
     ratios.forEach((r, i) => {
         const option = document.createElement('div');
         option.className = 'ratio-slider-option' + (i === ratioSliderState.selectedIdx ? ' selected' : '');
@@ -2300,6 +2300,7 @@ function startLogRename() {
     btn.setAttribute('aria-label', 'Save name');
     btn.onclick = () => endLogRename(true);
     input.addEventListener('keydown', (e) => {
+        if (e.isComposing || e.keyCode === 229) return; // IME is confirming a candidate, not saving
         if (e.key === 'Enter') { e.preventDefault(); endLogRename(true); }
         if (e.key === 'Escape') { e.stopPropagation(); endLogRename(false); }
     });

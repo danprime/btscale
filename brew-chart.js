@@ -216,7 +216,7 @@ export class BrewChart {
       dot(last, y, COLORS.line);
     }
     if (showValues) {
-      const at = (pts) => (valuesAt == null ? pts[pts.length - 1] : [...pts].reverse().find((p) => p.t <= valuesAt) ?? pts[0]);
+      const at = (pts) => (valuesAt == null ? pts[pts.length - 1] : pts.findLast((p) => p.t <= valuesAt) ?? pts[0]);
       const lastWeight = dual ? at(weightPoints) : mode === 'weight' ? at(points) : null;
       const lastEc = mode === 'ec' ? at(points) : null;
       const tags = [];

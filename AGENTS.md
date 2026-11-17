@@ -93,6 +93,21 @@ Each skill is a runbook in `docs/runbooks/`. Tool-specific wrappers (e.g. `.clau
 | `feasibility-review` | An issue is labelled `idea` | [docs/runbooks/feasibility-review.md](docs/runbooks/feasibility-review.md) |
 | `incident-mode` | Something is broken in production | [docs/runbooks/incident-mode.md](docs/runbooks/incident-mode.md) |
 
+## Modern Web Guidance
+
+Google Chrome's [Modern Web Guidance](https://developer.chrome.com/docs/modern-web-guidance) skill is
+installed in `.claude/skills/modern-web-guidance/` (pinned in `skills-lock.json`). For any HTML, CSS or
+client-side JS work (dialogs, forms, layout, animation, accessibility, performance), run its
+`search` then `retrieve` steps before writing code, and end the reply with its `### Modern Web
+Guidance` section. Skip it for tests, docs, scripts and device protocol code.
+
+- **Browser support:** Web Bluetooth already limits the app to Chromium browsers (Chrome, Edge,
+  Android Chrome). Features that are Baseline "newly available" or Chromium-only may be used
+  without polyfills; keep fallbacks to a few lines.
+- Do not run `legacy-scan` for a specific feature; it is for a deliberate modernization pass.
+- Update with `npx modern-web-guidance@latest update`, then commit the changed skill files.
+- The CLI sends anonymous usage data (search queries, guide IDs). Set `DISABLE_TELEMETRY=1` to opt out.
+
 ## Shared sessions
 
 In pairing or incident sessions, messages may come from more than one person, prefixed with their name
